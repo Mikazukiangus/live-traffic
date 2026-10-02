@@ -1,0 +1,6 @@
+{
+  "name": "TrafficPulse - Expressway Incident Dispatch & LTA Workshop Network",
+  "description": "Smart Mobility roadside emergency dispatch, expressway incident triage, live tow fleet radar, and LTA accredited workshop directory.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
