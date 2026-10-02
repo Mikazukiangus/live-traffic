@@ -18,6 +18,7 @@ import { BookingModal } from './components/BookingModal';
 import { CallModal } from './components/CallModal';
 import { SlaModal } from './components/SlaModal';
 import { NotificationsDrawer } from './components/NotificationsDrawer';
+import { ApiHealthModal } from './components/ApiHealthModal';
 import { SosWorkshopsView } from './views/SosWorkshopsView';
 import { LiveRadarView } from './views/LiveRadarView';
 import { HighwayCamerasView } from './views/HighwayCamerasView';
@@ -53,6 +54,7 @@ export default function App() {
 
   const [slaModalOpen, setSlaModalOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [apiHealthModalOpen, setApiHealthModalOpen] = useState(false);
 
   // Handlers
   const handleToggleBroadcast = () => {
@@ -187,7 +189,7 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <Footer />
+      <Footer onOpenApiHealth={() => setApiHealthModalOpen(true)} />
 
       {/* Modals & Drawers */}
       <BookingModal
@@ -216,6 +218,11 @@ export default function App() {
         isOpen={notificationsOpen}
         onClose={() => setNotificationsOpen(false)}
         onSelectIncident={() => setActiveTab('live-traffic-radar')}
+      />
+
+      <ApiHealthModal
+        isOpen={apiHealthModalOpen}
+        onClose={() => setApiHealthModalOpen(false)}
       />
     </div>
   );

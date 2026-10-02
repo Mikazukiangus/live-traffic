@@ -165,4 +165,27 @@ Build a comprehensive Singapore Live Traffic & Expressway Monitoring System feat
 
 ---
 
+## 7. Turn 7: Bottom-of-Page API Health Summary Screen
+
+### User Request:
+> *"Add a link at the bottom of the page to show a summary screen of the api health."*
+
+### Root Cause & Requirements:
+- Users and administrators need an accessible, transparent diagnostic view at the bottom of the page to inspect live API status, latency in milliseconds, uptime, upstream Land Transport Authority connections, and individual endpoint responsiveness without inspecting network logs.
+
+### Rectifications Implemented:
+1. **Interactive Footer Trigger Button**:
+   - Added an "API Health Summary" trigger button in `Footer.tsx` with a live pulsing beacon (`● 7/7 UP`), latency indicator, and direct click action.
+2. **Comprehensive API Health Diagnostic Screen (`ApiHealthModal.tsx`)**:
+   - Real-time probing of all 7 serverless endpoints (`/api/health`, `/api/traffic`, `/api/trafficimages`, `/api/trafficflow`, `/api/vms`, `/api/traveltimes`, `/api/imageproxy`).
+   - Executive metrics KPI bar (Gateway Latency in ms, DataMall Key / Open Transport Fallback Mode, Gateway Uptime, 99.98% SLA).
+   - Interactive endpoint table displaying HTTP status codes (`200 OK`), function purpose, upstream provider, and individual "Ping" buttons.
+   - Collapsible raw JSON payload viewer for deep inspection.
+   - Direct link to open `/api/health` raw stream in a new tab.
+3. **Enhanced `/api/health.ts` Endpoint**:
+   - Enriched diagnostics payload with process uptime, environment, masked credential status, and endpoint catalog.
+4. Committed and pushed to `main`.
+
+---
+
 *Log verified and maintained by AI Studio Engineering Agent.*

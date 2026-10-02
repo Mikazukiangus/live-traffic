@@ -1,6 +1,10 @@
 import React from 'react';
 
-export const Footer: React.FC = () => {
+interface FooterProps {
+  onOpenApiHealth: () => void;
+}
+
+export const Footer: React.FC<FooterProps> = ({ onOpenApiHealth }) => {
   return (
     <footer className="w-full bg-white border-t border-slate-200 py-6 mt-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col md:flex-row items-center justify-between gap-4">
@@ -14,12 +18,30 @@ export const Footer: React.FC = () => {
           </span>
         </div>
 
-        {/* Right: Telemetry sync & emergency callout */}
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-1.5 text-xs text-slate-500">
+        {/* Center/Right: API Health Summary link, Telemetry sync & emergency callout */}
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+          {/* API Health Summary Trigger Button */}
+          <button
+            onClick={onOpenApiHealth}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold transition-all cursor-pointer border border-slate-200 shadow-2xs hover:border-slate-300"
+            title="View comprehensive API Health & Gateway Diagnostic Summary"
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span className="material-symbols-outlined text-xs text-sky-600">monitor_heart</span>
+            <span className="font-mono text-[11px]">API Health Summary</span>
+            <span className="text-[10px] text-emerald-700 font-bold bg-emerald-100 px-1.5 py-0.2 rounded font-mono">
+              7/7 UP
+            </span>
+          </button>
+
+          <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-500">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-            <span>LTA Datamall v2.0 • Synced 4s ago</span>
+            <span>LTA DataMall v2.0 • Live Stream</span>
           </div>
+
           <div className="flex items-center gap-2">
             <a
               href="tel:18002255582"
