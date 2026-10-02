@@ -8,6 +8,7 @@ import trafficImagesHandler from './api/trafficimages.ts';
 import trafficFlowHandler from './api/trafficflow.ts';
 import vmsHandler from './api/vms.ts';
 import travelTimesHandler from './api/traveltimes.ts';
+import imageProxyHandler from './api/imageproxy.ts';
 
 function apiDevServerPlugin(): Plugin {
   return {
@@ -54,6 +55,9 @@ function apiDevServerPlugin(): Plugin {
               return;
             case '/api/traveltimes':
               await travelTimesHandler(req, res);
+              return;
+            case '/api/imageproxy':
+              await imageProxyHandler(req, res);
               return;
             default:
               return next();

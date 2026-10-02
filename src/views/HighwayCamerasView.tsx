@@ -6,6 +6,33 @@ interface HighwayCamerasViewProps {
   onCallHotline: (phone: string, title: string) => void;
 }
 
+// Guaranteed local fallback images for each expressway corridor (stored in /public/images)
+const CORRIDOR_FALLBACK_IMAGES: Record<string, string> = {
+  KPE: '/images/cctv_kpe_tunnel.jpg',
+  CTE: '/images/cctv_cte_flyover.jpg',
+  PIE: '/images/cctv_pie_interchange.jpg',
+  AYE: '/images/cctv_aye_jurong.jpg',
+  BKE: '/images/cctv_woodlands_checkpoint.jpg',
+  ECP: '/images/cctv_ecp_sheares.jpg',
+  MCE: '/images/cctv_sentosa_gateway.jpg',
+  SLE: '/images/cctv_cte_flyover.jpg',
+  TPE: '/images/cctv_pie_interchange.jpg',
+};
+
+const getFallbackForCorridor = (corridor: string): string => {
+  return CORRIDOR_FALLBACK_IMAGES[corridor] || '/images/cctv_kpe_tunnel.jpg';
+};
+
+const getResolvedCameraUrl = (url: string, corridor: string): string => {
+  if (!url) return getFallbackForCorridor(corridor);
+  if (url.startsWith('/images/')) return url;
+  if (url.startsWith('https://images.data.gov.sg/')) {
+    // Pipe through our image proxy to ensure proper image/jpeg MIME-type and cache
+    return `/api/imageproxy?url=${encodeURIComponent(url)}`;
+  }
+  return url;
+};
+
 // Official verified LTA directory for live cameras based on real-world coordinates and Singapore gantry IDs
 const REAL_LTA_CAMERA_DIRECTORY: Record<
   string,
@@ -277,6 +304,9 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredCameras.map((cam) => {
             const isLiveLta = cam.id.startsWith('lta-live');
+            const resolvedUrl = getResolvedCameraUrl(cam.imageUrl, cam.corridor);
+            const fallbackSrc = getFallbackForCorridor(cam.corridor);
+
             return (
               <div
                 key={cam.id}
@@ -286,12 +316,16 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
                 {/* CCTV Snapshot container */}
                 <div className="h-52 relative bg-slate-950 overflow-hidden">
                   <img
-                    src={cam.imageUrl}
+                    src={resolvedUrl}
                     alt={cam.name}
                     loading="lazy"
+                    referrerPolicy="no-referrer"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     onError={(e) => {
-                      (e.target as HTMLImageElement).src = '/src/assets/images/cctv_kpe_tunnel_1790914126594.jpg';
+                      const target = e.target as HTMLImageElement;
+                      if (!target.src.endsWith(fallbackSrc)) {
+                        target.src = fallbackSrc;
+                      }
                     }}
                   />
 
@@ -355,9 +389,17 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
 
             <div className="w-full h-96 rounded-lg overflow-hidden relative bg-slate-950 flex items-center justify-center">
               <img
-                src={selectedCam.imageUrl}
+                src={getResolvedCameraUrl(selectedCam.imageUrl, selectedCam.corridor)}
                 alt={selectedCam.name}
+                referrerPolicy="no-referrer"
                 className="w-full h-full object-contain"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  const fallback = getFallbackForCorridor(selectedCam.corridor);
+                  if (!target.src.endsWith(fallback)) {
+                    target.src = fallback;
+                  }
+                }}
               />
               <div className="absolute top-3 left-3 bg-black/80 backdrop-blur-md px-3 py-1 rounded text-white text-xs font-mono flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
