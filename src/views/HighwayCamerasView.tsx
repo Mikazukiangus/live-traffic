@@ -6,21 +6,22 @@ interface HighwayCamerasViewProps {
   onCallHotline: (phone: string, title: string) => void;
 }
 
-// Guaranteed local fallback images for each expressway corridor (stored in /public/images)
+// Guaranteed local fallback images for all 10 Singapore expressways (stored in /public/images)
 const CORRIDOR_FALLBACK_IMAGES: Record<string, string> = {
-  KPE: '/images/cctv_kpe_tunnel.jpg',
-  CTE: '/images/cctv_cte_flyover.jpg',
   PIE: '/images/cctv_pie_interchange.jpg',
   AYE: '/images/cctv_aye_jurong.jpg',
-  BKE: '/images/cctv_woodlands_checkpoint.jpg',
   ECP: '/images/cctv_ecp_sheares.jpg',
-  MCE: '/images/cctv_sentosa_gateway.jpg',
-  SLE: '/images/cctv_cte_flyover.jpg',
-  TPE: '/images/cctv_pie_interchange.jpg',
+  CTE: '/images/cctv_cte_flyover.jpg',
+  TPE: '/images/cctv_tpe_punggol.jpg',
+  KPE: '/images/cctv_kpe_tunnel.jpg',
+  SLE: '/images/cctv_sle_lentor.jpg',
+  BKE: '/images/cctv_woodlands_checkpoint.jpg',
+  KJE: '/images/cctv_kje_choachukang.jpg',
+  MCE: '/images/cctv_mce_undersea.jpg',
 };
 
 const getFallbackForCorridor = (corridor: string): string => {
-  return CORRIDOR_FALLBACK_IMAGES[corridor] || '/images/cctv_kpe_tunnel.jpg';
+  return CORRIDOR_FALLBACK_IMAGES[corridor] || '/images/cctv_pie_interchange.jpg';
 };
 
 const getResolvedCameraUrl = (url: string, corridor: string): string => {
@@ -126,10 +127,13 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
             }
           });
 
-          // Combine with verified expressway feeds (KPE, CTE, PIE, ECP) so the view covers all major expressways
+          // Ensure ALL 10 Singapore expressways remain fully represented in surveillance feeds
+          // Combine the full 10-expressway curated fleet with any dynamic live LTA border cameras
           const combinedList: HighwayCameraFeed[] = [
-            ...HIGHWAY_CAMERAS.filter((c) => ['KPE', 'CTE', 'PIE', 'ECP'].includes(c.corridor)),
-            ...liveVerifiedCameras,
+            ...HIGHWAY_CAMERAS,
+            ...liveVerifiedCameras.filter(
+              (liveCam) => !HIGHWAY_CAMERAS.some((baseCam) => baseCam.id === liveCam.id)
+            ),
           ];
 
           setCameras(combinedList);
@@ -155,13 +159,16 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
   }, []);
 
   const corridors = [
-    { id: 'ALL', label: 'All Expressways' },
-    { id: 'KPE', label: 'KPE' },
-    { id: 'CTE', label: 'CTE' },
+    { id: 'ALL', label: 'All Expressways (10)' },
     { id: 'PIE', label: 'PIE' },
     { id: 'AYE', label: 'AYE' },
-    { id: 'BKE', label: 'BKE' },
     { id: 'ECP', label: 'ECP' },
+    { id: 'CTE', label: 'CTE' },
+    { id: 'TPE', label: 'TPE' },
+    { id: 'KPE', label: 'KPE' },
+    { id: 'SLE', label: 'SLE' },
+    { id: 'BKE', label: 'BKE' },
+    { id: 'KJE', label: 'KJE' },
     { id: 'MCE', label: 'MCE' },
   ];
 
