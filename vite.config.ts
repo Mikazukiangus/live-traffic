@@ -1,11 +1,76 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import {defineConfig} from 'vite';
+import { defineConfig, Plugin } from 'vite';
+import healthHandler from './api/health.ts';
+import trafficHandler from './api/traffic.ts';
+import trafficImagesHandler from './api/trafficimages.ts';
+import trafficFlowHandler from './api/trafficflow.ts';
+import vmsHandler from './api/vms.ts';
+import travelTimesHandler from './api/traveltimes.ts';
+
+function apiDevServerPlugin(): Plugin {
+  return {
+    name: 'api-dev-server',
+    configureServer(server) {
+      server.middlewares.use(async (req, res, next) => {
+        if (!req.url?.startsWith('/api/')) {
+          return next();
+        }
+
+        const pathname = req.url.split('?')[0].replace(/\.ts$/, '');
+
+        // Provide compatibility helpers for serverless res
+        if (typeof (res as any).json !== 'function') {
+          (res as any).json = (body: any) => {
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify(body));
+            return res;
+          };
+        }
+        if (typeof (res as any).status !== 'function') {
+          (res as any).status = (code: number) => {
+            res.statusCode = code;
+            return res;
+          };
+        }
+
+        try {
+          switch (pathname) {
+            case '/api/health':
+              await healthHandler(req, res);
+              return;
+            case '/api/traffic':
+              await trafficHandler(req, res);
+              return;
+            case '/api/trafficimages':
+              await trafficImagesHandler(req, res);
+              return;
+            case '/api/trafficflow':
+              await trafficFlowHandler(req, res);
+              return;
+            case '/api/vms':
+              await vmsHandler(req, res);
+              return;
+            case '/api/traveltimes':
+              await travelTimesHandler(req, res);
+              return;
+            default:
+              return next();
+          }
+        } catch (err: any) {
+          console.error(`API Error on ${pathname}:`, err);
+          res.statusCode = 500;
+          (res as any).json({ error: 'Internal Server Error', message: err?.message });
+        }
+      });
+    },
+  };
+}
 
 export default defineConfig(() => {
   return {
-    plugins: [react(), tailwindcss()],
+    plugins: [react(), tailwindcss(), apiDevServerPlugin()],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
