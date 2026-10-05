@@ -9,6 +9,14 @@ import { handleLtaRequest } from './_client.ts';
 const LTA_DATAMALL_TRAFFIC_IMAGES = 'https://datamall2.mytransport.sg/ltaodataservice/Traffic-Imagesv2';
 const DATA_GOV_TRAFFIC_IMAGES = 'https://api.data.gov.sg/v1/transport/traffic-images';
 
+// DataMall image names embed the capture time in UTC, e.g. .../2701_1120_20261005033013_E7E99C.jpg
+function captureTimeFromLink(link: string): string | null {
+  const match = /_(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})_[^/_]*\.jpg/i.exec(link || '');
+  if (!match) return null;
+  const [, y, mo, d, h, mi, s] = match;
+  return new Date(`${y}-${mo}-${d}T${h}:${mi}:${s}Z`).toISOString();
+}
+
 export default async function handler(req: any, res?: any) {
   const accountKey = process.env.LTA_ACCOUNT_KEY || req.headers?.['accountkey'];
 
@@ -26,19 +34,25 @@ export default async function handler(req: any, res?: any) {
         const dmData = await dmResponse.json();
         const rawCameras = dmData.value || [];
 
+        const fetchedAt = new Date().toISOString();
         const normalized = rawCameras.map((c: any) => ({
           camera_id: String(c.CameraID),
           image: c.ImageLink,
           latitude: c.Latitude,
           longitude: c.Longitude,
-          timestamp: new Date().toISOString(),
+          timestamp: captureTimeFromLink(c.ImageLink) || fetchedAt,
         }));
+        // Report the newest capture rather than the request time.
+        const latestCapture = normalized.reduce(
+          (latest: string, c: any) => (c.timestamp > latest ? c.timestamp : latest),
+          normalized[0]?.timestamp || fetchedAt
+        );
 
         const payload = {
           success: true,
           source: 'lta_datamall_v2',
           totalCameras: normalized.length,
-          timestamp: new Date().toISOString(),
+          timestamp: latestCapture,
           cameras: normalized,
         };
 

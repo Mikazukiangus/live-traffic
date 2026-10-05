@@ -19,6 +19,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 12. [Turn 12: Live LTA Variable Message Signboards](#12-turn-12-live-lta-variable-message-signboards)
 13. [Turn 13: Unique VMS Messages Only](#13-turn-13-unique-vms-messages-only)
 14. [Turn 14: Real LTA ERP Rate Schedule with Live Charging Status](#14-turn-14-real-lta-erp-rate-schedule-with-live-charging-status)
+15. [Turn 15: Live Camera Feed Audit After LTA Camera Retirement](#15-turn-15-live-camera-feed-audit-after-lta-camera-retirement)
 
 ---
 
@@ -338,6 +339,24 @@ Build a comprehensive Singapore Live Traffic & Expressway Monitoring System feat
 ### Limitations / Maintenance:
 - Public holidays and temporary school-holiday rate reductions are not reflected (noted under the table).
 - `erpRates.ts` must be updated when LTA revises rates (typically quarterly); check the OneMotoring ERP page.
+
+---
+
+## 15. Turn 15: Live Camera Feed Audit After LTA Camera Retirement
+
+### User Request:
+> *"Check 'Expressway Surveillance Live View' why not all the traffic images are live images although the cam feed is suppose to be live. see how to fix this to use a live or current image."*
+
+### Investigation:
+- Both LTA DataMall `Traffic-Imagesv2` and data.gov.sg `traffic-images` now return only **8 cameras** (2701, 2702, 2704, 4703, 4712, 4713, 4798, 4799). Historical data.gov.sg queries show 90 cameras up to 29 Jun 2026 and 8 from 30 Jun 2026; OneMotoring's camera page shows the same 8.
+- LTA announced that from 30 Jun 2026 only cameras at Woodlands and Tuas Checkpoints (plus approaches on the BKE/AYE) and Sentosa Gateway remain, as part of the ERP 2.0 transition. There is no public live image source for PIE, ECP, CTE, TPE, KPE, SLE or KJE.
+- The 8 live images were genuinely current (captured within ~5 minutes). The other cards were bundled stock photos from `/public/images` labelled "CCTV CAM", "HD" and "Live (2s ago)" with invented speeds; live cards also showed hardcoded speeds ("18 km/h • Customs queue"), and the DataMall path reported the request time as the capture time.
+
+### Rectifications Implemented:
+1. **`api/trafficimages.ts`:** DataMall camera timestamps now come from the capture time embedded in each image filename (UTC), and the feed timestamp is the newest capture rather than the request time.
+2. **`HighwayCamerasView.tsx`:** every camera LTA publishes is shown as a live card with its real capture time in SGT and age ("3 min ago"); captures older than 15 minutes are flagged "DELAYED LTA FEED". A live image that fails to load is left dark instead of silently swapping to a stock photo.
+3. Corridors without a live camera keep one card, now clearly labelled "REFERENCE PHOTO • NOT LIVE" (desaturated) with "No live feed since 30 Jun 2026".
+4. All invented speeds were replaced by the live LTA corridor average from `/api/expresswayspeeds` (e.g. "PIE avg 62 km/h • Moderate"), on both cards and the enlarged view. Header text explains the LTA change.
 
 ---
 

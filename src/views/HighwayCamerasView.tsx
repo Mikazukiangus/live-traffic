@@ -38,61 +38,91 @@ const getResolvedCameraUrl = (url: string, corridor: string): string => {
 // Official verified LTA directory for live cameras based on real-world coordinates and Singapore gantry IDs
 const REAL_LTA_CAMERA_DIRECTORY: Record<
   string,
-  { name: string; corridor: string; locationDesc: string; defaultSpeed: string }
+  { name: string; corridor: string; locationDesc: string }
 > = {
   '2701': {
     name: 'BKE • Woodlands Causeway (Towards Johor)',
     corridor: 'BKE',
     locationDesc: 'Causeway Bridge Inspection Entry • Camera #2701',
-    defaultSpeed: '18 km/h • Customs queue',
   },
   '2702': {
     name: 'BKE • Woodlands Checkpoint Viaduct',
     corridor: 'BKE',
     locationDesc: 'Woodlands Crossing Approach to BKE • Camera #2702',
-    defaultSpeed: '22 km/h • Slow moving',
   },
   '2704': {
     name: 'BKE • Woodlands South Flyover (Exit 10)',
     corridor: 'BKE',
     locationDesc: 'BKE before Turf Club Avenue • Camera #2704',
-    defaultSpeed: '55 km/h • Moderate flow',
   },
   '4703': {
     name: 'AYE • Tuas Second Link Bridge (Towards Malaysia)',
     corridor: 'AYE',
     locationDesc: 'Second Link International Bridge KM 1.2 • Camera #4703',
-    defaultSpeed: '60 km/h • Steady bridge flow',
   },
   '4712': {
     name: 'AYE • Tuas Checkpoint Arrival Viaduct',
     corridor: 'AYE',
     locationDesc: 'Jalan Ahmad Ibrahim Approach • Camera #4712',
-    defaultSpeed: '32 km/h • Queue moving',
   },
   '4713': {
     name: 'AYE • Tuas West Checkpoint Departure',
     corridor: 'AYE',
     locationDesc: 'Tuas West Extension Viaduct • Camera #4713',
-    defaultSpeed: '45 km/h • Moderate flow',
   },
   '4798': {
     name: 'MCE • Sentosa Gateway / HarbourFront Viaduct',
     corridor: 'MCE',
     locationDesc: 'Sentosa Gateway after Telok Blangah Rd • Camera #4798',
-    defaultSpeed: '50 km/h • Normal flow',
   },
   '4799': {
     name: 'MCE • Telok Blangah Rd / Keppel Bay Approach',
     corridor: 'MCE',
     locationDesc: 'HarbourFront towards Marina Coastal Expressway • Camera #4799',
-    defaultSpeed: '52 km/h • Normal flow',
   },
 };
 
+// LTA stopped publishing all other expressway camera feeds on this date (ERP 2.0 transition).
+const LTA_CAMERAS_RETIRED_ON = '30 Jun 2026';
+// LTA captures roughly every 1–5 minutes; older than this means the feed has stalled.
+const STALE_CAPTURE_MS = 15 * 60_000;
+
+interface CameraCard extends HighwayCameraFeed {
+  // ISO capture time; only set for live LTA cameras.
+  capturedAt?: string;
+}
+
+interface ExpresswaySpeed {
+  code: string;
+  avgSpeedKmH: number;
+  status: string;
+}
+
+const formatSgt = (iso: string) =>
+  new Date(iso).toLocaleTimeString('en-SG', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+    timeZone: 'Asia/Singapore',
+  });
+
+const captureAge = (iso: string, now: number) => {
+  const mins = Math.max(0, Math.round((now - new Date(iso).getTime()) / 60_000));
+  return mins < 1 ? 'just now' : `${mins} min ago`;
+};
+
+// Curated corridor cards whose camera LTA no longer publishes: shown as reference photos only.
+const REFERENCE_CAMERAS: CameraCard[] = HIGHWAY_CAMERAS.map((cam) => ({
+  ...cam,
+  updatedTime: `No live feed since ${LTA_CAMERAS_RETIRED_ON}`,
+}));
+
 export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHotline }) => {
-  const [cameras, setCameras] = useState<HighwayCameraFeed[]>(HIGHWAY_CAMERAS);
-  const [selectedCam, setSelectedCam] = useState<HighwayCameraFeed | null>(null);
+  const [cameras, setCameras] = useState<CameraCard[]>(REFERENCE_CAMERAS);
+  const [speeds, setSpeeds] = useState<Record<string, ExpresswaySpeed>>({});
+  const [now, setNow] = useState(() => Date.now());
+  const [selectedCam, setSelectedCam] = useState<CameraCard | null>(null);
   const [selectedCorridor, setSelectedCorridor] = useState<string>('ALL');
   const [showLiveOnly, setShowLiveOnly] = useState<boolean>(false);
   const [refreshing, setRefreshing] = useState<boolean>(false);
@@ -101,9 +131,23 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
   const [liveCaptureTime, setLiveCaptureTime] = useState<string>('');
   const [liveSourceDesc, setLiveSourceDesc] = useState<string>('LTA Data Traffic Images');
 
-  // Load real-time LTA camera feed from our serverless endpoint /api/trafficimages
+  // Live LTA corridor speeds (CDN-cached speed bands) replace per-camera speed guesses.
+  const fetchSpeeds = async () => {
+    try {
+      const res = await fetch('/api/expresswayspeeds');
+      if (!res.ok) return;
+      const json = await res.json();
+      if (!Array.isArray(json?.expressways)) return;
+      setSpeeds(Object.fromEntries(json.expressways.map((e: ExpresswaySpeed) => [e.code, e])));
+    } catch {
+      // Cards fall back to showing no speed.
+    }
+  };
+
+  // Load the LTA camera feed from our serverless endpoint /api/trafficimages
   const fetchLiveLtaCameras = async () => {
     setRefreshing(true);
+    fetchSpeeds();
     try {
       let rawCameras: any[] = [];
       let captureTimestamp = '';
@@ -115,14 +159,10 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
           const json = await res.json();
           rawCameras = json?.cameras || [];
           captureTimestamp = json?.timestamp || '';
-          if (json?.source === 'lta_datamall_v2') {
-            setLiveSourceDesc('LTA DataMall v2 Official Live Stream');
-          } else {
-            setLiveSourceDesc('LTA Data.gov.sg Live Traffic Images');
-          }
+          setLiveSourceDesc(json?.source === 'lta_datamall_v2' ? 'LTA DataMall Traffic Images' : 'Data.gov.sg Traffic Images');
         }
       } catch {
-        // Fallback directly to public Data.gov.sg open endpoint
+        // Fall back to the public Data.gov.sg endpoint below
       }
 
       // 2. Direct fallback to Data.gov.sg open endpoint if needed
@@ -132,84 +172,48 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
           const fbJson = await fallbackRes.json();
           rawCameras = fbJson?.items?.[0]?.cameras || [];
           captureTimestamp = fbJson?.items?.[0]?.timestamp || '';
-          setLiveSourceDesc('Data.gov.sg Live Transport Stream');
+          setLiveSourceDesc('Data.gov.sg Traffic Images');
         }
       }
 
       if (rawCameras.length > 0) {
-        const formattedCaptureTime = captureTimestamp
-          ? new Date(captureTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-          : new Date().toLocaleTimeString();
-        setLiveCaptureTime(formattedCaptureTime);
+        if (captureTimestamp) setLiveCaptureTime(formatSgt(captureTimestamp));
 
-        // Process live verified LTA cameras
-        const liveVerifiedCameras: HighwayCameraFeed[] = [];
-
-        rawCameras.forEach((c) => {
-          const camId = String(c.camera_id || c.CameraID);
-          const meta = REAL_LTA_CAMERA_DIRECTORY[camId];
-          const imgUrl = c.image || c.ImageLink;
-
-          if (meta && imgUrl) {
-            liveVerifiedCameras.push({
+        // Every camera LTA still publishes is shown, named from the directory where known.
+        const liveCameras: CameraCard[] = rawCameras
+          .filter((c) => c.image || c.ImageLink)
+          .map((c) => {
+            const camId = String(c.camera_id || c.CameraID);
+            const meta = REAL_LTA_CAMERA_DIRECTORY[camId];
+            const capturedAt = c.timestamp || captureTimestamp || new Date().toISOString();
+            return {
               id: `lta-live-${camId}`,
-              name: meta.name,
-              corridor: meta.corridor,
-              location: meta.locationDesc,
-              imageUrl: imgUrl,
-              updatedTime: `LTA Live Capture: ${formattedCaptureTime}`,
-              speedStatus: meta.defaultSpeed,
+              name: meta?.name || `LTA Camera #${camId}`,
+              corridor: meta?.corridor || 'LTA',
+              location: meta?.locationDesc || `Camera #${camId}`,
+              imageUrl: c.image || c.ImageLink,
+              updatedTime: `Captured ${formatSgt(capturedAt)}`,
+              speedStatus: '',
               weather: 'Dry',
-            });
-          }
-        });
+              capturedAt,
+            };
+          });
 
-        // Update curated cameras with the latest live photos where available (e.g. BKE, AYE, MCE)
-        const updatedCurated = HIGHWAY_CAMERAS.map((cam) => {
-          // If BKE Woodlands, update with latest camera 2701 photo
-          if (cam.id === 'cam-bke-08') {
-            const live2701 = liveVerifiedCameras.find((l) => l.id === 'lta-live-2701');
-            if (live2701) {
-              return {
-                ...cam,
-                imageUrl: live2701.imageUrl,
-                updatedTime: live2701.updatedTime,
-              };
-            }
-          }
-          // If AYE Tuas Second Link, update with latest camera 4703 photo
-          if (cam.id === 'cam-aye-11') {
-            const live4703 = liveVerifiedCameras.find((l) => l.id === 'lta-live-4703');
-            if (live4703) {
-              return {
-                ...cam,
-                imageUrl: live4703.imageUrl,
-                updatedTime: live4703.updatedTime,
-              };
-            }
-          }
-          return cam;
-        });
-
-        // Place all active live broadcast cameras prominently at the top, followed by the remaining 10 expressways
-        const combinedList: HighwayCameraFeed[] = [
-          ...liveVerifiedCameras,
-          ...updatedCurated.filter(
-            (curated) => !liveVerifiedCameras.some((live) => live.name.startsWith(curated.corridor))
-          ),
-        ];
-
-        setCameras(combinedList);
+        // Corridors without a live camera keep a reference photo card.
+        const liveCorridors = new Set(liveCameras.map((c) => c.corridor));
+        setCameras([...liveCameras, ...REFERENCE_CAMERAS.filter((ref) => !liveCorridors.has(ref.corridor))]);
         setLiveSyncActive(true);
+        setNow(Date.now());
         setLastRefreshedAt(new Date().toLocaleTimeString());
         setRefreshing(false);
         return;
       }
     } catch {
-      // Keep verified base cameras if network offline
+      // Keep reference cameras if the network is offline
     }
 
-    setCameras(HIGHWAY_CAMERAS);
+    setCameras(REFERENCE_CAMERAS);
+    setLiveSyncActive(false);
     setLastRefreshedAt(new Date().toLocaleTimeString());
     setRefreshing(false);
   };
@@ -219,6 +223,11 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
     const interval = setInterval(fetchLiveLtaCameras, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  const speedText = (corridor: string) => {
+    const s = speeds[corridor];
+    return s ? `${corridor} avg ${s.avgSpeedKmH} km/h • ${s.status}` : 'Corridor speed unavailable';
+  };
 
   const corridors = [
     { id: 'ALL', label: 'All Expressways (10)' },
@@ -267,7 +276,7 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
             )}
             {liveCaptureTime && (
               <span className="px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200 text-[10px] font-bold font-mono">
-                Latest LTA Photo Capture: {liveCaptureTime}
+                Latest LTA Photo Capture: {liveCaptureTime} SGT
               </span>
             )}
           </div>
@@ -275,7 +284,9 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
             Expressway Surveillance Live View
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Real-time highway traffic camera snapshots from Singapore LTA Data Traffic Images endpoint with automatic 30s live refresh.
+            Latest LTA traffic camera snapshots, refreshed every 30s. Since {LTA_CAMERAS_RETIRED_ON} LTA only publishes
+            cameras at the Woodlands and Tuas Checkpoints and Sentosa Gateway; other expressways show a reference photo
+            with live LTA corridor speeds.
           </p>
         </div>
 
@@ -343,6 +354,7 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredCameras.map((cam) => {
             const isLiveLta = cam.id.startsWith('lta-live');
+            const isStale = !!cam.capturedAt && now - new Date(cam.capturedAt).getTime() > STALE_CAPTURE_MS;
             const resolvedUrl = getResolvedCameraUrl(cam.imageUrl, cam.corridor);
             const fallbackSrc = getFallbackForCorridor(cam.corridor);
 
@@ -358,11 +370,17 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
                     src={resolvedUrl}
                     alt={cam.name}
                     loading="lazy"
+                    onLoad={(e) => ((e.target as HTMLImageElement).style.visibility = 'visible')}
                     referrerPolicy="no-referrer"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ${
+                      isLiveLta ? '' : 'grayscale-[60%] opacity-80'
+                    }`}
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
-                      if (!target.src.endsWith(fallbackSrc)) {
+                      // Never pass a stock photo off as a live camera; leave the frame dark instead.
+                      if (isLiveLta) {
+                        target.style.visibility = 'hidden';
+                      } else if (!target.src.endsWith(fallbackSrc)) {
                         target.src = fallbackSrc;
                       }
                     }}
@@ -372,20 +390,28 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
                   <div className="absolute top-2 left-2 px-2 py-0.5 rounded bg-black/80 backdrop-blur-md text-white text-[10px] font-mono flex items-center gap-1.5 border border-white/10">
                     <span
                       className={`w-2 h-2 rounded-full ${
-                        isLiveLta ? 'bg-red-500 animate-pulse' : 'bg-emerald-400'
+                        isLiveLta ? (isStale ? 'bg-amber-400' : 'bg-red-500 animate-pulse') : 'bg-slate-400'
                       }`}
                     ></span>
-                    <span>{isLiveLta ? 'LIVE LTA BROADCAST' : 'CCTV CAM'} • {cam.corridor}</span>
+                    <span>{isLiveLta ? (isStale ? 'DELAYED LTA FEED' : 'LIVE LTA CAMERA') : 'REFERENCE PHOTO'} • {cam.corridor}</span>
                   </div>
 
-                  <div className="absolute top-2 right-2 px-2 py-0.5 rounded bg-black/80 backdrop-blur-md text-emerald-400 text-[10px] font-mono border border-white/10 flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[11px]">photo_camera</span>
-                    <span>{isLiveLta ? 'LTA FEED' : 'HD'}</span>
+                  <div
+                    className={`absolute top-2 right-2 px-2 py-0.5 rounded bg-black/80 backdrop-blur-md text-[10px] font-mono border border-white/10 flex items-center gap-1 ${
+                      isLiveLta ? 'text-emerald-400' : 'text-slate-300'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-[11px]">{isLiveLta ? 'photo_camera' : 'no_photography'}</span>
+                    <span>{isLiveLta && cam.capturedAt ? captureAge(cam.capturedAt, now) : 'NOT LIVE'}</span>
                   </div>
 
                   <div className="absolute bottom-2 left-2 right-2 px-2 py-1.5 rounded bg-black/85 backdrop-blur-md text-white text-[11px] font-mono flex items-center justify-between">
-                    <span className="truncate">{cam.speedStatus}</span>
-                    <span className="text-emerald-400 text-[10px] shrink-0 pl-1 font-semibold">
+                    <span className="truncate">{speedText(cam.corridor)}</span>
+                    <span
+                      className={`text-[10px] shrink-0 pl-1 font-semibold ${
+                        isLiveLta ? (isStale ? 'text-amber-400' : 'text-emerald-400') : 'text-slate-400'
+                      }`}
+                    >
                       {cam.updatedTime}
                     </span>
                   </div>
@@ -411,7 +437,7 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
                           isLiveLta ? 'bg-emerald-500' : 'bg-slate-400'
                         }`}
                       ></span>
-                      <span>{isLiveLta ? 'Direct LTA Traffic Images Stream' : 'Expressway Corridor CCTV'}</span>
+                      <span>{isLiveLta ? 'Live LTA traffic camera' : 'Reference photo • live corridor speed'}</span>
                     </span>
                     <span className="text-sky-600 font-bold flex items-center gap-0.5 group-hover:translate-x-0.5 transition-transform">
                       Enlarge <span className="material-symbols-outlined text-xs">zoom_in</span>
@@ -456,12 +482,21 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
                 }}
               />
               <div className="absolute top-3 left-3 bg-black/80 backdrop-blur-md px-3 py-1 rounded text-white text-xs font-mono flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-                <span>LIVE FEED • {selectedCam.corridor}</span>
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    selectedCam.capturedAt ? 'bg-red-500 animate-pulse' : 'bg-slate-400'
+                  }`}
+                ></span>
+                <span>
+                  {selectedCam.capturedAt ? 'LIVE LTA CAMERA' : 'REFERENCE PHOTO'} • {selectedCam.corridor}
+                </span>
               </div>
               <div className="absolute bottom-3 left-3 right-3 bg-black/80 backdrop-blur-md px-3 py-2 rounded text-white text-xs font-mono flex items-center justify-between">
-                <span>{selectedCam.speedStatus}</span>
-                <span className="text-emerald-400">{selectedCam.updatedTime}</span>
+                <span>{speedText(selectedCam.corridor)}</span>
+                <span className={selectedCam.capturedAt ? 'text-emerald-400' : 'text-slate-400'}>
+                  {selectedCam.updatedTime}
+                  {selectedCam.capturedAt ? ` SGT (${captureAge(selectedCam.capturedAt, now)})` : ''}
+                </span>
               </div>
             </div>
 
