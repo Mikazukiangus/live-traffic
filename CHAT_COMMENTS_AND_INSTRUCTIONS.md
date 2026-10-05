@@ -20,6 +20,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 13. [Turn 13: Unique VMS Messages Only](#13-turn-13-unique-vms-messages-only)
 14. [Turn 14: Real LTA ERP Rate Schedule with Live Charging Status](#14-turn-14-real-lta-erp-rate-schedule-with-live-charging-status)
 15. [Turn 15: Live Camera Feed Audit After LTA Camera Retirement](#15-turn-15-live-camera-feed-audit-after-lta-camera-retirement)
+16. [Turn 16: Live LTA Cameras Only](#16-turn-16-live-lta-cameras-only)
 
 ---
 
@@ -357,6 +358,19 @@ Build a comprehensive Singapore Live Traffic & Expressway Monitoring System feat
 2. **`HighwayCamerasView.tsx`:** every camera LTA publishes is shown as a live card with its real capture time in SGT and age ("3 min ago"); captures older than 15 minutes are flagged "DELAYED LTA FEED". A live image that fails to load is left dark instead of silently swapping to a stock photo.
 3. Corridors without a live camera keep one card, now clearly labelled "REFERENCE PHOTO • NOT LIVE" (desaturated) with "No live feed since 30 Jun 2026".
 4. All invented speeds were replaced by the live LTA corridor average from `/api/expresswayspeeds` (e.g. "PIE avg 62 km/h • Moderate"), on both cards and the enlarged view. Header text explains the LTA change.
+
+---
+
+## 16. Turn 16: Live LTA Cameras Only
+
+### User Request:
+> *"only keep the 8 live cameras since LTA has retired the remaining ones."*
+
+### Rectifications Implemented:
+1. `HighwayCamerasView.tsx` now shows only the cameras LTA publishes (currently 8: BKE 2701/2702/2704, AYE 4703/4712/4713, MCE 4798/4799). The reference-photo cards, stock-image fallbacks and the "Live LTA Feeds Only" toggle were removed.
+2. Expressway filter pills are built from the live cameras ("All Cameras (8)", AYE, BKE, MCE), so new or removed LTA cameras are reflected automatically.
+3. If the feed is unavailable the grid shows "LTA camera feed unavailable. Retrying every 30 seconds."; after a failed refresh the last cameras stay and their capture age marks them "DELAYED LTA FEED" after 15 minutes. A live image that fails to load leaves the frame dark.
+4. Removed the `HIGHWAY_CAMERAS` mock from `mockData.ts` and the 20 stock CCTV photos in `public/images` (~21 MB), which are no longer referenced.
 
 ---
 

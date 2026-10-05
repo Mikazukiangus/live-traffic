@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { HIGHWAY_CAMERAS } from '../data/mockData';
 import { LiveVmsBoards } from '../components/LiveVmsBoards';
 import { HighwayCameraFeed } from '../types/traffic';
 
@@ -7,32 +6,13 @@ interface HighwayCamerasViewProps {
   onCallHotline: (phone: string, title: string) => void;
 }
 
-// Guaranteed local fallback images for all 10 Singapore expressways (stored in /public/images)
-const CORRIDOR_FALLBACK_IMAGES: Record<string, string> = {
-  PIE: '/images/cctv_pie_interchange.jpg',
-  AYE: '/images/cctv_aye_jurong.jpg',
-  ECP: '/images/cctv_ecp_sheares.jpg',
-  CTE: '/images/cctv_cte_flyover.jpg',
-  TPE: '/images/cctv_tpe_punggol.jpg',
-  KPE: '/images/cctv_kpe_tunnel.jpg',
-  SLE: '/images/cctv_sle_lentor.jpg',
-  BKE: '/images/cctv_woodlands_checkpoint.jpg',
-  KJE: '/images/cctv_kje_choachukang.jpg',
-  MCE: '/images/cctv_mce_undersea.jpg',
-};
+const getResolvedCameraUrl = (url: string): string =>
+  // data.gov.sg serves images as octet-stream with nosniff, so pipe them through our proxy.
+  url.startsWith('https://images.data.gov.sg/') ? `/api/imageproxy?url=${encodeURIComponent(url)}` : url;
 
-const getFallbackForCorridor = (corridor: string): string => {
-  return CORRIDOR_FALLBACK_IMAGES[corridor] || '/images/cctv_pie_interchange.jpg';
-};
-
-const getResolvedCameraUrl = (url: string, corridor: string): string => {
-  if (!url) return getFallbackForCorridor(corridor);
-  if (url.startsWith('/images/')) return url;
-  if (url.startsWith('https://images.data.gov.sg/')) {
-    // Pipe through our serverless image proxy to bypass browser octet-stream/nosniff blocking
-    return `/api/imageproxy?url=${encodeURIComponent(url)}`;
-  }
-  return url;
+// Hide a live image that fails to load rather than show a substitute.
+const hideBrokenImage = (e: React.SyntheticEvent<HTMLImageElement>) => {
+  e.currentTarget.style.visibility = 'hidden';
 };
 
 // Official verified LTA directory for live cameras based on real-world coordinates and Singapore gantry IDs
@@ -82,14 +62,14 @@ const REAL_LTA_CAMERA_DIRECTORY: Record<
   },
 };
 
-// LTA stopped publishing all other expressway camera feeds on this date (ERP 2.0 transition).
+// LTA retired every other expressway camera feed on this date (ERP 2.0 transition).
 const LTA_CAMERAS_RETIRED_ON = '30 Jun 2026';
 // LTA captures roughly every 1–5 minutes; older than this means the feed has stalled.
 const STALE_CAPTURE_MS = 15 * 60_000;
 
 interface CameraCard extends HighwayCameraFeed {
-  // ISO capture time; only set for live LTA cameras.
-  capturedAt?: string;
+  // ISO capture time from LTA.
+  capturedAt: string;
 }
 
 interface ExpresswaySpeed {
@@ -112,19 +92,12 @@ const captureAge = (iso: string, now: number) => {
   return mins < 1 ? 'just now' : `${mins} min ago`;
 };
 
-// Curated corridor cards whose camera LTA no longer publishes: shown as reference photos only.
-const REFERENCE_CAMERAS: CameraCard[] = HIGHWAY_CAMERAS.map((cam) => ({
-  ...cam,
-  updatedTime: `No live feed since ${LTA_CAMERAS_RETIRED_ON}`,
-}));
-
 export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHotline }) => {
-  const [cameras, setCameras] = useState<CameraCard[]>(REFERENCE_CAMERAS);
+  const [cameras, setCameras] = useState<CameraCard[]>([]);
   const [speeds, setSpeeds] = useState<Record<string, ExpresswaySpeed>>({});
   const [now, setNow] = useState(() => Date.now());
   const [selectedCam, setSelectedCam] = useState<CameraCard | null>(null);
   const [selectedCorridor, setSelectedCorridor] = useState<string>('ALL');
-  const [showLiveOnly, setShowLiveOnly] = useState<boolean>(false);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [liveSyncActive, setLiveSyncActive] = useState<boolean>(false);
   const [lastRefreshedAt, setLastRefreshedAt] = useState<string>('Just now');
@@ -199,9 +172,7 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
             };
           });
 
-        // Corridors without a live camera keep a reference photo card.
-        const liveCorridors = new Set(liveCameras.map((c) => c.corridor));
-        setCameras([...liveCameras, ...REFERENCE_CAMERAS.filter((ref) => !liveCorridors.has(ref.corridor))]);
+        setCameras(liveCameras);
         setLiveSyncActive(true);
         setNow(Date.now());
         setLastRefreshedAt(new Date().toLocaleTimeString());
@@ -209,11 +180,11 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
         return;
       }
     } catch {
-      // Keep reference cameras if the network is offline
+      // Keep the last cameras if the network is offline; their capture age flags them as delayed.
     }
 
-    setCameras(REFERENCE_CAMERAS);
     setLiveSyncActive(false);
+    setNow(Date.now());
     setLastRefreshedAt(new Date().toLocaleTimeString());
     setRefreshing(false);
   };
@@ -229,34 +200,19 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
     return s ? `${corridor} avg ${s.avgSpeedKmH} km/h • ${s.status}` : 'Corridor speed unavailable';
   };
 
-  const corridors = [
-    { id: 'ALL', label: 'All Expressways (10)' },
-    { id: 'PIE', label: 'PIE' },
-    { id: 'AYE', label: 'AYE' },
-    { id: 'ECP', label: 'ECP' },
-    { id: 'CTE', label: 'CTE' },
-    { id: 'TPE', label: 'TPE' },
-    { id: 'KPE', label: 'KPE' },
-    { id: 'SLE', label: 'SLE' },
-    { id: 'BKE', label: 'BKE' },
-    { id: 'KJE', label: 'KJE' },
-    { id: 'MCE', label: 'MCE' },
-  ];
+  // Filter pills only for expressways that still have a live LTA camera.
+  const corridors = useMemo(
+    () => [
+      { id: 'ALL', label: `All Cameras (${cameras.length})` },
+      ...[...new Set(cameras.map((c) => c.corridor))].sort().map((code) => ({ id: code, label: code })),
+    ],
+    [cameras]
+  );
 
-  const filteredCameras = useMemo(() => {
-    let list = cameras;
-    if (showLiveOnly) {
-      list = list.filter((c) => c.id.startsWith('lta-live'));
-    }
-    if (selectedCorridor !== 'ALL') {
-      list = list.filter((c) => c.corridor === selectedCorridor);
-    }
-    return list;
-  }, [cameras, selectedCorridor, showLiveOnly]);
-
-  const liveFeedsCount = useMemo(() => {
-    return cameras.filter((c) => c.id.startsWith('lta-live')).length;
-  }, [cameras]);
+  const filteredCameras = useMemo(
+    () => (selectedCorridor === 'ALL' ? cameras : cameras.filter((c) => c.corridor === selectedCorridor)),
+    [cameras, selectedCorridor]
+  );
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-6 flex flex-col gap-6">
@@ -284,25 +240,12 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
             Expressway Surveillance Live View
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Latest LTA traffic camera snapshots, refreshed every 30s. Since {LTA_CAMERAS_RETIRED_ON} LTA only publishes
-            cameras at the Woodlands and Tuas Checkpoints and Sentosa Gateway; other expressways show a reference photo
-            with live LTA corridor speeds.
+            Latest LTA traffic camera snapshots, refreshed every 30s. LTA retired its other expressway cameras on{' '}
+            {LTA_CAMERAS_RETIRED_ON}; only the Woodlands and Tuas Checkpoint and Sentosa Gateway cameras remain.
           </p>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <button
-            onClick={() => setShowLiveOnly(!showLiveOnly)}
-            className={`px-3 py-2 text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer border ${
-              showLiveOnly
-                ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-300'
-            }`}
-          >
-            <span className="material-symbols-outlined text-sm">sensors</span>
-            <span>Live LTA Feeds Only ({liveFeedsCount})</span>
-          </button>
-
           <button
             onClick={fetchLiveLtaCameras}
             disabled={refreshing}
@@ -328,7 +271,7 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
               <span>Expressway Surveillance Live View</span>
             </h2>
             <span className="text-xs text-slate-500">
-              Showing {filteredCameras.length} active highway cameras • Feed synchronized at: {lastRefreshedAt}
+              Showing {filteredCameras.length} live LTA cameras • Feed synchronized at: {lastRefreshedAt}
             </span>
           </div>
 
@@ -350,13 +293,16 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
           </div>
         </div>
 
+        {cameras.length === 0 && (
+          <div className="bg-white rounded-xl border border-slate-200 p-8 text-center text-sm text-slate-500">
+            {refreshing ? 'Loading live LTA cameras…' : 'LTA camera feed unavailable. Retrying every 30 seconds.'}
+          </div>
+        )}
+
         {/* Live Traffic Camera Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredCameras.map((cam) => {
-            const isLiveLta = cam.id.startsWith('lta-live');
-            const isStale = !!cam.capturedAt && now - new Date(cam.capturedAt).getTime() > STALE_CAPTURE_MS;
-            const resolvedUrl = getResolvedCameraUrl(cam.imageUrl, cam.corridor);
-            const fallbackSrc = getFallbackForCorridor(cam.corridor);
+            const isStale = now - new Date(cam.capturedAt).getTime() > STALE_CAPTURE_MS;
 
             return (
               <div
@@ -367,49 +313,35 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
                 {/* CCTV Snapshot container */}
                 <div className="h-56 relative bg-slate-950 overflow-hidden">
                   <img
-                    src={resolvedUrl}
+                    src={getResolvedCameraUrl(cam.imageUrl)}
                     alt={cam.name}
                     loading="lazy"
                     onLoad={(e) => ((e.target as HTMLImageElement).style.visibility = 'visible')}
                     referrerPolicy="no-referrer"
-                    className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ${
-                      isLiveLta ? '' : 'grayscale-[60%] opacity-80'
-                    }`}
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      // Never pass a stock photo off as a live camera; leave the frame dark instead.
-                      if (isLiveLta) {
-                        target.style.visibility = 'hidden';
-                      } else if (!target.src.endsWith(fallbackSrc)) {
-                        target.src = fallbackSrc;
-                      }
-                    }}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    onError={hideBrokenImage}
                   />
 
                   {/* CCTV Overlays */}
                   <div className="absolute top-2 left-2 px-2 py-0.5 rounded bg-black/80 backdrop-blur-md text-white text-[10px] font-mono flex items-center gap-1.5 border border-white/10">
                     <span
                       className={`w-2 h-2 rounded-full ${
-                        isLiveLta ? (isStale ? 'bg-amber-400' : 'bg-red-500 animate-pulse') : 'bg-slate-400'
+                        isStale ? 'bg-amber-400' : 'bg-red-500 animate-pulse'
                       }`}
                     ></span>
-                    <span>{isLiveLta ? (isStale ? 'DELAYED LTA FEED' : 'LIVE LTA CAMERA') : 'REFERENCE PHOTO'} • {cam.corridor}</span>
+                    <span>{isStale ? 'DELAYED LTA FEED' : 'LIVE LTA CAMERA'} • {cam.corridor}</span>
                   </div>
 
-                  <div
-                    className={`absolute top-2 right-2 px-2 py-0.5 rounded bg-black/80 backdrop-blur-md text-[10px] font-mono border border-white/10 flex items-center gap-1 ${
-                      isLiveLta ? 'text-emerald-400' : 'text-slate-300'
-                    }`}
-                  >
-                    <span className="material-symbols-outlined text-[11px]">{isLiveLta ? 'photo_camera' : 'no_photography'}</span>
-                    <span>{isLiveLta && cam.capturedAt ? captureAge(cam.capturedAt, now) : 'NOT LIVE'}</span>
+                  <div className="absolute top-2 right-2 px-2 py-0.5 rounded bg-black/80 backdrop-blur-md text-emerald-400 text-[10px] font-mono border border-white/10 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[11px]">photo_camera</span>
+                    <span>{captureAge(cam.capturedAt, now)}</span>
                   </div>
 
                   <div className="absolute bottom-2 left-2 right-2 px-2 py-1.5 rounded bg-black/85 backdrop-blur-md text-white text-[11px] font-mono flex items-center justify-between">
                     <span className="truncate">{speedText(cam.corridor)}</span>
                     <span
                       className={`text-[10px] shrink-0 pl-1 font-semibold ${
-                        isLiveLta ? (isStale ? 'text-amber-400' : 'text-emerald-400') : 'text-slate-400'
+                        isStale ? 'text-amber-400' : 'text-emerald-400'
                       }`}
                     >
                       {cam.updatedTime}
@@ -427,17 +359,9 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
                   </div>
 
                   <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                    <span
-                      className={`font-semibold flex items-center gap-1 ${
-                        isLiveLta ? 'text-emerald-700' : 'text-slate-600'
-                      }`}
-                    >
-                      <span
-                        className={`w-1.5 h-1.5 rounded-full ${
-                          isLiveLta ? 'bg-emerald-500' : 'bg-slate-400'
-                        }`}
-                      ></span>
-                      <span>{isLiveLta ? 'Live LTA traffic camera' : 'Reference photo • live corridor speed'}</span>
+                    <span className="font-semibold flex items-center gap-1 text-emerald-700">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                      <span>Live LTA traffic camera</span>
                     </span>
                     <span className="text-sky-600 font-bold flex items-center gap-0.5 group-hover:translate-x-0.5 transition-transform">
                       Enlarge <span className="material-symbols-outlined text-xs">zoom_in</span>
@@ -469,33 +393,20 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
 
             <div className="w-full h-96 rounded-lg overflow-hidden relative bg-slate-950 flex items-center justify-center">
               <img
-                src={getResolvedCameraUrl(selectedCam.imageUrl, selectedCam.corridor)}
+                src={getResolvedCameraUrl(selectedCam.imageUrl)}
                 alt={selectedCam.name}
                 referrerPolicy="no-referrer"
                 className="w-full h-full object-contain"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  const fallback = getFallbackForCorridor(selectedCam.corridor);
-                  if (!target.src.endsWith(fallback)) {
-                    target.src = fallback;
-                  }
-                }}
+                onError={hideBrokenImage}
               />
               <div className="absolute top-3 left-3 bg-black/80 backdrop-blur-md px-3 py-1 rounded text-white text-xs font-mono flex items-center gap-2">
-                <span
-                  className={`w-2 h-2 rounded-full ${
-                    selectedCam.capturedAt ? 'bg-red-500 animate-pulse' : 'bg-slate-400'
-                  }`}
-                ></span>
-                <span>
-                  {selectedCam.capturedAt ? 'LIVE LTA CAMERA' : 'REFERENCE PHOTO'} • {selectedCam.corridor}
-                </span>
+                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                <span>LIVE LTA CAMERA • {selectedCam.corridor}</span>
               </div>
               <div className="absolute bottom-3 left-3 right-3 bg-black/80 backdrop-blur-md px-3 py-2 rounded text-white text-xs font-mono flex items-center justify-between">
                 <span>{speedText(selectedCam.corridor)}</span>
-                <span className={selectedCam.capturedAt ? 'text-emerald-400' : 'text-slate-400'}>
-                  {selectedCam.updatedTime}
-                  {selectedCam.capturedAt ? ` SGT (${captureAge(selectedCam.capturedAt, now)})` : ''}
+                <span className="text-emerald-400">
+                  {selectedCam.updatedTime} SGT ({captureAge(selectedCam.capturedAt, now)})
                 </span>
               </div>
             </div>
