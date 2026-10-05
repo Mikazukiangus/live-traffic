@@ -3,6 +3,7 @@
  * Aggregates LTA DataMall v4/TrafficSpeedBands (~140k road links, 500 per page) into
  * one summary per Singapore expressway. LTA refreshes speed bands every 5 minutes,
  * so results are cached in-instance and at the CDN for that window.
+ * `?include=segments` adds every expressway link's coordinates and band for map rendering.
  * Header: AccountKey: <LTA_ACCOUNT_KEY>
  */
 import { getLtaAccountKey, setCorsHeaders } from './_client.ts';
@@ -43,7 +44,14 @@ export interface ExpresswaySpeedSummary {
   bandCounts: Record<string, number>;
 }
 
-let cache: { expiresAt: number; payload: any } | null = null;
+// Compact map segment: [code, band, startLon, startLat, endLon, endLat]
+export type SpeedSegment = [string, number, number, number, number, number];
+
+let cache: { expiresAt: number; payload: any; segments: SpeedSegment[] } | null = null;
+
+const round5 = (n: number) => Math.round(n * 1e5) / 1e5;
+// Rough Singapore bounds, to drop links with missing/zero coordinates.
+const inSingapore = (lon: number, lat: number) => lon > 103.5 && lon < 104.2 && lat > 1.1 && lat < 1.5;
 
 async function fetchPage(skip: number, accountKey: string): Promise<{ value: any[]; lastUpdatedTime?: string }> {
   let lastError = '';
@@ -76,6 +84,7 @@ function statusFromSlowShare(slowPct: number): ExpresswaySpeedSummary['status'] 
 
 async function buildSummary(accountKey: string) {
   const bandsByCode: Record<string, number[]> = {};
+  const segments: SpeedSegment[] = [];
   let lastUpdatedTime: string | undefined;
   let pagesFetched = 0;
   let totalLinks = 0;
@@ -97,6 +106,10 @@ async function buildSummary(accountKey: string) {
         const band = Number(link.SpeedBand);
         if (code && BAND_SPEED_KMH[band]) {
           (bandsByCode[code] ??= []).push(band);
+          const [sLon, sLat, eLon, eLat] = [link.StartLon, link.StartLat, link.EndLon, link.EndLat].map(Number);
+          if (inSingapore(sLon, sLat) && inSingapore(eLon, eLat)) {
+            segments.push([code, band, round5(sLon), round5(sLat), round5(eLon), round5(eLat)]);
+          }
         }
       }
     }
@@ -117,7 +130,7 @@ async function buildSummary(accountKey: string) {
     };
   });
 
-  return {
+  const payload = {
     success: true,
     source: 'lta_datamall_v4_speedbands',
     lastUpdatedTime: lastUpdatedTime || null, // LTA timestamp, SGT
@@ -126,6 +139,13 @@ async function buildSummary(accountKey: string) {
     totalLinks,
     expressways,
   };
+  return { payload, segments };
+}
+
+function wantsSegments(req: any): boolean {
+  if (req?.query?.include) return String(req.query.include).split(',').includes('segments');
+  const query = typeof req?.url === 'string' && req.url.includes('?') ? req.url.split('?')[1] : '';
+  return (new URLSearchParams(query).get('include') || '').split(',').includes('segments');
 }
 
 export default async function handler(req: any, res?: any) {
@@ -157,9 +177,11 @@ export default async function handler(req: any, res?: any) {
 
   try {
     if (!cache || Date.now() > cache.expiresAt) {
-      cache = { expiresAt: Date.now() + CACHE_TTL_MS, payload: await buildSummary(accountKey) };
+      const { payload, segments } = await buildSummary(accountKey);
+      cache = { expiresAt: Date.now() + CACHE_TTL_MS, payload, segments };
     }
-    return send(200, cache.payload, 'public, max-age=0, s-maxage=300, stale-while-revalidate=600');
+    const body = wantsSegments(req) ? { ...cache.payload, segments: cache.segments } : cache.payload;
+    return send(200, body, 'public, max-age=0, s-maxage=300, stale-while-revalidate=600');
   } catch (err: any) {
     return send(502, { success: false, error: 'Failed to aggregate LTA speed bands', message: err?.message }, 'no-store');
   }

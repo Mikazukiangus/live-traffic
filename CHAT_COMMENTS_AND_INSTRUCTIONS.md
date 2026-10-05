@@ -14,6 +14,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 7. [Turn 7: Bottom-of-Page API Health Summary Screen](#7-turn-7-bottom-of-page-api-health-summary-screen)
 8. [Turn 8: LTA Key Setup, Endpoint Verification & Honest Health Probes](#8-turn-8-lta-key-setup-endpoint-verification--honest-health-probes)
 9. [Turn 9: Real LTA Speed Bands in Live Traffic Radar](#9-turn-9-real-lta-speed-bands-in-live-traffic-radar)
+10. [Turn 10: Speed Band Colours on the Radar Map](#10-turn-10-speed-band-colours-on-the-radar-map)
 
 ---
 
@@ -234,6 +235,25 @@ Build a comprehensive Singapore Live Traffic & Expressway Monitoring System feat
 3. **`LiveRadarView.tsx`:** loads `/api/expresswayspeeds` on mount and every 60s; corridor speed, status and travel time now come from LTA. Cards show "Avg Speed (LTA)" and "X% of N segments below 40 km/h"; the header shows the LTA update time. The random speed drift only runs as a fallback (labelled "Simulated Speed") until real data loads.
 4. **Health screen:** `/api/expresswayspeeds` added, sharing the speed bands upstream probe.
 5. Registered the endpoint in the Vite dev API middleware.
+
+---
+
+## 10. Turn 10: Speed Band Colours on the Radar Map
+
+### User Request:
+> *"Show the speed band colours on the radar map"*
+
+### Investigation:
+- The Telemetry Focus "radar" was decorative (grid, sweep rings, a speed bubble) with no geography.
+- Every LTA speed band link carries start/end coordinates, so the real expressway network can be drawn from the data already being aggregated (~4,000 expressway links across the 10 expressways).
+
+### Rectifications Implemented:
+1. **`/api/expresswayspeeds?include=segments`:** optionally returns each expressway link as a compact `[code, band, startLon, startLat, endLon, endLat]` tuple (coordinates rounded to 5 dp, out-of-Singapore/zero coordinates dropped). Served from the same 5-minute cache; the default response stays lean.
+2. **New `SpeedBandMap.tsx`:** SVG map of all expressways projected from lon/lat, each link coloured by its LTA band (0–9 dark red … 70+ green). Links are grouped into one path per expressway and band (~80 paths) to keep the DOM small. The selected expressway is drawn on top at full strength; others are dimmed. Clicking a road selects that expressway. Includes a `SpeedBandLegend`.
+3. **`LiveRadarView.tsx`:** the radar panel shows the map (taller panel) with a readout for the selected expressway (average speed, status, % of segments below 40 km/h); the legend and LTA update time sit below the panel. The previous rings/bubble remain as the fallback when speed bands are unavailable.
+
+### Noted, not changed:
+- Incidents mapped from LTA use `selectedCorridor.name` as their corridor, so every incident is labelled with whichever expressway is selected (e.g. a KJE breakdown shows as "Pan Island Expressway").
 
 ---
 

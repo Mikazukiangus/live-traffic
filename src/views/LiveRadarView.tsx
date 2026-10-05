@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { EXPRESSWAY_CORRIDORS, INCIDENT_ALERTS, TOW_FLEET_UNITS } from '../data/mockData';
 import { ExpresswayCorridor, IncidentAlert } from '../types/traffic';
+import { SpeedBandMap, SpeedBandLegend, SpeedSegment } from '../components/SpeedBandMap';
 
 interface LiveRadarViewProps {
   onSwitchToSos: (corridorCode: string) => void;
@@ -141,6 +142,7 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
   // Real expressway speeds from LTA speed bands (null until the first successful fetch)
   const [speedDetails, setSpeedDetails] = useState<Record<string, ExpresswaySpeedSummary> | null>(null);
   const [speedBandsUpdated, setSpeedBandsUpdated] = useState<string | null>(null);
+  const [speedSegments, setSpeedSegments] = useState<SpeedSegment[]>([]);
   const hasLiveSpeedsRef = useRef(false);
 
   const selectedCorridor = useMemo(() => {
@@ -251,7 +253,7 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
   useEffect(() => {
     const loadSpeedBands = async () => {
       try {
-        const res = await fetch('/api/expresswayspeeds');
+        const res = await fetch('/api/expresswayspeeds?include=segments');
         if (!res.ok) return;
         const json = await res.json();
         const byCode: Record<string, ExpresswaySpeedSummary> = {};
@@ -261,6 +263,7 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
         hasLiveSpeedsRef.current = true;
         setSpeedDetails(byCode);
         setSpeedBandsUpdated(json.lastUpdatedTime || null);
+        if (Array.isArray(json.segments)) setSpeedSegments(json.segments);
         setCorridors((prev) =>
           prev.map((c) => {
             const live = byCode[c.code];
@@ -487,7 +490,7 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
           </div>
 
           {/* Interactive Radar Graphic Display */}
-          <div className="w-full h-72 bg-slate-950 rounded-xl relative overflow-hidden flex flex-col justify-between p-4 border border-slate-800 shadow-inner">
+          <div className={`w-full ${speedSegments.length ? 'h-[26rem]' : 'h-72'} bg-slate-950 rounded-xl relative overflow-hidden flex flex-col justify-between p-4 border border-slate-800 shadow-inner`}>
             {/* Radar Grid Animation Backdrop */}
             <div
               className="absolute inset-0 opacity-25 pointer-events-none"
@@ -498,9 +501,22 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
               }}
             ></div>
 
-            {/* Sweep radar ring */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 rounded-full border border-sky-500/30 pointer-events-none animate-ping duration-1000"></div>
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 rounded-full border border-sky-400/40 pointer-events-none"></div>
+            {speedSegments.length > 0 ? (
+              /* Live LTA speed band map, inset so the overlays don't cover the roads */
+              <div className="absolute left-3 right-3 top-12 bottom-36">
+                <SpeedBandMap
+                  segments={speedSegments}
+                  selectedCode={selectedCorridor.code}
+                  onSelect={setSelectedCorridorCode}
+                />
+              </div>
+            ) : (
+              <>
+                {/* Sweep radar ring */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 rounded-full border border-sky-500/30 pointer-events-none animate-ping duration-1000"></div>
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 rounded-full border border-sky-400/40 pointer-events-none"></div>
+              </>
+            )}
 
             {/* Top Bar on Radar Graphic */}
             <div className="relative z-10 flex items-center justify-between">
@@ -516,7 +532,23 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
               </div>
             </div>
 
-            {/* Center Blip: Speed Loop & Vehicle Passage Visualization */}
+            {speedSegments.length > 0 ? (
+              /* Selected expressway readout, below the map */
+              <div className="relative z-10 mt-auto mb-2 flex items-end pointer-events-none">
+                <div className="bg-black/80 backdrop-blur-md px-3 py-1.5 rounded border border-white/10 text-white font-mono">
+                  <div className="text-xs font-bold">
+                    {selectedCorridor.code} • {selectedCorridor.speedKmH} km/h avg • {selectedCorridor.status}
+                  </div>
+                  {speedDetails?.[selectedCorridor.code] && (
+                    <div className="text-[10px] text-sky-300">
+                      {speedDetails[selectedCorridor.code].slowLinkPct}% of{' '}
+                      {speedDetails[selectedCorridor.code].linkCount} segments below 40 km/h
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+            /* Center Blip: Speed Loop & Vehicle Passage Visualization */
             <div className="relative z-10 my-auto flex flex-col items-center justify-center text-center">
               <div className="w-16 h-16 rounded-full bg-sky-500/20 border-2 border-sky-400 flex items-center justify-center shadow-[0_0_20px_rgba(56,189,248,0.5)]">
                 <span className="text-white text-base font-extrabold font-mono">
@@ -530,6 +562,7 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
                 Throughput: ~{vehicleFlowRate} vehicles/min • {selectedCorridor.status} Condition
               </div>
             </div>
+            )}
 
             {/* Bottom Card: Nearest Recovery Bay for the Selected Corridor */}
             <div className="relative z-10 bg-white/95 backdrop-blur-md p-3 rounded-lg border border-slate-200 shadow-lg flex items-center justify-between text-xs">
@@ -554,6 +587,13 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
               </button>
             </div>
           </div>
+
+          {speedSegments.length > 0 && (
+            <div className="-mt-2 flex flex-wrap items-center justify-between gap-2 text-[10px] font-mono text-slate-500">
+              <span>LTA speed bands{speedBandsUpdated ? ` • ${speedBandsUpdated.slice(11, 16)} SGT` : ''} • click a road to select</span>
+              <SpeedBandLegend />
+            </div>
+          )}
 
           {/* Detailed Sensor Telemetry Metrics Bar */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
