@@ -7,6 +7,7 @@ import { getLtaAccountKey, setCorsHeaders } from './_client.ts';
 const LTA_BASE = 'https://datamall2.mytransport.sg/ltaodataservice';
 const DATA_GOV_TRAFFIC_IMAGES = 'https://api.data.gov.sg/v1/transport/traffic-images';
 const NEA_TWO_HR_FORECAST = 'https://api-open.data.gov.sg/v2/real-time/api/two-hr-forecast';
+const NEA_24_HR_FORECAST = 'https://api-open.data.gov.sg/v2/real-time/api/twenty-four-hr-forecast';
 const PROBE_TIMEOUT_MS = 8000;
 
 interface ProbeResult {
@@ -60,7 +61,7 @@ export default async function handler(req: any, res?: any) {
   const ltaProbe = (path: string) => (accountKey ? probe(`${LTA_BASE}/${path}`, ltaHeaders) : Promise.resolve(missingKey()));
 
   const startTime = Date.now();
-  const [incidents, images, speedBands, vms, travelTimes, rainForecast] = await Promise.all([
+  const [incidents, images, speedBands, vms, travelTimes, rainForecast, forecast24h] = await Promise.all([
     ltaProbe('TrafficIncidents'),
     accountKey ? probe(`${LTA_BASE}/Traffic-Imagesv2`, ltaHeaders) : probe(DATA_GOV_TRAFFIC_IMAGES),
     ltaProbe('v4/TrafficSpeedBands'),
@@ -68,6 +69,7 @@ export default async function handler(req: any, res?: any) {
     ltaProbe('EstTravelTimes'),
     // Keyless, so probed whether or not an LTA key is configured.
     probe(NEA_TWO_HR_FORECAST),
+    probe(NEA_24_HR_FORECAST),
   ]);
 
   const endpoints = [
@@ -139,6 +141,14 @@ export default async function handler(req: any, res?: any) {
       ...rainForecast,
     },
     {
+      path: '/api/forecast24h',
+      name: 'NEA 24-Hour Weather Forecast',
+      method: 'GET',
+      purpose: 'Island-wide and regional weather outlook for the next 24 hours',
+      upstream: 'data.gov.sg v2 twenty-four-hr-forecast',
+      ...forecast24h,
+    },
+    {
       // The proxy only relays camera image links, so it is as healthy as the images feed.
       path: '/api/imageproxy',
       name: 'High-Throughput CCTV Image Proxy',
@@ -172,7 +182,7 @@ export default async function handler(req: any, res?: any) {
     endpoints,
   };
 
-  // Short CDN cache so page loads don't each fan out six upstream requests.
+  // Short CDN cache so page loads don't each fan out seven upstream requests.
   const cacheControl = 'public, max-age=0, s-maxage=30, stale-while-revalidate=30';
 
   if (res && typeof res.status === 'function') {

@@ -3,6 +3,7 @@ import { EXPRESSWAY_CORRIDORS, INCIDENT_ALERTS, TOW_FLEET_UNITS } from '../data/
 import { ExpresswayCorridor, IncidentAlert } from '../types/traffic';
 import { SpeedBandMap, SpeedBandLegend, SpeedSegment } from '../components/SpeedBandMap';
 import { LtaIncidentRecord, countByCorridor, mapLtaIncident, sortBySeverity } from '../utils/ltaIncidents';
+import { WeatherOutlook24h } from '../components/WeatherOutlook24h';
 import { RAIN_LEVEL_STYLE, describeCorridorRain, rainByExpressway, useRainForecast } from '../utils/rainForecast';
 
 interface LiveRadarViewProps {
@@ -471,6 +472,9 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
           );
         })}
       </div>
+
+      {/* NEA 24-hour weather outlook */}
+      <WeatherOutlook24h />
 
       {/* Selected Corridor Live Radar Deep-Dive & Incidents Feed */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">

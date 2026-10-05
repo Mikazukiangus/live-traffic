@@ -22,6 +22,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 15. [Turn 15: Live Camera Feed Audit After LTA Camera Retirement](#15-turn-15-live-camera-feed-audit-after-lta-camera-retirement)
 16. [Turn 16: Live LTA Cameras Only](#16-turn-16-live-lta-cameras-only)
 17. [Turn 17: NEA Two-Hour Rain Forecast](#17-turn-17-nea-two-hour-rain-forecast)
+18. [Turn 18: NEA 24-Hour Weather Forecast](#18-turn-18-nea-24-hour-weather-forecast)
 
 ---
 
@@ -386,6 +387,18 @@ Build a comprehensive Singapore Live Traffic & Expressway Monitoring System feat
 3. **Live Traffic Radar:** each expressway card shows "Next 2h: No rain expected (14 areas)" or e.g. "Thundery Showers: Clementi, Jurong West (2 of 9 areas)", coloured and iconed by severity (hover lists every wet area). The map readout repeats it for the selected expressway, and the header shows the forecast period.
 4. **Expressway cameras:** each live camera card shows the forecast for its nearest NEA area (e.g. "Next 2h in Woodlands: Fair (Day)").
 5. **`/api/health`** probes the NEA endpoint as a 9th endpoint ("NEA 2-Hour Rain Forecast").
+
+---
+
+## 18. Turn 18: NEA 24-Hour Weather Forecast
+
+### User Request:
+> *"Connect the 24-hour weather forecast endpoint too. https://api-open.data.gov.sg/v2/real-time/api/twenty-four-hr-forecast"*
+
+### Rectifications Implemented:
+1. **`api/forecast24h.ts`** (new, keyless): unwraps the v2 response and returns the issue time, the island-wide outlook (forecast, temperature, humidity, wind direction and speed, validity period) and three periods with the forecast for each of the five regions (north, south, east, west, central). CDN-cached for 15 minutes; 502 with the upstream error on failure. Registered in the Vite dev middleware.
+2. **`src/components/WeatherOutlook24h.tsx`** (new): "NEA 24-Hour Outlook" panel on Live Traffic Radar, below the expressway cards. Shows island-wide forecast, temperature (e.g. 26–35°C), humidity, wind (e.g. SW 5–15 km/h), and a region × period table. Each forecast is coloured and iconed by the same dry / rain / heavy / thundery scale as the 2-hour forecast, with a night icon for dry night periods. Polls every 15 minutes.
+3. **`/api/health`** probes the new upstream as a 10th endpoint ("NEA 24-Hour Weather Forecast").
 
 ---
 
