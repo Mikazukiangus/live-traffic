@@ -101,6 +101,22 @@ const CORRIDOR_TELEMETRY_SPECS: Record<
   },
 };
 
+interface ExpresswaySpeedSummary {
+  code: string;
+  avgSpeedKmH: number;
+  linkCount: number;
+  slowLinkPct: number;
+  status: ExpresswayCorridor['status'];
+}
+
+// LTA speed bands refresh every 5 minutes; the endpoint is CDN-cached, so polling each minute is cheap.
+const SPEED_BANDS_POLL_MS = 60_000;
+
+const travelTimeMins = (code: string, speedKmH: number) => {
+  const baseKm = CORRIDOR_TELEMETRY_SPECS[code]?.mileageKm || 15;
+  return Math.max(5, Math.round((baseKm / (speedKmH || 1)) * 60));
+};
+
 export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
   onSwitchToSos,
   onCallHotline,
@@ -121,6 +137,11 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
   const [signalDbm, setSignalDbm] = useState<number>(-62);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [liveDataSource, setLiveDataSource] = useState<'lta_api' | 'emas_live_stream'>('emas_live_stream');
+
+  // Real expressway speeds from LTA speed bands (null until the first successful fetch)
+  const [speedDetails, setSpeedDetails] = useState<Record<string, ExpresswaySpeedSummary> | null>(null);
+  const [speedBandsUpdated, setSpeedBandsUpdated] = useState<string | null>(null);
+  const hasLiveSpeedsRef = useRef(false);
 
   const selectedCorridor = useMemo(() => {
     return corridors.find((c) => c.code === selectedCorridorCode) || corridors[0];
@@ -187,8 +208,8 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
       // Fallback to active live stream simulation
     }
 
-    // 3. Dynamic fluctuation in corridor traffic speeds & loop sensors
-    setCorridors((prevCorridors) =>
+    // 3. Simulated speed fluctuation, only used until real LTA speed bands have loaded
+    if (!hasLiveSpeedsRef.current) setCorridors((prevCorridors) =>
       prevCorridors.map((c) => {
         // Natural speed variation of +/- 1 to 4 km/h
         const delta = Math.floor(Math.random() * 7) - 3;
@@ -199,15 +220,11 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
         else if (newSpeed < 55) newStatus = 'Heavy';
         else if (newSpeed < 75) newStatus = 'Moderate';
 
-        // Adjust travel time inversely to speed
-        const baseKm = CORRIDOR_TELEMETRY_SPECS[c.code]?.mileageKm || 15;
-        const newTravelTime = Math.max(5, Math.round((baseKm / (newSpeed || 1)) * 60));
-
         return {
           ...c,
           speedKmH: newSpeed,
           status: newStatus,
-          travelTimeMins: newTravelTime,
+          travelTimeMins: travelTimeMins(c.code, newSpeed),
         };
       })
     );
@@ -227,6 +244,42 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
   useEffect(() => {
     syncLiveData();
     const interval = setInterval(syncLiveData, 6000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // 4. Real average speeds per expressway from LTA DataMall speed bands
+  useEffect(() => {
+    const loadSpeedBands = async () => {
+      try {
+        const res = await fetch('/api/expresswayspeeds');
+        if (!res.ok) return;
+        const json = await res.json();
+        const byCode: Record<string, ExpresswaySpeedSummary> = {};
+        for (const e of json.expressways || []) byCode[e.code] = e;
+        if (Object.keys(byCode).length === 0) return;
+
+        hasLiveSpeedsRef.current = true;
+        setSpeedDetails(byCode);
+        setSpeedBandsUpdated(json.lastUpdatedTime || null);
+        setCorridors((prev) =>
+          prev.map((c) => {
+            const live = byCode[c.code];
+            if (!live) return c;
+            return {
+              ...c,
+              speedKmH: live.avgSpeedKmH,
+              status: live.status,
+              travelTimeMins: travelTimeMins(c.code, live.avgSpeedKmH),
+            };
+          })
+        );
+      } catch {
+        // Keep the current values (simulated until the first success)
+      }
+    };
+
+    loadSpeedBands();
+    const interval = setInterval(loadSpeedBands, SPEED_BANDS_POLL_MS);
     return () => clearInterval(interval);
   }, []);
 
@@ -257,6 +310,16 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
             Real-time average expressway speed sensors, congestion heatmaps, and active dispatch units.
+          </p>
+          <p className="text-[11px] mt-1 font-mono">
+            {speedDetails ? (
+              <span className="text-emerald-700">
+                Speeds: LTA DataMall speed bands
+                {speedBandsUpdated ? ` • updated ${speedBandsUpdated.slice(11, 16)} SGT` : ''}
+              </span>
+            ) : (
+              <span className="text-amber-700">Speeds: simulated (LTA speed bands loading or unavailable)</span>
+            )}
           </p>
         </div>
 
@@ -298,6 +361,7 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
           };
 
           const isSelected = selectedCorridor.code === corridor.code;
+          const liveSpeed = speedDetails?.[corridor.code];
 
           return (
             <div
@@ -334,8 +398,10 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
               <div className="flex flex-col gap-1.5 pt-2 border-t border-slate-100">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-slate-500 font-medium flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <span>Live Sensor Speed</span>
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full animate-pulse ${liveSpeed ? 'bg-emerald-500' : 'bg-amber-400'}`}
+                    ></span>
+                    <span>{liveSpeed ? 'Avg Speed (LTA)' : 'Simulated Speed'}</span>
                   </span>
                   <span className="font-mono font-bold text-slate-900 transition-all duration-300">
                     {corridor.speedKmH} km/h{' '}
@@ -359,6 +425,12 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
                     }}
                   ></div>
                 </div>
+
+                {liveSpeed && (
+                  <div className="text-[11px] text-slate-500">
+                    {liveSpeed.slowLinkPct}% of {liveSpeed.linkCount} segments below 40 km/h
+                  </div>
+                )}
 
                 <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
                   <span>Travel Time: ~{corridor.travelTimeMins} mins</span>

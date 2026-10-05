@@ -13,6 +13,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 6. [Turn 6: Real-Time LTA Photo Integration & Instructions Archive](#6-turn-6-real-time-lta-photo-integration--instructions-archive)
 7. [Turn 7: Bottom-of-Page API Health Summary Screen](#7-turn-7-bottom-of-page-api-health-summary-screen)
 8. [Turn 8: LTA Key Setup, Endpoint Verification & Honest Health Probes](#8-turn-8-lta-key-setup-endpoint-verification--honest-health-probes)
+9. [Turn 9: Real LTA Speed Bands in Live Traffic Radar](#9-turn-9-real-lta-speed-bands-in-live-traffic-radar)
 
 ---
 
@@ -212,6 +213,27 @@ Build a comprehensive Singapore Live Traffic & Expressway Monitoring System feat
 4. **Key no longer exposed:** removed `keyMasked`; the health modal shows "Server-side env variable" instead.
 5. **UI reflects reality:** `ApiHealthModal.tsx` uses server probe results (status badges, latency, error text, X/Y responsive banner, amber degraded state); `Footer.tsx` fetches `/api/health` and shows a live `X/Y UP` badge (amber when degraded, red when unreachable).
 6. Verified locally with the key: health reports `healthy 7/7`; `/api/trafficflow` returns 500 speed-band records.
+
+---
+
+## 9. Turn 9: Real LTA Speed Bands in Live Traffic Radar
+
+### User Request:
+> *"Use the speed band data in Live Traffic Radar"*
+
+### Investigation:
+- The Live Traffic Radar corridor speeds were simulated (random ±3 km/h drift every 6s); nothing consumed `/api/trafficflow`.
+- LTA `v4/TrafficSpeedBands` returns ~144k road links across ~290 pages of 500, refreshed every 5 minutes. Expressway links (RoadCategory 1, ~2.6k) are scattered across ~58 pages, so every page must be read.
+- Bands 1-7 are 10 km/h ranges (0-9 … 60-69); band 8 is 70+ (LTA reports max 999).
+- LTA returns HTTP 500 when hit with ~30 parallel requests.
+- Averaged speeds sit around 58-69 km/h off-peak, so the old speed thresholds (<75 = Moderate) would mark every expressway Moderate; slow-segment share is a better congestion signal.
+
+### Rectifications Implemented:
+1. **New `/api/expresswayspeeds` endpoint:** pages through all speed bands (10 concurrent requests, up to 4 attempts with backoff), maps road names to the 10 expressway codes (KPE includes the KPE tunnel), and returns per expressway: average speed (band midpoints, band 8 = 80 km/h), link count, % of links below 40 km/h, band distribution, status and LTA `lastUpdatedTime`. Cached in-instance and at the CDN for 5 minutes (`s-maxage=300, stale-while-revalidate=600`). Cold build ≈7s, cached responses instant.
+2. **Congestion status:** Smooth < 10% of segments below 40 km/h, Moderate < 20%, Heavy < 35%, otherwise Congested.
+3. **`LiveRadarView.tsx`:** loads `/api/expresswayspeeds` on mount and every 60s; corridor speed, status and travel time now come from LTA. Cards show "Avg Speed (LTA)" and "X% of N segments below 40 km/h"; the header shows the LTA update time. The random speed drift only runs as a fallback (labelled "Simulated Speed") until real data loads.
+4. **Health screen:** `/api/expresswayspeeds` added, sharing the speed bands upstream probe.
+5. Registered the endpoint in the Vite dev API middleware.
 
 ---
 

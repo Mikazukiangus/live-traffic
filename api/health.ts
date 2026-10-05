@@ -103,6 +103,15 @@ export default async function handler(req: any, res?: any) {
       ...speedBands,
     },
     {
+      // Aggregates the same speed bands feed, so it shares that upstream probe.
+      path: '/api/expresswayspeeds',
+      name: 'Expressway Speed Summary',
+      method: 'GET',
+      purpose: 'Average speed and congestion per expressway for Live Traffic Radar',
+      upstream: 'LTA DataMall v4/TrafficSpeedBands (aggregated)',
+      ...speedBands,
+    },
+    {
       path: '/api/vms',
       name: 'EMAS Variable Message Signs',
       method: 'GET',
