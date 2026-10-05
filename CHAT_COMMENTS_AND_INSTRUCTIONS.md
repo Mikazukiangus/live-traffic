@@ -17,6 +17,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 10. [Turn 10: Speed Band Colours on the Radar Map](#10-turn-10-speed-band-colours-on-the-radar-map)
 11. [Turn 11: Parse Expressway, Location and Type from LTA Incidents](#11-turn-11-parse-expressway-location-and-type-from-lta-incidents)
 12. [Turn 12: Live LTA Variable Message Signboards](#12-turn-12-live-lta-variable-message-signboards)
+13. [Turn 13: Unique VMS Messages Only](#13-turn-13-unique-vms-messages-only)
 
 ---
 
@@ -300,6 +301,19 @@ Build a comprehensive Singapore Live Traffic & Expressway Monitoring System feat
 3. **Road labels:** each sign is matched to the nearest expressway link from the cached speed band geometry (`/api/expresswayspeeds?include=segments`, all signs were within ~110 m); signs further than 300 m fall back to "LTA Gantry". The gantry's equipment ID is shown alongside.
 4. **Message display:** all comma-separated lines are shown (not just two); colour comes from the message (closures/accidents red, breakdowns/congestion amber, advisories green). Each board shows "Live LTA message" and its fetch time; the header shows "showing 6 of N signs (M distinct messages)".
 5. **Fallback:** if the VMS feed fails, the old sample signs are shown and clearly labelled as samples.
+
+---
+
+## 13. Turn 13: Unique VMS Messages Only
+
+### User Request:
+> *"show only the unique VMS messages instead of repeats"*
+
+### Rectifications Implemented:
+1. `LiveVmsBoards.tsx` now shows **one board per distinct LTA message** (up to 6), ordered most severe first, then by how many gantries display it. The round-robin repeat filling was removed.
+2. Each board lists every expressway showing that message (e.g. "KPE / PIE / ECP") and the number of gantries ("16 gantries"), or the gantry ID when only one sign shows it.
+3. Header reads "N unique messages across M signs", adding "(showing 6)" only when more than 6 distinct messages exist.
+4. At the time of the change LTA had 25 signs with 2 distinct messages, so 2 boards are shown.
 
 ---
 

@@ -48,30 +48,21 @@ function nearestExpressway(lat: number, lon: number, segments: SpeedSegment[]): 
   return best && best.d <= MAX_MATCH_METRES ? best.code : null;
 }
 
-// Many gantries often carry the same message, so take one sign per distinct message first,
-// round-robin, before repeating a message.
-function pickVaried(signs: LtaVmsSign[], count: number): LtaVmsSign[] {
+// Many gantries carry the same message, so show each distinct message once:
+// most severe first, then the most widely displayed.
+function groupByMessage(signs: LtaVmsSign[], count: number): LtaVmsSign[][] {
   const byMessage = new Map<string, LtaVmsSign[]>();
   for (const s of signs) {
     if (!byMessage.has(s.Message)) byMessage.set(s.Message, []);
     byMessage.get(s.Message)!.push(s);
   }
   const severityRank = { CRITICAL: 0, WARNING: 1, ADVISORY: 2, NORMAL: 3 };
-  const groups = [...byMessage.values()].sort(
-    (a, b) => severityRank[classify(a[0].Message)] - severityRank[classify(b[0].Message)]
-  );
-  const picked: LtaVmsSign[] = [];
-  for (let i = 0; picked.length < count; i++) {
-    let added = false;
-    for (const g of groups) {
-      if (g[i] && picked.length < count) {
-        picked.push(g[i]);
-        added = true;
-      }
-    }
-    if (!added) break;
-  }
-  return picked;
+  return [...byMessage.values()]
+    .sort(
+      (a, b) =>
+        severityRank[classify(a[0].Message)] - severityRank[classify(b[0].Message)] || b.length - a.length
+    )
+    .slice(0, count);
 }
 
 export const LiveVmsBoards: React.FC = () => {
@@ -111,20 +102,30 @@ export const LiveVmsBoards: React.FC = () => {
     if (!signs) {
       return EMAS_SIGNS.slice(0, BOARD_COUNT).map(({ line1, line2, ...rest }) => ({ ...rest, lines: [line1, line2] }));
     }
-    return pickVaried(signs, BOARD_COUNT).map((s) => {
-      const code = segments.length ? nearestExpressway(s.Latitude, s.Longitude, segments) : null;
+    return groupByMessage(signs, BOARD_COUNT).map((group) => {
+      const message = group[0].Message;
+      const codes = segments.length
+        ? [...new Set(group.map((s) => nearestExpressway(s.Latitude, s.Longitude, segments)).filter(Boolean))]
+        : [];
+      const corridor =
+        codes.length === 1
+          ? `${codes[0]} • ${EXPRESSWAY_NAMES[codes[0]!] || codes[0]}`
+          : codes.length > 1
+            ? codes.join(' / ')
+            : 'LTA Gantry';
       return {
-        id: s.EquipmentID,
-        corridor: code ? `${code} • ${EXPRESSWAY_NAMES[code] || code}` : 'LTA Gantry',
-        marker: s.EquipmentID,
-        lines: s.Message.split(',').map((l) => l.trim()).filter(Boolean),
-        status: classify(s.Message),
+        id: message,
+        corridor,
+        marker: group.length === 1 ? group[0].EquipmentID : `${group.length} gantries`,
+        lines: message.split(',').map((l) => l.trim()).filter(Boolean),
+        status: classify(message),
         updatedAt: fetchedAt ? `Fetched ${fetchedAt}` : '',
       };
     });
   }, [signs, segments, fetchedAt]);
 
   const uniqueMessages = signs ? new Set(signs.map((s) => s.Message)).size : 0;
+  const hiddenMessages = Math.max(0, uniqueMessages - boards.length);
 
   return (
     <div className="flex flex-col gap-3">
@@ -136,8 +137,8 @@ export const LiveVmsBoards: React.FC = () => {
         <span className="text-xs font-mono">
           {signs ? (
             <span className="text-emerald-700">
-              LTA DataMall • showing {boards.length} of {signs.length} signs ({uniqueMessages} distinct{' '}
-              {uniqueMessages === 1 ? 'message' : 'messages'})
+              LTA DataMall • {uniqueMessages} unique {uniqueMessages === 1 ? 'message' : 'messages'} across{' '}
+              {signs.length} signs{hiddenMessages > 0 ? ` (showing ${boards.length})` : ''}
             </span>
           ) : failed ? (
             <span className="text-amber-700">Sample signs • LTA VMS feed unavailable</span>
