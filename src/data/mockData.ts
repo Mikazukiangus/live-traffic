@@ -442,6 +442,7 @@ export const INCIDENT_ALERTS: IncidentAlert[] = [
   {
     id: 'inc-1',
     corridor: 'KPE Southbound',
+    corridorCode: 'KPE',
     location: 'MK 6.4 before MCE Tunnel Connector',
     type: 'Breakdown',
     lane: 'Lane 3 (Shoulder Pinned)',
@@ -453,6 +454,7 @@ export const INCIDENT_ALERTS: IncidentAlert[] = [
   {
     id: 'inc-2',
     corridor: 'CTE Northbound',
+    corridorCode: 'CTE',
     location: 'Braddell Flyover Exit 10',
     type: 'Accident',
     lane: 'Lane 1 blocked',
@@ -464,6 +466,7 @@ export const INCIDENT_ALERTS: IncidentAlert[] = [
   {
     id: 'inc-3',
     corridor: 'PIE Eastbound',
+    corridorCode: 'PIE',
     location: 'Near Paya Lebar Way Exit 11',
     type: 'Obstacle',
     lane: 'Debris on Lane 2',
@@ -475,6 +478,7 @@ export const INCIDENT_ALERTS: IncidentAlert[] = [
   {
     id: 'inc-4',
     corridor: 'AYE Westbound',
+    corridorCode: 'AYE',
     location: 'After Clementi Ave 6',
     type: 'Breakdown',
     lane: 'Emergency bay 14',

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { EXPRESSWAY_CORRIDORS, INCIDENT_ALERTS, TOW_FLEET_UNITS } from '../data/mockData';
 import { ExpresswayCorridor, IncidentAlert } from '../types/traffic';
 import { SpeedBandMap, SpeedBandLegend, SpeedSegment } from '../components/SpeedBandMap';
+import { LtaIncidentRecord, countByCorridor, mapLtaIncident, sortBySeverity } from '../utils/ltaIncidents';
 
 interface LiveRadarViewProps {
   onSwitchToSos: (corridorCode: string) => void;
@@ -182,26 +183,12 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
         const json = await res.json();
         const ltaIncidents = json?.value || json?.items || [];
         if (Array.isArray(ltaIncidents) && ltaIncidents.length > 0) {
-          const mapped: IncidentAlert[] = ltaIncidents.slice(0, 8).map((item: any, idx: number) => {
-            const msg = item.Message || item.message || 'Expressway incident reported';
-            const isAccident = msg.toLowerCase().includes('accident');
-            const isBreakdown = msg.toLowerCase().includes('breakdown');
-            const isObstacle = msg.toLowerCase().includes('obstacle');
-            const type = isAccident ? 'Accident' : isBreakdown ? 'Breakdown' : isObstacle ? 'Obstacle' : 'Heavy Congestion';
-            const severity = isAccident ? 'Critical' : isBreakdown ? 'Warning' : 'Info';
-
-            return {
-              id: `lta-inc-${idx}-${Date.now()}`,
-              corridor: item.corridor || selectedCorridor.name,
-              location: item.location || 'Expressway segment',
-              type,
-              lane: 'Lane 1-2 Affected',
-              severity,
-              timeAgo: 'Live (LTA Feed)',
-              advice: msg,
-              emasUnitAssigned: `EMAS Unit T-${(idx % 9) + 1}`,
-            };
-          });
+          const now = new Date();
+          const mapped = sortBySeverity(
+            ltaIncidents.map((item: LtaIncidentRecord, idx: number) => mapLtaIncident(item, idx, now))
+          );
+          const counts = countByCorridor(mapped);
+          setCorridors((prev) => prev.map((c) => ({ ...c, incidentsCount: counts[c.code] || 0 })));
           setIncidents(mapped);
           setLiveDataSource('lta_api');
         }
@@ -721,7 +708,7 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
                     <div className="text-slate-800 bg-white/80 p-2 rounded border border-slate-200/60 text-[11px] flex items-center justify-between gap-2">
                       <div className="line-clamp-2">{inc.advice}</div>
                       <button
-                        onClick={() => onSwitchToSos(inc.corridor)}
+                        onClick={() => onSwitchToSos(inc.corridorCode || '')}
                         className="px-2 py-1 bg-sky-600 hover:bg-sky-700 text-white rounded font-bold text-[10px] shrink-0 cursor-pointer"
                       >
                         Dispatch
