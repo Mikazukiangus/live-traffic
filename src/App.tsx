@@ -25,7 +25,7 @@ import { HighwayCamerasView } from './views/HighwayCamerasView';
 import { CourierHubView } from './views/CourierHubView';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<TabType>('roadside-sos-workshops');
+  const [activeTab, setActiveTab] = useState<TabType>('highway-cameras-emas');
   const [currentMarker, setCurrentMarker] = useState(INITIAL_GNSS);
   const [isBroadcasting, setIsBroadcasting] = useState(false);
   const [activeDispatch, setActiveDispatch] = useState<ActiveDispatch | null>(null);

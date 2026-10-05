@@ -23,6 +23,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 16. [Turn 16: Live LTA Cameras Only](#16-turn-16-live-lta-cameras-only)
 17. [Turn 17: NEA Two-Hour Rain Forecast](#17-turn-17-nea-two-hour-rain-forecast)
 18. [Turn 18: NEA 24-Hour Weather Forecast](#18-turn-18-nea-24-hour-weather-forecast)
+19. [Turn 19: Default Tab Is Highway Cameras & EMAS](#19-turn-19-default-tab-is-highway-cameras--emas)
 
 ---
 
@@ -399,6 +400,16 @@ Build a comprehensive Singapore Live Traffic & Expressway Monitoring System feat
 1. **`api/forecast24h.ts`** (new, keyless): unwraps the v2 response and returns the issue time, the island-wide outlook (forecast, temperature, humidity, wind direction and speed, validity period) and three periods with the forecast for each of the five regions (north, south, east, west, central). CDN-cached for 15 minutes; 502 with the upstream error on failure. Registered in the Vite dev middleware.
 2. **`src/components/WeatherOutlook24h.tsx`** (new): "NEA 24-Hour Outlook" panel on Live Traffic Radar, below the expressway cards. Shows island-wide forecast, temperature (e.g. 26–35°C), humidity, wind (e.g. SW 5–15 km/h), and a region × period table. Each forecast is coloured and iconed by the same dry / rain / heavy / thundery scale as the 2-hour forecast, with a night icon for dry night periods. Polls every 15 minutes.
 3. **`/api/health`** probes the new upstream as a 10th endpoint ("NEA 24-Hour Weather Forecast").
+
+---
+
+## 19. Turn 19: Default Tab Is Highway Cameras & EMAS
+
+### User Request:
+> *"update the website to start on 'Highway cameras & EMAS' tab when visiting the website initially."*
+
+### Rectifications Implemented:
+1. `src/App.tsx`: the initial `activeTab` is now `'highway-cameras-emas'` (was `'roadside-sos-workshops'`), so the site opens on Expressway Surveillance Live View. The other tabs are unchanged.
 
 ---
 
