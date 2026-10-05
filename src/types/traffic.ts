@@ -110,7 +110,6 @@ export interface IncidentAlert {
   severity: 'Critical' | 'Warning' | 'Info';
   timeAgo: string;
   advice: string;
-  emasUnitAssigned: string;
 }
 
 export interface HighwayCameraFeed {

@@ -5,6 +5,7 @@
  *   "(5/10)10:53 Vehicle Breakdown on KJE (towards PIE) after PIE(Changi). Avoid lane 3."
  * so the expressway, location, lane and time are parsed out of the message text.
  */
+import { useCallback, useEffect, useState } from 'react';
 import { EXPRESSWAY_CORRIDORS } from '../data/mockData';
 import { IncidentAlert } from '../types/traffic';
 
@@ -134,14 +135,18 @@ export const mapLtaIncident = (item: LtaIncidentRecord, idx: number, now: Date =
     severity,
     timeAgo: formatTimeAgo(parsed.reportedAt, now),
     advice: msg,
-    emasUnitAssigned: `EMAS Unit T-${(idx % 9) + 1}`,
   };
 };
 
 const SEVERITY_RANK: Record<IncidentAlert['severity'], number> = { Critical: 0, Warning: 1, Info: 2 };
 
+// Most severe first; within a severity, expressway incidents before other roads.
 export const sortBySeverity = (incidents: IncidentAlert[]) =>
-  [...incidents].sort((a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity]);
+  [...incidents].sort(
+    (a, b) =>
+      SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity] ||
+      Number(!a.corridorCode) - Number(!b.corridorCode)
+  );
 
 export const countByCorridor = (incidents: IncidentAlert[]): Record<string, number> => {
   const counts: Record<string, number> = {};
@@ -150,3 +155,54 @@ export const countByCorridor = (incidents: IncidentAlert[]): Record<string, numb
   }
   return counts;
 };
+
+export type IncidentFeedStatus = 'loading' | 'live' | 'error';
+
+export interface IncidentFeed {
+  incidents: IncidentAlert[];
+  status: IncidentFeedStatus;
+  // SGT time of the last successful fetch, e.g. "18:44"
+  fetchedAt: string | null;
+  refresh: () => Promise<void>;
+}
+
+// LTA updates incidents every couple of minutes; /api/traffic is CDN-cached for 30s.
+const INCIDENT_POLL_MS = 60_000;
+
+/**
+ * Live LTA TrafficIncidents. No sample data: until the first response the list is empty
+ * ("loading"), and an empty LTA response means there are no active incidents.
+ * After a failed refresh the last live list is kept and status becomes "error".
+ */
+export function useLtaIncidents(): IncidentFeed {
+  const [incidents, setIncidents] = useState<IncidentAlert[]>([]);
+  const [status, setStatus] = useState<IncidentFeedStatus>('loading');
+  const [fetchedAt, setFetchedAt] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    try {
+      const res = await fetch('/api/traffic');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      if (!Array.isArray(json?.value)) throw new Error('Unexpected incidents payload');
+      const now = new Date();
+      setIncidents(
+        sortBySeverity(json.value.map((item: LtaIncidentRecord, idx: number) => mapLtaIncident(item, idx, now)))
+      );
+      setFetchedAt(
+        now.toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Singapore' })
+      );
+      setStatus('live');
+    } catch {
+      setStatus('error');
+    }
+  }, []);
+
+  useEffect(() => {
+    refresh();
+    const interval = setInterval(refresh, INCIDENT_POLL_MS);
+    return () => clearInterval(interval);
+  }, [refresh]);
+
+  return { incidents, status, fetchedAt, refresh };
+}

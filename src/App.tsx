@@ -9,8 +9,8 @@ import {
   INITIAL_GNSS,
   WORKSHOPS_DATA,
   ALTERNATE_MARKERS,
-  INCIDENT_ALERTS,
 } from './data/mockData';
+import { useLtaIncidents } from './utils/ltaIncidents';
 import { Header } from './components/Header';
 import { TelemetryBar } from './components/TelemetryBar';
 import { Footer } from './components/Footer';
@@ -30,6 +30,8 @@ export default function App() {
   const [isBroadcasting, setIsBroadcasting] = useState(false);
   const [activeDispatch, setActiveDispatch] = useState<ActiveDispatch | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  // Live LTA incidents, shared by the radar panel and the notifications drawer
+  const incidentFeed = useLtaIncidents();
 
   // Modals state
   const [bookingModal, setBookingModal] = useState<{
@@ -132,7 +134,7 @@ export default function App() {
         onSearchCorridor={handleSearchCorridor}
         searchQuery={searchQuery}
         onOpenNotifications={() => setNotificationsOpen(true)}
-        notificationCount={INCIDENT_ALERTS.length}
+        notificationCount={incidentFeed.incidents.length}
       />
 
       {/* Main Container with 64px top padding for fixed navbar */}
@@ -173,6 +175,7 @@ export default function App() {
               setActiveTab('roadside-sos-workshops');
             }}
             onCallHotline={handleOpenCallModal}
+            incidentFeed={incidentFeed}
           />
         )}
 
@@ -218,6 +221,7 @@ export default function App() {
         isOpen={notificationsOpen}
         onClose={() => setNotificationsOpen(false)}
         onSelectIncident={() => setActiveTab('live-traffic-radar')}
+        incidentFeed={incidentFeed}
       />
 
       <ApiHealthModal

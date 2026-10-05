@@ -24,6 +24,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 17. [Turn 17: NEA Two-Hour Rain Forecast](#17-turn-17-nea-two-hour-rain-forecast)
 18. [Turn 18: NEA 24-Hour Weather Forecast](#18-turn-18-nea-24-hour-weather-forecast)
 19. [Turn 19: Default Tab Is Highway Cameras & EMAS](#19-turn-19-default-tab-is-highway-cameras--emas)
+20. [Turn 20: Live-Only Traffic Incidents](#20-turn-20-live-only-traffic-incidents)
 
 ---
 
@@ -410,6 +411,25 @@ Build a comprehensive Singapore Live Traffic & Expressway Monitoring System feat
 
 ### Rectifications Implemented:
 1. `src/App.tsx`: the initial `activeTab` is now `'highway-cameras-emas'` (was `'roadside-sos-workshops'`), so the site opens on Expressway Surveillance Live View. The other tabs are unchanged.
+
+---
+
+## 20. Turn 20: Live-Only Traffic Incidents
+
+### User Request:
+> *"is the 'active expressway incidents' live data ?"* → *"yes go ahead and fix it"*
+
+### Investigation:
+- Incidents came from LTA DataMall TrafficIncidents via `/api/traffic`, and the expressway, location, lane, type, severity and age were parsed from LTA's messages.
+- Invented details: "Assigned: EMAS Unit T-N" (numbered by list position) and a green "Extrication Active" on every incident.
+- Until the first response, after a failed fetch, or when LTA reported zero incidents, the panel showed 4 hardcoded sample incidents labelled "EMAS Automated Feed". The notifications drawer ("Active EMAS Broadcasts") and bell always showed those samples.
+- The feed also includes non-expressway roads despite the "Active Expressway Incidents" title.
+
+### Rectifications Implemented:
+1. **`useLtaIncidents()`** in `src/utils/ltaIncidents.ts`: one live feed (polled every 60s) shared by the Radar panel, the notifications drawer and the bell. Status is loading / live / error; an empty LTA response means no incidents; after a failed refresh the last live list stays and is marked "refresh failed, last HH:MM SGT".
+2. Removed the `INCIDENT_ALERTS` mock, the `emasUnitAssigned` field, the invented unit assignment and "Extrication Active".
+3. **Radar panel** retitled "Active Traffic Incidents" with "LTA DataMall • N active (M on expressways) • updated HH:MM SGT"; incidents sorted by severity, expressways first; empty states for loading, unavailable and "No active incidents reported by LTA". Expressway cards show "N active LTA incidents" from the same feed. "Sync Telemetry" also refreshes incidents.
+4. **Notifications drawer** lists the live incidents ("Active LTA Traffic Incidents (N)") with LTA's message, and its footer shows the source and update time. The bell dot appears only when LTA reports incidents.
 
 ---
 

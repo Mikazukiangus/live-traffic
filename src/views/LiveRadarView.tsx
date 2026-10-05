@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { EXPRESSWAY_CORRIDORS, INCIDENT_ALERTS, TOW_FLEET_UNITS } from '../data/mockData';
-import { ExpresswayCorridor, IncidentAlert } from '../types/traffic';
+import { EXPRESSWAY_CORRIDORS, TOW_FLEET_UNITS } from '../data/mockData';
+import { ExpresswayCorridor } from '../types/traffic';
 import { SpeedBandMap, SpeedBandLegend, SpeedSegment } from '../components/SpeedBandMap';
-import { LtaIncidentRecord, countByCorridor, mapLtaIncident, sortBySeverity } from '../utils/ltaIncidents';
+import { IncidentFeed, countByCorridor } from '../utils/ltaIncidents';
 import { WeatherOutlook24h } from '../components/WeatherOutlook24h';
 import { RAIN_LEVEL_STYLE, describeCorridorRain, rainByExpressway, useRainForecast } from '../utils/rainForecast';
 
 interface LiveRadarViewProps {
   onSwitchToSos: (corridorCode: string) => void;
   onCallHotline: (phone: string, title: string) => void;
+  incidentFeed: IncidentFeed;
 }
 
 // Corridor specific telemetry metadata
@@ -124,14 +125,17 @@ const travelTimeMins = (code: string, speedKmH: number) => {
 export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
   onSwitchToSos,
   onCallHotline,
+  incidentFeed,
 }) => {
   // Live dynamic corridors state
   const [corridors, setCorridors] = useState<ExpresswayCorridor[]>(EXPRESSWAY_CORRIDORS);
   const [selectedCorridorCode, setSelectedCorridorCode] = useState<string>('KPE');
   const [filterSeverity, setFilterSeverity] = useState<'all' | 'critical' | 'warning'>('all');
 
-  // Live incidents list with real-time timestamps
-  const [incidents, setIncidents] = useState<IncidentAlert[]>(INCIDENT_ALERTS);
+  // Live LTA incidents (shared with the notifications drawer)
+  const { incidents, status: incidentStatus, fetchedAt: incidentsFetchedAt } = incidentFeed;
+  const incidentCounts = useMemo(() => countByCorridor(incidents), [incidents]);
+  const expresswayIncidentCount = incidents.filter((inc) => inc.corridorCode).length;
 
   // Live telemetry pulse data
   const [lastSyncTime, setLastSyncTime] = useState<Date>(new Date());
@@ -140,7 +144,6 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
   const [vehicleFlowRate, setVehicleFlowRate] = useState<number>(54); // vehicles/min
   const [signalDbm, setSignalDbm] = useState<number>(-62);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
-  const [liveDataSource, setLiveDataSource] = useState<'lta_api' | 'emas_live_stream'>('emas_live_stream');
 
   // Real expressway speeds from LTA speed bands (null until the first successful fetch)
   const [speedDetails, setSpeedDetails] = useState<Record<string, ExpresswaySpeedSummary> | null>(null);
@@ -181,30 +184,9 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
     return () => clearInterval(timer);
   }, []);
 
-  // 2. Fetch live data from /api/traffic and /api/trafficflow if available, or run dynamic EMAS simulation loop
+  // 2. Simulated sensor telemetry loop (incidents come from the shared live LTA feed)
   const syncLiveData = async () => {
     setIsSyncing(true);
-
-    try {
-      // Check serverless endpoint for real LTA incidents
-      const res = await fetch('/api/traffic');
-      if (res.ok) {
-        const json = await res.json();
-        const ltaIncidents = json?.value || json?.items || [];
-        if (Array.isArray(ltaIncidents) && ltaIncidents.length > 0) {
-          const now = new Date();
-          const mapped = sortBySeverity(
-            ltaIncidents.map((item: LtaIncidentRecord, idx: number) => mapLtaIncident(item, idx, now))
-          );
-          const counts = countByCorridor(mapped);
-          setCorridors((prev) => prev.map((c) => ({ ...c, incidentsCount: counts[c.code] || 0 })));
-          setIncidents(mapped);
-          setLiveDataSource('lta_api');
-        }
-      }
-    } catch {
-      // Fallback to active live stream simulation
-    }
 
     // 3. Simulated speed fluctuation, only used until real LTA speed bands have loaded
     if (!hasLiveSpeedsRef.current) setCorridors((prevCorridors) =>
@@ -327,7 +309,10 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
 
         <div className="flex items-center gap-2 shrink-0">
           <button
-            onClick={syncLiveData}
+            onClick={() => {
+              syncLiveData();
+              incidentFeed.refresh();
+            }}
             disabled={isSyncing}
             className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             title="Force immediate radar telemetry polling"
@@ -455,7 +440,9 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
 
               <div className="flex items-center justify-between pt-1 border-t border-slate-50 text-xs">
                 <span className="text-[11px] text-slate-400 font-mono">
-                  {corridor.incidentsCount} active events
+                  {incidentStatus === 'loading'
+                    ? 'Loading incidents…'
+                    : `${incidentCounts[corridor.code] || 0} active LTA ${incidentCounts[corridor.code] === 1 ? 'incident' : 'incidents'}`}
                 </span>
                 <button
                   onClick={(e) => {
@@ -640,10 +627,14 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
             <div>
               <div className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-                <h3 className="font-bold text-slate-900 text-base">Active Expressway Incidents</h3>
+                <h3 className="font-bold text-slate-900 text-base">Active Traffic Incidents</h3>
               </div>
-              <span className="text-[11px] text-slate-400 font-mono">
-                {liveDataSource === 'lta_api' ? 'Official LTA DataMall Feed' : 'EMAS Automated Feed'} • {filteredIncidents.length} events
+              <span className={`text-[11px] font-mono ${incidentStatus === 'error' ? 'text-amber-700' : 'text-slate-400'}`}>
+                {incidentStatus === 'loading'
+                  ? 'LTA DataMall • loading…'
+                  : `LTA DataMall • ${incidents.length} active (${expresswayIncidentCount} on expressways)${
+                      incidentsFetchedAt ? ` • ${incidentStatus === 'error' ? 'refresh failed, last' : 'updated'} ${incidentsFetchedAt} SGT` : ''
+                    }`}
               </span>
             </div>
 
@@ -685,7 +676,13 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
           <div className="flex flex-col gap-2.5 max-h-[460px] overflow-y-auto pr-1">
             {filteredIncidents.length === 0 ? (
               <div className="p-6 text-center text-slate-400 text-xs">
-                No incidents match the selected filter.
+                {incidentStatus === 'loading'
+                  ? 'Loading LTA incidents…'
+                  : incidentStatus === 'error' && incidents.length === 0
+                  ? 'LTA incident feed unavailable. Retrying every minute.'
+                  : incidents.length === 0
+                  ? 'No active incidents reported by LTA.'
+                  : 'No incidents match the selected filter.'}
               </div>
             ) : (
               filteredIncidents.map((inc) => {
@@ -746,15 +743,6 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
                       </button>
                     </div>
 
-                    {inc.emasUnitAssigned && (
-                      <div className="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
-                        <span className="flex items-center gap-1 font-mono text-sky-700">
-                          <span className="material-symbols-outlined text-xs">local_shipping</span>
-                          <span>Assigned: {inc.emasUnitAssigned}</span>
-                        </span>
-                        <span className="text-emerald-600 font-semibold">Extrication Active</span>
-                      </div>
-                    )}
                   </div>
                 );
               })

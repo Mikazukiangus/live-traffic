@@ -1,18 +1,21 @@
 import React from 'react';
-import { INCIDENT_ALERTS } from '../data/mockData';
+import { IncidentFeed } from '../utils/ltaIncidents';
 
 interface NotificationsDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   onSelectIncident?: (corridor: string) => void;
+  incidentFeed: IncidentFeed;
 }
 
 export const NotificationsDrawer: React.FC<NotificationsDrawerProps> = ({
   isOpen,
   onClose,
   onSelectIncident,
+  incidentFeed,
 }) => {
   if (!isOpen) return null;
+  const { incidents, status, fetchedAt } = incidentFeed;
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex justify-end animate-in fade-in duration-150">
@@ -34,10 +37,20 @@ export const NotificationsDrawer: React.FC<NotificationsDrawerProps> = ({
         {/* Alerts list */}
         <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
           <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-            Active EMAS Broadcasts ({INCIDENT_ALERTS.length})
+            Active LTA Traffic Incidents ({incidents.length})
           </div>
 
-          {INCIDENT_ALERTS.map((alert) => {
+          {incidents.length === 0 && (
+            <div className="p-6 text-center text-slate-400 text-xs">
+              {status === 'loading'
+                ? 'Loading LTA incidents…'
+                : status === 'error'
+                ? 'LTA incident feed unavailable. Retrying every minute.'
+                : 'No active incidents reported by LTA.'}
+            </div>
+          )}
+
+          {incidents.map((alert) => {
             const isCritical = alert.severity === 'Critical';
             const isWarning = alert.severity === 'Warning';
             return (
@@ -79,11 +92,10 @@ export const NotificationsDrawer: React.FC<NotificationsDrawerProps> = ({
                 </div>
 
                 <div className="text-[11px] text-slate-500 bg-white/80 p-2 rounded border border-slate-200/60 mt-1">
-                  <strong>Advice:</strong> {alert.advice}
+                  <strong>LTA:</strong> {alert.advice}
                 </div>
 
-                <div className="flex items-center justify-between pt-1 text-[11px] text-slate-400">
-                  <span>Assigned: <strong className="text-slate-700">{alert.emasUnitAssigned}</strong></span>
+                <div className="flex items-center justify-end pt-1 text-[11px] text-slate-400">
                   <span className="text-sky-600 font-semibold flex items-center gap-0.5">
                     View on radar <span className="material-symbols-outlined text-[12px]">chevron_right</span>
                   </span>
@@ -95,8 +107,14 @@ export const NotificationsDrawer: React.FC<NotificationsDrawerProps> = ({
 
         {/* Footer */}
         <div className="p-3 border-t border-slate-100 bg-slate-50 text-[11px] text-slate-500 flex items-center justify-between">
-          <span>Synced with LTA Operation Control Center</span>
-          <span className="text-emerald-600 font-bold">● Active 24/7</span>
+          <span>Source: LTA DataMall TrafficIncidents</span>
+          <span className={status === 'error' ? 'text-amber-600 font-bold' : 'text-emerald-600 font-bold'}>
+            {status === 'error'
+              ? `● Refresh failed${fetchedAt ? ` • last ${fetchedAt} SGT` : ''}`
+              : fetchedAt
+              ? `● Updated ${fetchedAt} SGT`
+              : '● Loading'}
+          </span>
         </div>
       </div>
     </div>
