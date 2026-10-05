@@ -7,9 +7,9 @@ interface EndpointHealth {
   method: string;
   purpose: string;
   upstream: string;
-  latencyMs?: number;
-  httpCode?: number;
-  testedAt?: string;
+  latencyMs: number;
+  httpCode: number;
+  error?: string;
 }
 
 interface HealthData {
@@ -21,7 +21,8 @@ interface HealthData {
   uptimeSeconds: number;
   environment: string;
   ltaKeyConfigured: boolean;
-  keyMasked: string | null;
+  upCount: number;
+  totalCount: number;
   providerMode: string;
   probeLatencyMs: number;
   endpoints: EndpointHealth[];
@@ -53,28 +54,8 @@ export const ApiHealthModal: React.FC<ApiHealthModalProps> = ({ isOpen, onClose 
         probeLatencyMs: totalLatency,
       });
       setLastCheckTime(new Date().toLocaleTimeString());
-
-      // Concurrent probe to check live response codes and latencies
-      const pings: Record<string, { latency: number; code: number }> = {};
-      await Promise.all(
-        data.endpoints.map(async (ep) => {
-          const epStart = performance.now();
-          try {
-            const probeRes = await fetch(ep.path, { method: 'HEAD' }).catch(() => fetch(ep.path));
-            const epLatency = Math.round(performance.now() - epStart);
-            pings[ep.path] = {
-              latency: epLatency,
-              code: probeRes.status,
-            };
-          } catch {
-            pings[ep.path] = {
-              latency: 999,
-              code: 500,
-            };
-          }
-        })
-      );
-      setEndpointPings(pings);
+      // Per-endpoint status now comes from the server's live upstream probes; clear manual pings.
+      setEndpointPings({});
     } catch (err) {
       console.error('Failed to probe /api/health:', err);
     } finally {
@@ -95,7 +76,7 @@ export const ApiHealthModal: React.FC<ApiHealthModalProps> = ({ isOpen, onClose 
     } catch {
       setEndpointPings((prev) => ({
         ...prev,
-        [path]: { latency: 999, code: 500 },
+        [path]: { latency: Math.round(performance.now() - start), code: 0 },
       }));
     } finally {
       setTestingEndpoint(null);
@@ -120,6 +101,7 @@ export const ApiHealthModal: React.FC<ApiHealthModalProps> = ({ isOpen, onClose 
   };
 
   const allOperational = healthData?.operational ?? true;
+  const statusLabel = (code: number) => (code === 0 ? 'NO RESPONSE' : `${code} ${code < 400 ? 'OK' : 'ERROR'}`);
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 animate-in fade-in duration-150 overflow-y-auto">
@@ -165,13 +147,17 @@ export const ApiHealthModal: React.FC<ApiHealthModalProps> = ({ isOpen, onClose 
           >
             <div className="flex items-center gap-3">
               <span className="relative flex h-3.5 w-3.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500"></span>
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${allOperational ? 'bg-emerald-400' : 'bg-amber-400'}`}></span>
+                <span className={`relative inline-flex rounded-full h-3.5 w-3.5 ${allOperational ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
               </span>
               <div>
                 <div className="font-extrabold text-sm sm:text-base flex items-center gap-2">
                   <span>{allOperational ? 'ALL SYSTEMS OPERATIONAL' : 'DEGRADED SERVICE'}</span>
-                  <span className="text-xs font-normal opacity-80">• 100% Endpoints Responsive</span>
+                  {healthData && (
+                    <span className="text-xs font-normal opacity-80">
+                      • {healthData.upCount}/{healthData.totalCount} Endpoints Responsive
+                    </span>
+                  )}
                 </div>
                 <div className="text-xs opacity-75 font-mono mt-0.5">
                   Provider Mode: {healthData?.providerMode || 'LTA DataMall & Open Transport API'}
@@ -213,7 +199,7 @@ export const ApiHealthModal: React.FC<ApiHealthModalProps> = ({ isOpen, onClose 
                 {healthData?.ltaKeyConfigured ? 'Configured' : 'Public Active'}
               </div>
               <span className="text-[11px] text-slate-500">
-                {healthData?.ltaKeyConfigured ? healthData.keyMasked : 'Open Data.gov.sg Mode'}
+                {healthData?.ltaKeyConfigured ? 'Server-side env variable' : 'Open Data.gov.sg Mode'}
               </span>
             </div>
 
@@ -246,7 +232,7 @@ export const ApiHealthModal: React.FC<ApiHealthModalProps> = ({ isOpen, onClose 
                 <span>Active Serverless API Endpoints</span>
               </h3>
               <span className="text-xs text-slate-400 font-mono">
-                {healthData?.endpoints.length || 7} Verified Endpoints
+                {healthData ? `${healthData.upCount}/${healthData.totalCount} Up` : 'Probing…'}
               </span>
             </div>
 
@@ -266,7 +252,9 @@ export const ApiHealthModal: React.FC<ApiHealthModalProps> = ({ isOpen, onClose 
                   <tbody className="divide-y divide-slate-100 bg-white">
                     {healthData?.endpoints.map((ep) => {
                       const ping = endpointPings[ep.path];
-                      const isUp = !ping || ping.code < 400;
+                      const code = ping ? ping.code : ep.httpCode;
+                      const latency = ping ? ping.latency : ep.latencyMs;
+                      const isUp = ping ? ping.code > 0 && ping.code < 400 : ep.status === 'UP';
                       const isTestingThis = testingEndpoint === ep.path;
 
                       return (
@@ -284,12 +272,15 @@ export const ApiHealthModal: React.FC<ApiHealthModalProps> = ({ isOpen, onClose 
                                   isUp ? 'bg-emerald-500' : 'bg-red-500'
                                 }`}
                               ></span>
-                              <span>{ping ? `${ping.code} OK` : '200 OK'}</span>
+                              <span>{statusLabel(code)}</span>
                             </span>
                           </td>
                           <td className="py-3 px-3">
                             <div className="font-bold text-slate-900">{ep.name}</div>
                             <div className="font-mono text-[11px] text-sky-600">{ep.path}</div>
+                            {!ping && ep.error && (
+                              <div className="text-[11px] text-red-600 mt-0.5">{ep.error}</div>
+                            )}
                           </td>
                           <td className="py-3 px-3 text-slate-500 hidden md:table-cell">
                             {ep.purpose}
@@ -302,12 +293,12 @@ export const ApiHealthModal: React.FC<ApiHealthModalProps> = ({ isOpen, onClose 
                           <td className="py-3 px-3 font-mono">
                             <span
                               className={`font-semibold ${
-                                (ping?.latency ?? 20) < 100
+                                latency < 1000
                                   ? 'text-emerald-600'
                                   : 'text-amber-600'
                               }`}
                             >
-                              {ping ? `${ping.latency} ms` : '~24 ms'}
+                              {latency} ms
                             </span>
                           </td>
                           <td className="py-3 px-3 text-right">

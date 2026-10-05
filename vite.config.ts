@@ -1,7 +1,7 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import { defineConfig, Plugin } from 'vite';
+import { defineConfig, loadEnv, Plugin } from 'vite';
 import healthHandler from './api/health.ts';
 import trafficHandler from './api/traffic.ts';
 import trafficImagesHandler from './api/trafficimages.ts';
@@ -72,7 +72,16 @@ function apiDevServerPlugin(): Plugin {
   };
 }
 
-export default defineConfig(() => {
+export default defineConfig(({ mode }) => {
+  // Expose server-only secrets from .env / .env.local to the /api handlers in dev.
+  // Vercel injects these directly into process.env in production.
+  const env = loadEnv(mode, process.cwd(), '');
+  for (const key of ['LTA_ACCOUNT_KEY', 'LTA_API_KEY']) {
+    if (env[key] && !process.env[key]) {
+      process.env[key] = env[key];
+    }
+  }
+
   return {
     plugins: [react(), tailwindcss(), apiDevServerPlugin()],
     resolve: {

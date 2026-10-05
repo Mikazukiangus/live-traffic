@@ -11,6 +11,8 @@ This document records all user instructions, feedback, technical inquiries, inve
 4. [Turn 4: Image Loading Rectification (MIME-Type & Asset Bundling)](#4-turn-4-image-loading-rectification-mime-type--asset-bundling)
 5. [Turn 5: Comprehensive 10-Expressway Audit & CCTV Coverage](#5-turn-5-comprehensive-10-expressway-audit--cctv-coverage)
 6. [Turn 6: Real-Time LTA Photo Integration & Instructions Archive](#6-turn-6-real-time-lta-photo-integration--instructions-archive)
+7. [Turn 7: Bottom-of-Page API Health Summary Screen](#7-turn-7-bottom-of-page-api-health-summary-screen)
+8. [Turn 8: LTA Key Setup, Endpoint Verification & Honest Health Probes](#8-turn-8-lta-key-setup-endpoint-verification--honest-health-probes)
 
 ---
 
@@ -188,4 +190,29 @@ Build a comprehensive Singapore Live Traffic & Expressway Monitoring System feat
 
 ---
 
-*Log verified and maintained by AI Studio Engineering Agent.*
+## 8. Turn 8: LTA Key Setup, Endpoint Verification & Honest Health Probes
+
+### User Request:
+> *"I have added the LTA_ACCOUNT_KEY into the Vercel.app under Environment Variables already. Do the necessary local setup. Can test the endpoints to check status."*
+>
+> Follow-up: *"Fix the 2 smaller issues"* (masked key exposure and hardcoded health statuses).
+
+### Investigation:
+- Production (`live-traffic-carbon-bc04.vercel.app`, behind Vercel Authentication) was tested via the Vercel connector after it was re-authorized with the `carbon-bc04` team scope. `LTA_ACCOUNT_KEY` confirmed present (sensitive, production target).
+- Production results: `/api/health`, `/api/traffic` (21 incidents), `/api/trafficimages` (DataMall `Traffic-Imagesv2`, 8 cameras), `/api/vms` (25 signs), `/api/traveltimes` and `/api/imageproxy` returned 200.
+- **Bug found:** `/api/trafficflow` returned 404 "The requested API was not found" — it called a non-existent DataMall path (`/Trafficflow`). Verified with the real key: `/Trafficflow` → 404, `/v4/TrafficSpeedBands` → 200.
+- **Hidden by the health screen:** `/api/health` returned a hardcoded `status: 'UP'` for every endpoint, and the footer badge was a static `7/7 UP`, so the broken endpoint showed as healthy.
+- `/api/health` also exposed the first and last 4 characters of the LTA key (`keyMasked`).
+- Local dev: the Vite `/api` middleware never loaded `.env` files into `process.env`, so handlers could not see a local key.
+
+### Rectifications Implemented:
+1. **Local setup:** `vite.config.ts` now loads `LTA_ACCOUNT_KEY` / `LTA_API_KEY` from `.env` / `.env.local` via `loadEnv` into `process.env` for the dev API middleware. Local secrets live in git-ignored `.env.local`.
+2. **Speed bands endpoint:** `/api/trafficflow` now proxies `https://datamall2.mytransport.sg/ltaodataservice/v4/TrafficSpeedBands`.
+3. **Real health probes:** `/api/health` probes each upstream (TrafficIncidents, Traffic-Imagesv2 or the Data.gov.sg fallback, v4/TrafficSpeedBands, VMS, EstTravelTimes) in parallel with an 8s timeout, and reports per-endpoint status, HTTP code, latency and error reason, plus `upCount` / `totalCount` and an overall `healthy` / `degraded` status. Response is CDN-cached for 30s to avoid fanning out to LTA on every page load.
+4. **Key no longer exposed:** removed `keyMasked`; the health modal shows "Server-side env variable" instead.
+5. **UI reflects reality:** `ApiHealthModal.tsx` uses server probe results (status badges, latency, error text, X/Y responsive banner, amber degraded state); `Footer.tsx` fetches `/api/health` and shows a live `X/Y UP` badge (amber when degraded, red when unreachable).
+6. Verified locally with the key: health reports `healthy 7/7`; `/api/trafficflow` returns 500 speed-band records.
+
+---
+
+*Log verified and maintained by AI Studio Engineering Agent and Claude Code.*

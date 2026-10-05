@@ -1,7 +1,48 @@
 /**
  * Health check & diagnostic endpoint for TrafficPulse LTA DataMall serverless connection.
+ * Each endpoint's status comes from a live probe of its upstream source, not a static flag.
  */
 import { getLtaAccountKey, setCorsHeaders } from './_client.ts';
+
+const LTA_BASE = 'https://datamall2.mytransport.sg/ltaodataservice';
+const DATA_GOV_TRAFFIC_IMAGES = 'https://api.data.gov.sg/v1/transport/traffic-images';
+const PROBE_TIMEOUT_MS = 8000;
+
+interface ProbeResult {
+  status: 'UP' | 'DOWN';
+  httpCode: number;
+  latencyMs: number;
+  error?: string;
+}
+
+async function probe(url: string, headers: Record<string, string> = {}): Promise<ProbeResult> {
+  const start = Date.now();
+  try {
+    const response = await fetch(url, {
+      headers: { accept: 'application/json', ...headers },
+      signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
+    });
+    // Drain the body so the connection is released.
+    await response.arrayBuffer().catch(() => undefined);
+    return {
+      status: response.ok ? 'UP' : 'DOWN',
+      httpCode: response.status,
+      latencyMs: Date.now() - start,
+      ...(response.ok ? {} : { error: `Upstream responded ${response.status}` }),
+    };
+  } catch (err: any) {
+    return {
+      status: 'DOWN',
+      httpCode: 0,
+      latencyMs: Date.now() - start,
+      error: err?.name === 'TimeoutError' ? `Timed out after ${PROBE_TIMEOUT_MS}ms` : err?.message || 'Network error',
+    };
+  }
+}
+
+function missingKey(): ProbeResult {
+  return { status: 'DOWN', httpCode: 401, latencyMs: 0, error: 'LTA_ACCOUNT_KEY not configured' };
+}
 
 export default async function handler(req: any, res?: any) {
   if (req && req.method === 'OPTIONS') {
@@ -12,87 +53,112 @@ export default async function handler(req: any, res?: any) {
     return new Response(null, { status: 204 });
   }
 
-  const accountKey = getLtaAccountKey(req);
+  // Only the server-side environment key is checked; the key value is never echoed back.
+  const accountKey = getLtaAccountKey();
+  const ltaHeaders: Record<string, string> = accountKey ? { AccountKey: accountKey } : {};
+  const ltaProbe = (path: string) => (accountKey ? probe(`${LTA_BASE}/${path}`, ltaHeaders) : Promise.resolve(missingKey()));
+
   const startTime = Date.now();
+  const [incidents, images, speedBands, vms, travelTimes] = await Promise.all([
+    ltaProbe('TrafficIncidents'),
+    accountKey ? probe(`${LTA_BASE}/Traffic-Imagesv2`, ltaHeaders) : probe(DATA_GOV_TRAFFIC_IMAGES),
+    ltaProbe('v4/TrafficSpeedBands'),
+    ltaProbe('VMS'),
+    ltaProbe('EstTravelTimes'),
+  ]);
+
+  const endpoints = [
+    {
+      path: '/api/health',
+      name: 'Gateway Health & Diagnostics',
+      method: 'GET',
+      purpose: 'Real-time telemetry and gateway credentials validation',
+      upstream: 'Internal Gateway',
+      status: 'UP',
+      httpCode: 200,
+      latencyMs: 0,
+    },
+    {
+      path: '/api/traffic',
+      name: 'LTA Traffic Incidents',
+      method: 'GET',
+      purpose: 'Expressway accidents, breakdowns, flash floods, and obstacles',
+      upstream: 'LTA DataMall TrafficIncidents',
+      ...incidents,
+    },
+    {
+      path: '/api/trafficimages',
+      name: 'Traffic CCTV Surveillance Images',
+      method: 'GET',
+      purpose: 'Expressway highway surveillance live camera snapshots',
+      upstream: accountKey ? 'LTA DataMall Traffic-Imagesv2' : 'LTA Data.gov.sg Live Feed',
+      ...images,
+    },
+    {
+      path: '/api/trafficflow',
+      name: 'Expressway Flow & Speed Bands',
+      method: 'GET',
+      purpose: 'Live expressway average sensor loop speeds and congestion',
+      upstream: 'LTA DataMall v4/TrafficSpeedBands',
+      ...speedBands,
+    },
+    {
+      path: '/api/vms',
+      name: 'EMAS Variable Message Signs',
+      method: 'GET',
+      purpose: 'Overhead highway LED electronic advisory gantries',
+      upstream: 'LTA DataMall VMS',
+      ...vms,
+    },
+    {
+      path: '/api/traveltimes',
+      name: 'Estimated Expressway Travel Times',
+      method: 'GET',
+      purpose: 'Origin to destination expressway travel duration estimates',
+      upstream: 'LTA DataMall EstTravelTimes',
+      ...travelTimes,
+    },
+    {
+      // The proxy only relays camera image links, so it is as healthy as the images feed.
+      path: '/api/imageproxy',
+      name: 'High-Throughput CCTV Image Proxy',
+      method: 'GET',
+      purpose: 'Bypasses browser octet-stream/nosniff MIME blocking',
+      upstream: 'LTA Images CDN Proxy',
+      status: images.status,
+      httpCode: images.httpCode,
+      latencyMs: images.latencyMs,
+      ...(images.error ? { error: `Depends on images feed: ${images.error}` } : {}),
+    },
+  ];
+
+  const upCount = endpoints.filter((ep) => ep.status === 'UP').length;
 
   const healthData = {
-    status: 'healthy',
-    operational: true,
+    status: upCount === endpoints.length ? 'healthy' : 'degraded',
+    operational: upCount === endpoints.length,
+    upCount,
+    totalCount: endpoints.length,
     service: 'TrafficPulse Singapore Expressway & LTA Gateway',
     version: '2.4.0',
     timestamp: new Date().toISOString(),
-    uptimeSeconds: Math.floor(process.uptime ? process.uptime() : 1240),
+    uptimeSeconds: Math.floor(process.uptime ? process.uptime() : 0),
     environment: process.env.NODE_ENV || 'production',
     ltaKeyConfigured: !!accountKey,
-    keyMasked: accountKey ? `${accountKey.slice(0, 4)}...${accountKey.slice(-4)}` : null,
     providerMode: accountKey
-      ? 'Official LTA DataMall v2 Direct'
+      ? 'Official LTA DataMall Direct'
       : 'Open Transport DataMall & Public Real-time API',
-    probeLatencyMs: Date.now() - startTime + 4,
-    endpoints: [
-      {
-        path: '/api/health',
-        name: 'Gateway Health & Diagnostics',
-        status: 'UP',
-        method: 'GET',
-        purpose: 'Real-time telemetry and gateway credentials validation',
-        upstream: 'Internal Gateway',
-      },
-      {
-        path: '/api/traffic',
-        name: 'LTA Traffic Incidents',
-        status: 'UP',
-        method: 'GET',
-        purpose: 'Expressway accidents, breakdowns, flash floods, and obstacles',
-        upstream: 'LTA DataMall TrafficIncidents',
-      },
-      {
-        path: '/api/trafficimages',
-        name: 'Traffic CCTV Surveillance Images',
-        status: 'UP',
-        method: 'GET',
-        purpose: 'Expressway highway surveillance live camera snapshots',
-        upstream: accountKey ? 'LTA DataMall Traffic-Imagesv2' : 'LTA Data.gov.sg Live Feed',
-      },
-      {
-        path: '/api/trafficflow',
-        name: 'Expressway Flow & Speed Bands',
-        status: 'UP',
-        method: 'GET',
-        purpose: 'Live expressway average sensor loop speeds and congestion',
-        upstream: 'LTA DataMall TrafficSpeedBandsv2',
-      },
-      {
-        path: '/api/vms',
-        name: 'EMAS Variable Message Signs',
-        status: 'UP',
-        method: 'GET',
-        purpose: 'Overhead highway LED electronic advisory gantries',
-        upstream: 'LTA DataMall VMS',
-      },
-      {
-        path: '/api/traveltimes',
-        name: 'Estimated Expressway Travel Times',
-        status: 'UP',
-        method: 'GET',
-        purpose: 'Origin to destination expressway travel duration estimates',
-        upstream: 'LTA DataMall EstTravelTimes',
-      },
-      {
-        path: '/api/imageproxy',
-        name: 'High-Throughput CCTV Image Proxy',
-        status: 'UP',
-        method: 'GET',
-        purpose: 'Bypasses browser octet-stream/nosniff MIME blocking',
-        upstream: 'LTA Images CDN Proxy',
-      },
-    ],
+    probeLatencyMs: Date.now() - startTime,
+    endpoints,
   };
+
+  // Short CDN cache so page loads don't each fan out five upstream LTA requests.
+  const cacheControl = 'public, max-age=0, s-maxage=30, stale-while-revalidate=30';
 
   if (res && typeof res.status === 'function') {
     setCorsHeaders(res);
     res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Cache-Control', cacheControl);
     return res.status(200).json(healthData);
   }
 
@@ -101,7 +167,7 @@ export default async function handler(req: any, res?: any) {
     headers: {
       'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': '*',
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Cache-Control': cacheControl,
     },
   });
 }
