@@ -3,7 +3,7 @@ import { EMAS_SIGNS, EXPRESSWAY_CORRIDORS } from '../data/mockData';
 import { EmasVariableMessageSign } from '../types/traffic';
 import type { SpeedSegment } from './SpeedBandMap';
 
-const BOARD_COUNT = 6;
+const SAMPLE_BOARD_COUNT = 6;
 // LTA refreshes VMS messages about every 2 minutes.
 const VMS_POLL_MS = 60_000;
 // A sign further than this from any expressway link is labelled by equipment ID only.
@@ -49,10 +49,11 @@ function nearestExpressway(lat: number, lon: number, segments: SpeedSegment[]): 
 }
 
 // Many gantries carry the same message, so show each distinct message once:
-// most severe first, then the most widely displayed.
-function groupByMessage(signs: LtaVmsSign[], count: number): LtaVmsSign[][] {
+// most severe first, then the most widely displayed. Blank signs are skipped.
+function groupByMessage(signs: LtaVmsSign[]): LtaVmsSign[][] {
   const byMessage = new Map<string, LtaVmsSign[]>();
   for (const s of signs) {
+    if (!s.Message?.replace(/,/g, '').trim()) continue;
     if (!byMessage.has(s.Message)) byMessage.set(s.Message, []);
     byMessage.get(s.Message)!.push(s);
   }
@@ -61,8 +62,7 @@ function groupByMessage(signs: LtaVmsSign[], count: number): LtaVmsSign[][] {
     .sort(
       (a, b) =>
         severityRank[classify(a[0].Message)] - severityRank[classify(b[0].Message)] || b.length - a.length
-    )
-    .slice(0, count);
+    );
 }
 
 export const LiveVmsBoards: React.FC = () => {
@@ -100,9 +100,9 @@ export const LiveVmsBoards: React.FC = () => {
 
   const boards: VmsBoard[] = useMemo(() => {
     if (!signs) {
-      return EMAS_SIGNS.slice(0, BOARD_COUNT).map(({ line1, line2, ...rest }) => ({ ...rest, lines: [line1, line2] }));
+      return EMAS_SIGNS.slice(0, SAMPLE_BOARD_COUNT).map(({ line1, line2, ...rest }) => ({ ...rest, lines: [line1, line2] }));
     }
-    return groupByMessage(signs, BOARD_COUNT).map((group) => {
+    return groupByMessage(signs).map((group) => {
       const message = group[0].Message;
       const codes = segments.length
         ? [...new Set(group.map((s) => nearestExpressway(s.Latitude, s.Longitude, segments)).filter(Boolean))]
@@ -124,8 +124,7 @@ export const LiveVmsBoards: React.FC = () => {
     });
   }, [signs, segments, fetchedAt]);
 
-  const uniqueMessages = signs ? new Set(signs.map((s) => s.Message)).size : 0;
-  const hiddenMessages = Math.max(0, uniqueMessages - boards.length);
+  const uniqueMessages = signs ? boards.length : 0;
 
   return (
     <div className="flex flex-col gap-3">
@@ -138,7 +137,7 @@ export const LiveVmsBoards: React.FC = () => {
           {signs ? (
             <span className="text-emerald-700">
               LTA DataMall • {uniqueMessages} unique {uniqueMessages === 1 ? 'message' : 'messages'} across{' '}
-              {signs.length} signs{hiddenMessages > 0 ? ` (showing ${boards.length})` : ''}
+              {signs.length} signs
             </span>
           ) : failed ? (
             <span className="text-amber-700">Sample signs • LTA VMS feed unavailable</span>
@@ -147,6 +146,12 @@ export const LiveVmsBoards: React.FC = () => {
           )}
         </span>
       </div>
+
+      {signs && boards.length === 0 && (
+        <div className="p-6 text-center text-slate-400 text-xs bg-white rounded-xl border border-slate-200">
+          No messages are currently displayed on LTA expressway signs.
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {boards.map((sign) => {

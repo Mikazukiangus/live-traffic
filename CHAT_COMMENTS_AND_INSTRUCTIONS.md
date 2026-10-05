@@ -27,6 +27,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 20. [Turn 20: Live-Only Traffic Incidents](#20-turn-20-live-only-traffic-incidents)
 21. [Turn 21: Live Traffic Radar Without Simulated Readouts](#21-turn-21-live-traffic-radar-without-simulated-readouts)
 22. [Turn 22: Live Status Bar and SOS Readouts](#22-turn-22-live-status-bar-and-sos-readouts)
+23. [Turn 23: Show All Unique VMS Messages](#23-turn-23-show-all-unique-vms-messages)
 
 ---
 
@@ -472,6 +473,19 @@ Build a comprehensive Singapore Live Traffic & Expressway Monitoring System feat
    - "Live Tow Fleet Radar" → "Tow Fleet Radar" with a "Sample units" badge and a note that unit positions and ETAs are illustrative.
 3. **`src/utils/expresswaySpeeds.ts`** (new): `useExpresswaySpeeds()` summary hook (60s poll) and `describeExpresswaySpeed()`.
 4. The SOS booking and dispatch flow itself remains a demo by design.
+
+---
+
+## 23. Turn 23: Show All Unique VMS Messages
+
+### User Request:
+> *"for \"Live Expressway Variable Message Signboards (VMS)\", show as many unique messages there is available instead of just 6."*
+
+### Rectifications Implemented:
+1. **`LiveVmsBoards.tsx`** no longer caps live boards at 6: every distinct LTA message gets a board (most severe first, then most widely displayed). Blank signs are skipped.
+2. The header reads "LTA DataMall • N unique messages across M signs"; the "(showing 6)" suffix is gone. If no sign carries a message, an empty-state line says so.
+3. The 6 sample boards remain only as the fallback when the LTA VMS feed is unavailable.
+4. Verified locally: 9 unique messages across 25 signs, all 9 shown.
 
 ---
 
