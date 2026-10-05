@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { EXPRESSWAY_CORRIDORS, TOW_FLEET_UNITS } from '../data/mockData';
-import { ExpresswayCorridor } from '../types/traffic';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { EXPRESSWAY_CORRIDORS } from '../data/mockData';
+import { CongestionStatus } from '../types/traffic';
 import { SpeedBandMap, SpeedBandLegend, SpeedSegment } from '../components/SpeedBandMap';
 import { IncidentFeed, countByCorridor } from '../utils/ltaIncidents';
 import { WeatherOutlook24h } from '../components/WeatherOutlook24h';
 import { RAIN_LEVEL_STYLE, describeCorridorRain, rainByExpressway, useRainForecast } from '../utils/rainForecast';
+import { DirectionTravelTime, useLtaTravelTimes } from '../utils/ltaTravelTimes';
 
 interface LiveRadarViewProps {
   onSwitchToSos: (corridorCode: string) => void;
@@ -12,123 +13,45 @@ interface LiveRadarViewProps {
   incidentFeed: IncidentFeed;
 }
 
-// Corridor specific telemetry metadata
-const CORRIDOR_TELEMETRY_SPECS: Record<
-  string,
-  {
-    nearestBay: string;
-    markerDesc: string;
-    loopId: string;
-    mileageKm: number;
-    sensorFrequencyHz: number;
-    surveillanceCamId: string;
-  }
-> = {
-  PIE: {
-    nearestBay: 'PIE Exit 13 Bay 2 (Kallang Bahru)',
-    markerDesc: 'MK 12.8 Eastbound to Changi Airport',
-    loopId: 'EMAS-PIE-12F',
-    mileageKm: 42.8,
-    sensorFrequencyHz: 433.95,
-    surveillanceCamId: 'CAM-PIE-01',
-  },
-  AYE: {
-    nearestBay: 'AYE Exit 11 Bay B (Clementi Ave 6)',
-    markerDesc: 'MK 11.5 Westbound to Tuas Mega Port',
-    loopId: 'EMAS-AYE-11C',
-    mileageKm: 26.5,
-    sensorFrequencyHz: 433.91,
-    surveillanceCamId: 'CAM-AYE-02',
-  },
-  ECP: {
-    nearestBay: 'ECP Exit 14 Bay 2 (Marina East Flyover)',
-    markerDesc: 'MK 18.2 Westbound to Sheares Bridge / Marina Bay',
-    loopId: 'EMAS-ECP-18A',
-    mileageKm: 20.0,
-    sensorFrequencyHz: 433.93,
-    surveillanceCamId: 'CAM-ECP-03',
-  },
-  CTE: {
-    nearestBay: 'CTE Exit 10 Bay A (Braddell Flyover)',
-    markerDesc: 'MK 3.2 Southbound towards Moulmein Viaduct',
-    loopId: 'EMAS-CTE-03A',
-    mileageKm: 15.8,
-    sensorFrequencyHz: 433.88,
-    surveillanceCamId: 'CAM-CTE-04',
-  },
-  TPE: {
-    nearestBay: 'TPE Exit 8 Bay 4 (Punggol West Flyover)',
-    markerDesc: 'MK 8.2 Eastbound towards Changi Airport',
-    loopId: 'EMAS-TPE-08D',
-    mileageKm: 14.0,
-    sensorFrequencyHz: 433.87,
-    surveillanceCamId: 'CAM-TPE-05',
-  },
-  KPE: {
-    nearestBay: 'KPE Exit 2 Bay C',
-    markerDesc: 'MK 6.4 Southbound before MCE Tunnel Connector',
-    loopId: 'EMAS-KPE-06B',
-    mileageKm: 12.0,
-    sensorFrequencyHz: 433.92,
-    surveillanceCamId: 'CAM-KPE-06',
-  },
-  SLE: {
-    nearestBay: 'SLE Exit 5 Bay 3 (Lentor Ave)',
-    markerDesc: 'MK 5.8 Eastbound to TPE Connector',
-    loopId: 'EMAS-SLE-05E',
-    mileageKm: 10.8,
-    sensorFrequencyHz: 433.89,
-    surveillanceCamId: 'CAM-SLE-07',
-  },
-  BKE: {
-    nearestBay: 'BKE Exit 7 Bay 1 (Mandai Flyover)',
-    markerDesc: 'MK 4.2 Northbound to Woodlands Checkpoint',
-    loopId: 'EMAS-BKE-04D',
-    mileageKm: 10.6,
-    sensorFrequencyHz: 433.85,
-    surveillanceCamId: 'CAM-BKE-08',
-  },
-  KJE: {
-    nearestBay: 'KJE Exit 3 Bay 1 (Choa Chu Kang Way)',
-    markerDesc: 'MK 4.1 Westbound towards PIE',
-    loopId: 'EMAS-KJE-03B',
-    mileageKm: 8.4,
-    sensorFrequencyHz: 433.84,
-    surveillanceCamId: 'CAM-KJE-09',
-  },
-  MCE: {
-    nearestBay: 'MCE Exit 2 Bay 1 (Central Boulevard)',
-    markerDesc: 'Subsea Tunnel MK 2.4 between Marina South & East',
-    loopId: 'EMAS-MCE-02A',
-    mileageKm: 5.0,
-    sensorFrequencyHz: 433.96,
-    surveillanceCamId: 'CAM-MCE-10',
-  },
-};
-
 interface ExpresswaySpeedSummary {
   code: string;
   avgSpeedKmH: number;
   linkCount: number;
   slowLinkPct: number;
-  status: ExpresswayCorridor['status'];
+  status: CongestionStatus;
 }
 
 // LTA speed bands refresh every 5 minutes; the endpoint is CDN-cached, so polling each minute is cheap.
 const SPEED_BANDS_POLL_MS = 60_000;
+// Speed bar scale; LTA's top speed band is 70+ km/h and most expressways are signed 80–90 km/h.
+const SPEED_BAR_MAX_KMH = 90;
 
-const travelTimeMins = (code: string, speedKmH: number) => {
-  const baseKm = CORRIDOR_TELEMETRY_SPECS[code]?.mileageKm || 15;
-  return Math.max(5, Math.round((baseKm / (speedKmH || 1)) * 60));
+// LTA EstTravelTimes does not cover these, so their time is estimated from length and LTA average speed.
+const UNPUBLISHED_TRAVEL_TIME_KM: Record<string, number> = { KPE: 12, MCE: 5 };
+
+const STATUS_BADGE: Record<CongestionStatus, string> = {
+  Congested: 'bg-red-100 text-red-700 border-red-200',
+  Heavy: 'bg-amber-100 text-amber-800 border-amber-200',
+  Moderate: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+  Smooth: 'bg-emerald-100 text-emerald-800 border-emerald-200',
 };
+
+const STATUS_BAR: Record<CongestionStatus, string> = {
+  Congested: 'bg-red-500',
+  Heavy: 'bg-amber-500',
+  Moderate: 'bg-yellow-400',
+  Smooth: 'bg-emerald-500',
+};
+
+const describeTravelTimes = (times: DirectionTravelTime[]) =>
+  times.map((t) => `${t.minutes} min to ${t.towards}`).join(' • ');
 
 export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
   onSwitchToSos,
   onCallHotline,
   incidentFeed,
 }) => {
-  // Live dynamic corridors state
-  const [corridors, setCorridors] = useState<ExpresswayCorridor[]>(EXPRESSWAY_CORRIDORS);
+  const corridors = EXPRESSWAY_CORRIDORS;
   const [selectedCorridorCode, setSelectedCorridorCode] = useState<string>('KPE');
   const [filterSeverity, setFilterSeverity] = useState<'all' | 'critical' | 'warning'>('all');
 
@@ -137,19 +60,14 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
   const incidentCounts = useMemo(() => countByCorridor(incidents), [incidents]);
   const expresswayIncidentCount = incidents.filter((inc) => inc.corridorCode).length;
 
-  // Live telemetry pulse data
-  const [lastSyncTime, setLastSyncTime] = useState<Date>(new Date());
-  const [secondsSinceLastPing, setSecondsSinceLastPing] = useState<number>(1);
-  const [packetCount, setPacketCount] = useState<number>(19420);
-  const [vehicleFlowRate, setVehicleFlowRate] = useState<number>(54); // vehicles/min
-  const [signalDbm, setSignalDbm] = useState<number>(-62);
-  const [isSyncing, setIsSyncing] = useState<boolean>(false);
-
-  // Real expressway speeds from LTA speed bands (null until the first successful fetch)
+  // Real expressway speeds from LTA speed bands (no values until the first successful fetch)
   const [speedDetails, setSpeedDetails] = useState<Record<string, ExpresswaySpeedSummary> | null>(null);
+  const [speedStatus, setSpeedStatus] = useState<'loading' | 'live' | 'error'>('loading');
   const [speedBandsUpdated, setSpeedBandsUpdated] = useState<string | null>(null);
   const [speedSegments, setSpeedSegments] = useState<SpeedSegment[]>([]);
-  const hasLiveSpeedsRef = useRef(false);
+
+  // LTA estimated travel times per expressway and direction
+  const travelTimes = useLtaTravelTimes();
 
   // NEA 2-hour rain forecast, mapped onto each expressway via its speed band links
   const rainForecast = useRainForecast();
@@ -158,111 +76,54 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
     [rainForecast, speedSegments]
   );
 
-  const selectedCorridor = useMemo(() => {
-    return corridors.find((c) => c.code === selectedCorridorCode) || corridors[0];
-  }, [corridors, selectedCorridorCode]);
+  const selectedCorridor = corridors.find((c) => c.code === selectedCorridorCode) || corridors[0];
+  const selectedSpeed = speedDetails?.[selectedCorridor.code];
 
-  const telemetrySpecs = useMemo(() => {
-    return (
-      CORRIDOR_TELEMETRY_SPECS[selectedCorridor.code] || {
-        nearestBay: `${selectedCorridor.code} Exit 2 Bay A`,
-        markerDesc: `${selectedCorridor.code} Mile Marker 4.5`,
-        loopId: `EMAS-${selectedCorridor.code}-02A`,
-        mileageKm: 15.0,
-        sensorFrequencyHz: 433.9,
-        surveillanceCamId: 'CAM-AUTO',
-      }
-    );
-  }, [selectedCorridor]);
+  const loadSpeedBands = useCallback(async () => {
+    try {
+      const res = await fetch('/api/expresswayspeeds?include=segments');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      const byCode: Record<string, ExpresswaySpeedSummary> = {};
+      for (const e of json.expressways || []) byCode[e.code] = e;
+      if (Object.keys(byCode).length === 0) throw new Error('No expressway speeds');
 
-  // 1. Second-by-second heartbeat counter
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setSecondsSinceLastPing((prev) => (prev >= 6 ? 1 : prev + 1));
-      setPacketCount((prev) => prev + Math.floor(Math.random() * 3) + 1);
-    }, 1000);
-    return () => clearInterval(timer);
+      setSpeedDetails(byCode);
+      setSpeedBandsUpdated(json.lastUpdatedTime || null);
+      if (Array.isArray(json.segments)) setSpeedSegments(json.segments);
+      setSpeedStatus('live');
+    } catch {
+      // Keep the last live speeds, if any
+      setSpeedStatus('error');
+    }
   }, []);
 
-  // 2. Simulated sensor telemetry loop (incidents come from the shared live LTA feed)
-  const syncLiveData = async () => {
-    setIsSyncing(true);
-
-    // 3. Simulated speed fluctuation, only used until real LTA speed bands have loaded
-    if (!hasLiveSpeedsRef.current) setCorridors((prevCorridors) =>
-      prevCorridors.map((c) => {
-        // Natural speed variation of +/- 1 to 4 km/h
-        const delta = Math.floor(Math.random() * 7) - 3;
-        const newSpeed = Math.max(15, Math.min(c.speedLimit, c.speedKmH + delta));
-
-        let newStatus: ExpresswayCorridor['status'] = 'Smooth';
-        if (newSpeed < 35) newStatus = 'Congested';
-        else if (newSpeed < 55) newStatus = 'Heavy';
-        else if (newSpeed < 75) newStatus = 'Moderate';
-
-        return {
-          ...c,
-          speedKmH: newSpeed,
-          status: newStatus,
-          travelTimeMins: travelTimeMins(c.code, newSpeed),
-        };
-      })
-    );
-
-    // Update telemetry sensor readings
-    setVehicleFlowRate((prev) => Math.max(28, Math.min(85, prev + Math.floor(Math.random() * 7) - 3)));
-    setSignalDbm((prev) => Math.max(-75, Math.min(-55, prev + (Math.random() > 0.5 ? 1 : -1))));
-    setLastSyncTime(new Date());
-    setSecondsSinceLastPing(0);
-
-    setTimeout(() => {
-      setIsSyncing(false);
-    }, 400);
-  };
-
-  // Run live sync every 6 seconds
   useEffect(() => {
-    syncLiveData();
-    const interval = setInterval(syncLiveData, 6000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // 4. Real average speeds per expressway from LTA DataMall speed bands
-  useEffect(() => {
-    const loadSpeedBands = async () => {
-      try {
-        const res = await fetch('/api/expresswayspeeds?include=segments');
-        if (!res.ok) return;
-        const json = await res.json();
-        const byCode: Record<string, ExpresswaySpeedSummary> = {};
-        for (const e of json.expressways || []) byCode[e.code] = e;
-        if (Object.keys(byCode).length === 0) return;
-
-        hasLiveSpeedsRef.current = true;
-        setSpeedDetails(byCode);
-        setSpeedBandsUpdated(json.lastUpdatedTime || null);
-        if (Array.isArray(json.segments)) setSpeedSegments(json.segments);
-        setCorridors((prev) =>
-          prev.map((c) => {
-            const live = byCode[c.code];
-            if (!live) return c;
-            return {
-              ...c,
-              speedKmH: live.avgSpeedKmH,
-              status: live.status,
-              travelTimeMins: travelTimeMins(c.code, live.avgSpeedKmH),
-            };
-          })
-        );
-      } catch {
-        // Keep the current values (simulated until the first success)
-      }
-    };
-
     loadSpeedBands();
     const interval = setInterval(loadSpeedBands, SPEED_BANDS_POLL_MS);
     return () => clearInterval(interval);
-  }, []);
+  }, [loadSpeedBands]);
+
+  const [refreshing, setRefreshing] = useState(false);
+  const refreshAll = async () => {
+    setRefreshing(true);
+    await Promise.all([loadSpeedBands(), travelTimes.refresh(), incidentFeed.refresh()]);
+    setRefreshing(false);
+  };
+
+  // LTA travel time text, or an estimate (clearly labelled) where LTA publishes none
+  const travelTimeText = (code: string): string => {
+    const times = travelTimes.byCode[code];
+    if (times?.length) return describeTravelTimes(times);
+    const km = UNPUBLISHED_TRAVEL_TIME_KM[code];
+    const speed = speedDetails?.[code]?.avgSpeedKmH;
+    if (km && speed) return `≈${Math.max(1, Math.round((km / speed) * 60))} min end to end (estimated; not published by LTA)`;
+    if (travelTimes.status === 'loading') return 'Loading…';
+    return 'Not available';
+  };
+
+  const speedUnavailableText = speedStatus === 'loading' ? 'Loading LTA speeds…' : 'LTA speeds unavailable';
+  const speedsUpdatedSgt = speedBandsUpdated ? speedBandsUpdated.slice(11, 16) : null;
 
   // Filtered incidents
   const filteredIncidents = incidents.filter((inc) => {
@@ -274,32 +135,37 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-6 flex flex-col gap-6">
-      {/* Header with Live Ticker Bar */}
+      {/* Header with data sources */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span
+              className={`w-2.5 h-2.5 rounded-full ${speedStatus === 'live' ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'}`}
+            ></span>
             <span className="text-xs font-bold text-sky-600 uppercase tracking-wider">
-              LTA EMAS Telemetry Grid • Active Stream
+              LTA DataMall &amp; NEA Live Data
             </span>
-            <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold uppercase tracking-wider font-mono">
-              ● Live 6s Loop Sync ({secondsSinceLastPing}s ago)
-            </span>
+            {speedsUpdatedSgt && (
+              <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold uppercase tracking-wider font-mono">
+                Speeds updated {speedsUpdatedSgt} SGT
+              </span>
+            )}
           </div>
           <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 mt-1">
             Singapore Expressway Radar &amp; Traffic Health
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Real-time average expressway speed sensors, congestion heatmaps, and active dispatch units.
+            Live LTA speed bands, travel times and incidents for all 10 expressways, with NEA rain forecasts.
           </p>
           <p className="text-[11px] mt-1 font-mono">
             {speedDetails ? (
-              <span className="text-emerald-700">
+              <span className={speedStatus === 'error' ? 'text-amber-700' : 'text-emerald-700'}>
                 Speeds: LTA DataMall speed bands
-                {speedBandsUpdated ? ` • updated ${speedBandsUpdated.slice(11, 16)} SGT` : ''}
+                {speedsUpdatedSgt ? ` • updated ${speedsUpdatedSgt} SGT` : ''}
+                {speedStatus === 'error' ? ' • refresh failed' : ''}
               </span>
             ) : (
-              <span className="text-amber-700">Speeds: simulated (LTA speed bands loading or unavailable)</span>
+              <span className="text-amber-700">Speeds: {speedUnavailableText}</span>
             )}
             {rainForecast && (
               <span className="text-sky-700"> • Rain: NEA 2-hour forecast, {rainForecast.validPeriod.text}</span>
@@ -309,18 +175,15 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
 
         <div className="flex items-center gap-2 shrink-0">
           <button
-            onClick={() => {
-              syncLiveData();
-              incidentFeed.refresh();
-            }}
-            disabled={isSyncing}
+            onClick={refreshAll}
+            disabled={refreshing}
             className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-            title="Force immediate radar telemetry polling"
+            title="Reload LTA speeds, travel times and incidents now"
           >
-            <span className={`material-symbols-outlined text-sm ${isSyncing ? 'animate-spin' : ''}`}>
+            <span className={`material-symbols-outlined text-sm ${refreshing ? 'animate-spin' : ''}`}>
               refresh
             </span>
-            <span>{isSyncing ? 'Polling Sensors...' : 'Sync Telemetry'}</span>
+            <span>{refreshing ? 'Refreshing…' : 'Refresh Live Data'}</span>
           </button>
 
           <button
@@ -336,17 +199,6 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
       {/* Main Grid: Expressway Corridors Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {corridors.map((corridor) => {
-          const isCongested = corridor.status === 'Congested';
-          const isHeavy = corridor.status === 'Heavy';
-          const isModerate = corridor.status === 'Moderate';
-
-          const getStatusBadge = () => {
-            if (isCongested) return 'bg-red-100 text-red-700 border-red-200';
-            if (isHeavy) return 'bg-amber-100 text-amber-800 border-amber-200';
-            if (isModerate) return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-            return 'bg-emerald-100 text-emerald-800 border-emerald-200';
-          };
-
           const isSelected = selectedCorridor.code === corridor.code;
           const liveSpeed = speedDetails?.[corridor.code];
           const rain = rainByCode[corridor.code];
@@ -372,46 +224,39 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
                     </span>
                     <span className="text-xs text-slate-500 line-clamp-1">{corridor.name}</span>
                   </div>
-                  <span
-                    className={`px-2 py-0.5 rounded text-[11px] font-bold border ${getStatusBadge()}`}
-                  >
-                    {corridor.status}
-                  </span>
+                  {liveSpeed ? (
+                    <span className={`px-2 py-0.5 rounded text-[11px] font-bold border ${STATUS_BADGE[liveSpeed.status]}`}>
+                      {liveSpeed.status}
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded text-[11px] font-bold border bg-slate-50 text-slate-400 border-slate-200">
+                      —
+                    </span>
+                  )}
                 </div>
 
                 <div className="text-[11px] text-slate-400 mt-1">{corridor.fromTo}</div>
               </div>
 
-              {/* Speed Meter Bar with Live Dynamic Values */}
+              {/* LTA speed */}
               <div className="flex flex-col gap-1.5 pt-2 border-t border-slate-100">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-slate-500 font-medium flex items-center gap-1">
-                    <span
-                      className={`w-1.5 h-1.5 rounded-full animate-pulse ${liveSpeed ? 'bg-emerald-500' : 'bg-amber-400'}`}
-                    ></span>
-                    <span>{liveSpeed ? 'Avg Speed (LTA)' : 'Simulated Speed'}</span>
+                    <span className={`w-1.5 h-1.5 rounded-full ${liveSpeed ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`}></span>
+                    <span>Avg Speed (LTA)</span>
                   </span>
-                  <span className="font-mono font-bold text-slate-900 transition-all duration-300">
-                    {corridor.speedKmH} km/h{' '}
-                    <span className="text-slate-400 font-normal">/ {corridor.speedLimit} max</span>
+                  <span className="font-mono font-bold text-slate-900">
+                    {liveSpeed ? `${liveSpeed.avgSpeedKmH} km/h` : <span className="text-slate-400 font-normal">{speedUnavailableText}</span>}
                   </span>
                 </div>
 
                 <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all duration-500 ${
-                      isCongested
-                        ? 'bg-red-500'
-                        : isHeavy
-                        ? 'bg-amber-500'
-                        : isModerate
-                        ? 'bg-yellow-400'
-                        : 'bg-emerald-500'
-                    }`}
-                    style={{
-                      width: `${Math.min(100, (corridor.speedKmH / corridor.speedLimit) * 100)}%`,
-                    }}
-                  ></div>
+                  {liveSpeed && (
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${STATUS_BAR[liveSpeed.status]}`}
+                      style={{ width: `${Math.min(100, (liveSpeed.avgSpeedKmH / SPEED_BAR_MAX_KMH) * 100)}%` }}
+                    ></div>
+                  )}
                 </div>
 
                 {liveSpeed && (
@@ -430,11 +275,9 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
                   </div>
                 )}
 
-                <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
-                  <span>Travel Time: ~{corridor.travelTimeMins} mins</span>
-                  <span className="font-semibold text-sky-600">
-                    {corridor.towsOnline} tows patrolling
-                  </span>
+                <div className="text-[11px] text-slate-500 pt-1 flex items-start gap-1" title={travelTimeText(corridor.code)}>
+                  <span className="material-symbols-outlined text-sm text-slate-400">schedule</span>
+                  <span className="line-clamp-2">Travel time: {travelTimeText(corridor.code)}</span>
                 </div>
               </div>
 
@@ -463,35 +306,28 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
       {/* NEA 24-hour weather outlook */}
       <WeatherOutlook24h />
 
-      {/* Selected Corridor Live Radar Deep-Dive & Incidents Feed */}
+      {/* Selected Expressway Deep-Dive & Incidents Feed */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left: Telemetry Focus Live Deep-Dive */}
+        {/* Left: Selected expressway map and live readings */}
         <div className="lg:col-span-7 bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col gap-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] text-sky-600 font-bold uppercase tracking-wider">
-                  Telemetry Focus • Live Sensor Stream
-                </span>
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-              </div>
+              <span className="text-[11px] text-sky-600 font-bold uppercase tracking-wider">
+                Selected Expressway • LTA Live Data
+              </span>
               <h3 className="text-lg font-bold text-slate-900">
-                {selectedCorridor.name} ({selectedCorridor.code}) Sector Telemetry
+                {selectedCorridor.name} ({selectedCorridor.code})
               </h3>
             </div>
-            <div className="text-right font-mono">
-              <span className="text-xs text-emerald-700 font-bold bg-emerald-50 px-2.5 py-1 rounded border border-emerald-200 inline-block">
-                Flow: {selectedCorridor.speedKmH} km/h
+            {selectedSpeed && (
+              <span className="text-xs text-emerald-700 font-bold font-mono bg-emerald-50 px-2.5 py-1 rounded border border-emerald-200">
+                {selectedSpeed.avgSpeedKmH} km/h avg
               </span>
-              <div className="text-[10px] text-slate-400 mt-0.5">
-                Ping: {secondsSinceLastPing}s ago
-              </div>
-            </div>
+            )}
           </div>
 
-          {/* Interactive Radar Graphic Display */}
+          {/* Speed band map */}
           <div className={`w-full ${speedSegments.length ? 'h-[26rem]' : 'h-72'} bg-slate-950 rounded-xl relative overflow-hidden flex flex-col justify-between p-4 border border-slate-800 shadow-inner`}>
-            {/* Radar Grid Animation Backdrop */}
             <div
               className="absolute inset-0 opacity-25 pointer-events-none"
               style={{
@@ -501,48 +337,28 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
               }}
             ></div>
 
-            {speedSegments.length > 0 ? (
+            {speedSegments.length > 0 && (
               /* Live LTA speed band map, inset so the overlays don't cover the roads */
-              <div className="absolute left-3 right-3 top-12 bottom-36">
+              <div className="absolute left-3 right-3 top-3 bottom-36">
                 <SpeedBandMap
                   segments={speedSegments}
                   selectedCode={selectedCorridor.code}
                   onSelect={setSelectedCorridorCode}
                 />
               </div>
-            ) : (
-              <>
-                {/* Sweep radar ring */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 rounded-full border border-sky-500/30 pointer-events-none animate-ping duration-1000"></div>
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 rounded-full border border-sky-400/40 pointer-events-none"></div>
-              </>
             )}
-
-            {/* Top Bar on Radar Graphic */}
-            <div className="relative z-10 flex items-center justify-between">
-              <div className="bg-black/80 backdrop-blur-md px-3 py-1 rounded text-white text-[11px] font-mono flex items-center gap-2 border border-white/10">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span>{telemetrySpecs.loopId}</span>
-                <span className="text-slate-400">• {telemetrySpecs.sensorFrequencyHz} MHz</span>
-              </div>
-
-              <div className="bg-black/80 backdrop-blur-md px-2.5 py-1 rounded text-slate-300 text-[10px] font-mono border border-white/10 flex items-center gap-2">
-                <span>Signal: {signalDbm} dBm</span>
-                <span className="text-sky-400 font-bold">Packets: {packetCount}</span>
-              </div>
-            </div>
 
             {speedSegments.length > 0 ? (
               /* Selected expressway readout, below the map */
               <div className="relative z-10 mt-auto mb-2 flex items-end pointer-events-none">
                 <div className="bg-black/80 backdrop-blur-md px-3 py-1.5 rounded border border-white/10 text-white font-mono">
                   <div className="text-xs font-bold">
-                    {selectedCorridor.code} • {selectedCorridor.speedKmH} km/h avg • {selectedCorridor.status}
+                    {selectedCorridor.code}
+                    {selectedSpeed ? ` • ${selectedSpeed.avgSpeedKmH} km/h avg • ${selectedSpeed.status}` : ''}
                   </div>
-                  {speedDetails?.[selectedCorridor.code] && (
+                  {selectedSpeed && (
                     <div className="text-[10px] text-sky-300">
-                      {speedDetails[selectedCorridor.code].slowLinkPct}% of{' '}
-                      {speedDetails[selectedCorridor.code].linkCount} segments below 40 km/h
+                      {selectedSpeed.slowLinkPct}% of {selectedSpeed.linkCount} segments below 40 km/h
                     </div>
                   )}
                   {rainByCode[selectedCorridor.code] && (
@@ -553,35 +369,20 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
                 </div>
               </div>
             ) : (
-            /* Center Blip: Speed Loop & Vehicle Passage Visualization */
-            <div className="relative z-10 my-auto flex flex-col items-center justify-center text-center">
-              <div className="w-16 h-16 rounded-full bg-sky-500/20 border-2 border-sky-400 flex items-center justify-center shadow-[0_0_20px_rgba(56,189,248,0.5)]">
-                <span className="text-white text-base font-extrabold font-mono">
-                  {selectedCorridor.speedKmH}
-                </span>
+              <div className="relative z-10 my-auto text-center text-slate-300 text-xs font-mono">
+                {speedStatus === 'loading' ? 'Loading LTA speed band map…' : 'LTA speed band map unavailable. Retrying every minute.'}
               </div>
-              <div className="text-white text-xs font-mono font-bold mt-2 tracking-wider">
-                CURRENT SECTOR SPEED: {selectedCorridor.speedKmH} KM/H
-              </div>
-              <div className="text-sky-300 text-[11px] font-mono mt-0.5">
-                Throughput: ~{vehicleFlowRate} vehicles/min • {selectedCorridor.status} Condition
-              </div>
-            </div>
             )}
 
-            {/* Bottom Card: Nearest Recovery Bay for the Selected Corridor */}
+            {/* Tow request for the selected expressway */}
             <div className="relative z-10 bg-white/95 backdrop-blur-md p-3 rounded-lg border border-slate-200 shadow-lg flex items-center justify-between text-xs">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-full bg-sky-100 text-sky-600 flex items-center justify-center shrink-0">
                   <span className="material-symbols-outlined text-lg">local_shipping</span>
                 </div>
                 <div>
-                  <div className="font-bold text-slate-900">
-                    Nearest LTA Designated Recovery Bay
-                  </div>
-                  <div className="text-slate-600 font-mono text-[11px]">
-                    {telemetrySpecs.nearestBay} ({telemetrySpecs.markerDesc})
-                  </div>
+                  <div className="font-bold text-slate-900">Need a tow on the {selectedCorridor.code}?</div>
+                  <div className="text-slate-600 text-[11px]">{selectedCorridor.fromTo}</div>
                 </div>
               </div>
               <button
@@ -595,28 +396,36 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
 
           {speedSegments.length > 0 && (
             <div className="-mt-2 flex flex-wrap items-center justify-between gap-2 text-[10px] font-mono text-slate-500">
-              <span>LTA speed bands{speedBandsUpdated ? ` • ${speedBandsUpdated.slice(11, 16)} SGT` : ''} • click a road to select</span>
+              <span>LTA speed bands{speedsUpdatedSgt ? ` • ${speedsUpdatedSgt} SGT` : ''} • click a road to select</span>
               <SpeedBandLegend />
             </div>
           )}
 
-          {/* Detailed Sensor Telemetry Metrics Bar */}
+          {/* Live readings for the selected expressway */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
             <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200/80">
-              <span className="text-slate-400 text-[10px] uppercase block font-semibold">Tows Patrolling</span>
-              <span className="text-base font-bold text-slate-900 font-mono">{selectedCorridor.towsOnline} Flatbeds</span>
+              <span className="text-slate-400 text-[10px] uppercase block font-semibold">Avg Speed (LTA)</span>
+              <span className="text-base font-bold text-slate-900 font-mono">
+                {selectedSpeed ? `${selectedSpeed.avgSpeedKmH} km/h` : '—'}
+              </span>
             </div>
             <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200/80">
-              <span className="text-slate-400 text-[10px] uppercase block font-semibold">Corridor Span</span>
-              <span className="text-base font-bold text-slate-900 font-mono">{telemetrySpecs.mileageKm} km</span>
+              <span className="text-slate-400 text-[10px] uppercase block font-semibold">Below 40 km/h</span>
+              <span className="text-base font-bold text-slate-900 font-mono">
+                {selectedSpeed ? `${selectedSpeed.slowLinkPct}%` : '—'}
+              </span>
             </div>
             <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200/80">
-              <span className="text-slate-400 text-[10px] uppercase block font-semibold">Throughput Rate</span>
-              <span className="text-base font-bold text-sky-600 font-mono">{vehicleFlowRate} veh/min</span>
+              <span className="text-slate-400 text-[10px] uppercase block font-semibold">Active Incidents</span>
+              <span className="text-base font-bold text-slate-900 font-mono">
+                {incidentStatus === 'loading' ? '—' : incidentCounts[selectedCorridor.code] || 0}
+              </span>
             </div>
             <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200/80">
-              <span className="text-slate-400 text-[10px] uppercase block font-semibold">Telemetry Latency</span>
-              <span className="text-base font-bold text-emerald-600 font-mono">42 ms</span>
+              <span className="text-slate-400 text-[10px] uppercase block font-semibold">Travel Time</span>
+              <span className="text-[11px] font-semibold text-slate-900 block leading-snug">
+                {travelTimeText(selectedCorridor.code)}
+              </span>
             </div>
           </div>
         </div>

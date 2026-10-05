@@ -25,6 +25,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 18. [Turn 18: NEA 24-Hour Weather Forecast](#18-turn-18-nea-24-hour-weather-forecast)
 19. [Turn 19: Default Tab Is Highway Cameras & EMAS](#19-turn-19-default-tab-is-highway-cameras--emas)
 20. [Turn 20: Live-Only Traffic Incidents](#20-turn-20-live-only-traffic-incidents)
+21. [Turn 21: Live Traffic Radar Without Simulated Readouts](#21-turn-21-live-traffic-radar-without-simulated-readouts)
 
 ---
 
@@ -430,6 +431,26 @@ Build a comprehensive Singapore Live Traffic & Expressway Monitoring System feat
 2. Removed the `INCIDENT_ALERTS` mock, the `emasUnitAssigned` field, the invented unit assignment and "Extrication Active".
 3. **Radar panel** retitled "Active Traffic Incidents" with "LTA DataMall • N active (M on expressways) • updated HH:MM SGT"; incidents sorted by severity, expressways first; empty states for loading, unavailable and "No active incidents reported by LTA". Expressway cards show "N active LTA incidents" from the same feed. "Sync Telemetry" also refreshes incidents.
 4. **Notifications drawer** lists the live incidents ("Active LTA Traffic Incidents (N)") with LTA's message, and its footer shows the source and update time. The bell dot appears only when LTA reports incidents.
+
+---
+
+## 21. Turn 21: Live Traffic Radar Without Simulated Readouts
+
+### User Request:
+> *"yes fix the simulated readouts too"*
+
+### Removed (no real data source):
+- "Live 6s Loop Sync (Ns ago)" heartbeat, "Ping", packet counter, signal dBm, EMAS loop IDs and sensor MHz, "Telemetry Latency 42 ms".
+- Random speed drift used before LTA speeds loaded, and the "Simulated Speed" label.
+- Vehicle throughput (veh/min), "N tows patrolling" and "Tows Patrolling N Flatbeds".
+- Invented "Nearest LTA Designated Recovery Bay" names and mile markers (the "Request Tow Here" button stays).
+- Mock speed, status, speed limit, incident count, tow count and travel time fields on `EXPRESSWAY_CORRIDORS` / `ExpresswayCorridor` (now code, name, route only; `CongestionStatus` type added).
+
+### Replaced With Live Data:
+1. **Travel times** from LTA DataMall EstTravelTimes (`src/utils/ltaTravelTimes.ts`, polled every 2 minutes): stretches summed per expressway and direction, e.g. PIE "45 min to PIE/AYE Interchange • 43 min to Changi Airport". LTA does not publish KPE or MCE, so those show "≈N min end to end (estimated; not published by LTA)" from length and LTA average speed.
+2. **Speeds** show only LTA values; before they load or if LTA fails the cards say "Loading LTA speeds…" / "LTA speeds unavailable" with no status badge or bar. Bars scale against 90 km/h.
+3. **Header** shows "LTA DataMall & NEA Live Data" and the speed band update time; "Refresh Live Data" reloads speeds, travel times and incidents.
+4. **Selected expressway panel**: avg speed, share of segments below 40 km/h, active LTA incidents and travel time, plus "Need a tow on the {code}?". The map shows a loading/unavailable message instead of a fake speed blip.
 
 ---
 

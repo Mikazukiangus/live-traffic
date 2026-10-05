@@ -79,15 +79,12 @@ export interface ActiveDispatch {
   createdAt: string;
 }
 
+export type CongestionStatus = 'Smooth' | 'Moderate' | 'Heavy' | 'Congested';
+
+// Static reference details; live speeds, incidents and travel times come from LTA.
 export interface ExpresswayCorridor {
   code: string;
   name: string;
-  status: 'Smooth' | 'Moderate' | 'Heavy' | 'Congested';
-  speedKmH: number;
-  speedLimit: number;
-  incidentsCount: number;
-  towsOnline: number;
-  travelTimeMins: number;
   fromTo: string;
 }
 
