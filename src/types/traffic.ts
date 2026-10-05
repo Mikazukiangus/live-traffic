@@ -5,11 +5,8 @@ export type WorkshopCategory = 'all' | 'towing' | 'insurance' | 'fleet' | 'ev';
 export interface GnssMarker {
   lat: number;
   lng: number;
-  hdop: number;
-  satellites: number;
   marker: string;
   corridor: string;
-  nearestBay: string;
 }
 
 export interface Workshop {

@@ -1,17 +1,21 @@
 import React, { useState } from 'react';
 import { ALTERNATE_MARKERS } from '../data/mockData';
 import { GnssMarker } from '../types/traffic';
+import { IncidentFeed } from '../utils/ltaIncidents';
 
 interface TelemetryBarProps {
   currentMarker: GnssMarker;
   onSelectMarker: (marker: GnssMarker) => void;
-  towsOnlineCount: number;
+  incidentFeed: IncidentFeed;
+  // Live LTA speed text for the pickup expressway, e.g. "64 km/h • Smooth"
+  pickupSpeedText: string;
 }
 
 export const TelemetryBar: React.FC<TelemetryBarProps> = ({
   currentMarker,
   onSelectMarker,
-  towsOnlineCount,
+  incidentFeed,
+  pickupSpeedText,
 }) => {
   const [showLocationPicker, setShowLocationPicker] = useState(false);
 
@@ -23,11 +27,11 @@ export const TelemetryBar: React.FC<TelemetryBarProps> = ({
           <button
             onClick={() => setShowLocationPicker(!showLocationPicker)}
             className="flex items-center gap-1.5 text-sky-600 font-bold hover:text-sky-700 transition-colors cursor-pointer group"
-            title="Click to simulate changing expressway telemetry marker"
+            title="Choose a demo pickup location"
           >
             <span className="w-2 h-2 rounded-full bg-sky-500 animate-ping"></span>
             <span className="uppercase tracking-wider text-[11px] underline decoration-dotted underline-offset-2">
-              Active GNSS Fix
+              Pickup Location (demo)
             </span>
             <span className="material-symbols-outlined text-sm group-hover:translate-y-0.5 transition-transform">
               arrow_drop_down
@@ -35,14 +39,14 @@ export const TelemetryBar: React.FC<TelemetryBarProps> = ({
           </button>
 
           <span className="text-slate-500 font-mono text-[12px] hidden sm:inline">
-            {currentMarker.lat.toFixed(4)}° N, {currentMarker.lng.toFixed(4)}° E • HDOP 0.8 • Satellites: 18
+            {currentMarker.lat.toFixed(4)}° N, {currentMarker.lng.toFixed(4)}° E • {currentMarker.corridor}
           </span>
 
           {/* Quick Location Switcher Dropdown */}
           {showLocationPicker && (
             <div className="absolute top-7 left-0 z-40 w-80 bg-white border border-slate-200 rounded-lg shadow-xl p-2.5 flex flex-col gap-1.5 animate-in fade-in zoom-in-95 duration-100">
               <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider px-1">
-                Simulate Telemetry Pinned Location
+                Choose Demo Pickup Location
               </div>
               {ALTERNATE_MARKERS.map((loc, idx) => (
                 <button
@@ -68,22 +72,32 @@ export const TelemetryBar: React.FC<TelemetryBarProps> = ({
           )}
         </div>
 
-        {/* Right: EMAS net status & tows online */}
+        {/* Right: live LTA incident feed status and pickup expressway speed */}
         <div className="flex items-center gap-4 text-slate-500">
           <div className="flex items-center gap-1">
-            <span className="material-symbols-outlined text-sm text-emerald-600">
-              check_circle
+            <span
+              className={`material-symbols-outlined text-sm ${
+                incidentFeed.status === 'live' ? 'text-emerald-600' : incidentFeed.status === 'error' ? 'text-amber-600' : 'text-slate-400'
+              }`}
+            >
+              {incidentFeed.status === 'error' ? 'warning' : 'check_circle'}
             </span>
-            <span className="text-[11px] text-emerald-700 font-bold">
-              EMAS Expressway Incident Net: ACTIVE
+            <span
+              className={`text-[11px] font-bold ${
+                incidentFeed.status === 'live' ? 'text-emerald-700' : incidentFeed.status === 'error' ? 'text-amber-700' : 'text-slate-500'
+              }`}
+            >
+              {incidentFeed.status === 'loading'
+                ? 'LTA incident feed: loading'
+                : incidentFeed.status === 'error'
+                ? 'LTA incident feed: unavailable'
+                : `LTA incident feed: live • ${incidentFeed.incidents.length} active`}
             </span>
           </div>
           <div className="hidden sm:flex items-center gap-1">
-            <span className="material-symbols-outlined text-sm text-amber-600">
-              local_shipping
-            </span>
-            <span className="text-[11px] text-amber-700 font-semibold">
-              {towsOnlineCount} Heavy &amp; Flatbed Tows Online
+            <span className="material-symbols-outlined text-sm text-sky-600">speed</span>
+            <span className="text-[11px] text-slate-700 font-semibold">
+              {currentMarker.corridor} (LTA): {pickupSpeedText}
             </span>
           </div>
         </div>

@@ -10,49 +10,34 @@ import {
 export const INITIAL_GNSS: GnssMarker = {
   lat: 1.2982,
   lng: 103.8561,
-  hdop: 0.8,
-  satellites: 18,
   marker: 'KPE Southbound MK 6.4 (Before MCE Tunnel Connector / Marina Coastal Exit)',
   corridor: 'KPE',
-  nearestBay: 'KPE Exit 2 Bay C',
 };
 
 export const ALTERNATE_MARKERS: GnssMarker[] = [
   {
     lat: 1.2982,
     lng: 103.8561,
-    hdop: 0.8,
-    satellites: 18,
     marker: 'KPE Southbound MK 6.4 (Before MCE Tunnel Connector / Marina Coastal Exit)',
     corridor: 'KPE',
-    nearestBay: 'KPE Exit 2 Bay C',
   },
   {
     lat: 1.3325,
     lng: 103.8558,
-    hdop: 0.9,
-    satellites: 16,
     marker: 'CTE Northbound MK 3.2 (Braddell Flyover before Ang Mo Kio Ave 1)',
     corridor: 'CTE',
-    nearestBay: 'CTE Exit 10 Bay A',
   },
   {
     lat: 1.3289,
     lng: 103.8824,
-    hdop: 0.7,
-    satellites: 20,
     marker: 'PIE Eastbound MK 12.8 (Kallang Bahru Flyover)',
     corridor: 'PIE',
-    nearestBay: 'PIE Exit 13 Bay 2',
   },
   {
     lat: 1.3142,
     lng: 103.7654,
-    hdop: 0.8,
-    satellites: 17,
     marker: 'AYE Westbound MK 11.5 (Clementi Ave 6 Exit)',
     corridor: 'AYE',
-    nearestBay: 'AYE Exit 11 Bay B',
   },
 ];
 

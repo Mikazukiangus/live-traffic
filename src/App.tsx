@@ -10,7 +10,9 @@ import {
   WORKSHOPS_DATA,
   ALTERNATE_MARKERS,
 } from './data/mockData';
-import { useLtaIncidents } from './utils/ltaIncidents';
+import { countByCorridor, useLtaIncidents } from './utils/ltaIncidents';
+import { describeExpresswaySpeed, useExpresswaySpeeds } from './utils/expresswaySpeeds';
+import { nearestArea, useRainForecast } from './utils/rainForecast';
 import { Header } from './components/Header';
 import { TelemetryBar } from './components/TelemetryBar';
 import { Footer } from './components/Footer';
@@ -32,6 +34,21 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   // Live LTA incidents, shared by the radar panel and the notifications drawer
   const incidentFeed = useLtaIncidents();
+  const expresswaySpeeds = useExpresswaySpeeds();
+  const rainForecast = useRainForecast();
+
+  // Live readings for the pickup expressway (the pickup location itself is a demo pin)
+  const pickupCode = currentMarker.corridor;
+  const pickupSpeedText = describeExpresswaySpeed(expresswaySpeeds, pickupCode);
+  const pickupIncidents = countByCorridor(incidentFeed.incidents)[pickupCode] || 0;
+  const pickupIncidentsText =
+    incidentFeed.status === 'loading'
+      ? 'Loading…'
+      : incidentFeed.status === 'error' && incidentFeed.incidents.length === 0
+      ? 'Unavailable'
+      : `${pickupIncidents} active`;
+  const pickupRainArea = rainForecast ? nearestArea(currentMarker.lat, currentMarker.lng, rainForecast.areas) : null;
+  const pickupRainText = pickupRainArea ? `${pickupRainArea.name}: ${pickupRainArea.forecast}` : null;
 
   // Modals state
   const [bookingModal, setBookingModal] = useState<{
@@ -143,7 +160,8 @@ export default function App() {
         <TelemetryBar
           currentMarker={currentMarker}
           onSelectMarker={setCurrentMarker}
-          towsOnlineCount={38}
+          incidentFeed={incidentFeed}
+          pickupSpeedText={pickupSpeedText}
         />
 
         {/* Tab Views */}
@@ -162,8 +180,10 @@ export default function App() {
             onSelectSituation={handleSelectSituation}
             onBookBay={handleBookBay}
             onOpenSlaModal={() => setSlaModalOpen(true)}
-            nearestBay={currentMarker.nearestBay}
-            trafficSpeed="Congested (32 km/h)"
+            corridorCode={pickupCode}
+            trafficSpeed={pickupSpeedText}
+            incidentsText={pickupIncidentsText}
+            rainText={pickupRainText}
           />
         )}
 

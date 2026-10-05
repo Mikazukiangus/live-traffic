@@ -18,8 +18,10 @@ interface SosWorkshopsViewProps {
   onSelectSituation: (situation: TriageSituation) => void;
   onBookBay: (workshop: Workshop) => void;
   onOpenSlaModal: () => void;
-  nearestBay: string;
+  corridorCode: string;
   trafficSpeed: string;
+  incidentsText: string;
+  rainText: string | null;
 }
 
 export const SosWorkshopsView: React.FC<SosWorkshopsViewProps> = ({
@@ -33,8 +35,10 @@ export const SosWorkshopsView: React.FC<SosWorkshopsViewProps> = ({
   onSelectSituation,
   onBookBay,
   onOpenSlaModal,
-  nearestBay,
+  corridorCode,
   trafficSpeed,
+  incidentsText,
+  rainText,
 }) => {
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6 flex flex-col gap-6">
@@ -72,7 +76,12 @@ export const SosWorkshopsView: React.FC<SosWorkshopsViewProps> = ({
 
         {/* Right Area: Direct Toll-Free Hotlines & Live Tow Tracking Mini Map (4 Cols on LG) */}
         <div className="lg:col-span-4 flex flex-col gap-4">
-          <RadarWidget nearestBay={nearestBay} trafficSpeed={trafficSpeed} />
+          <RadarWidget
+            corridorCode={corridorCode}
+            trafficSpeed={trafficSpeed}
+            incidentsText={incidentsText}
+            rainText={rainText}
+          />
           <EmergencySpeedDial onCall={onCallHotline} onOpenSlaModal={onOpenSlaModal} />
         </div>
       </div>

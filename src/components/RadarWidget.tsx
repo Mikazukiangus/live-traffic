@@ -4,14 +4,19 @@ import { TowUnit } from '../types/traffic';
 
 interface RadarWidgetProps {
   onSelectUnit?: (unit: TowUnit) => void;
-  nearestBay: string;
+  corridorCode: string;
+  // Live readings for the pickup expressway
   trafficSpeed: string;
+  incidentsText: string;
+  rainText: string | null;
 }
 
 export const RadarWidget: React.FC<RadarWidgetProps> = ({
   onSelectUnit,
-  nearestBay,
+  corridorCode,
   trafficSpeed,
+  incidentsText,
+  rainText,
 }) => {
   const [selectedUnitIndex, setSelectedUnitIndex] = useState(0);
   const activeUnit = TOW_FLEET_UNITS[selectedUnitIndex];
@@ -25,12 +30,12 @@ export const RadarWidget: React.FC<RadarWidgetProps> = ({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-          <h3 className="text-base sm:text-lg text-slate-900 font-bold">
-            Live Tow Fleet Radar
-          </h3>
+          <span className="w-2.5 h-2.5 rounded-full bg-slate-300"></span>
+          <h3 className="text-base sm:text-lg text-slate-900 font-bold">Tow Fleet Radar</h3>
         </div>
-        <span className="text-xs text-slate-500 font-mono font-medium">Radius: 5km</span>
+        <span className="px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold uppercase">
+          Sample units
+        </span>
       </div>
 
       {/* Radar Map Visual */}
@@ -51,7 +56,7 @@ export const RadarWidget: React.FC<RadarWidgetProps> = ({
 
         {/* Top unit selector hint */}
         <div className="self-end bg-slate-900/80 backdrop-blur-md px-2 py-0.5 rounded text-[10px] text-white font-mono flex items-center gap-1">
-          <span>{selectedUnitIndex + 1}/{TOW_FLEET_UNITS.length} Units</span>
+          <span>Sample {selectedUnitIndex + 1}/{TOW_FLEET_UNITS.length}</span>
           <span className="material-symbols-outlined text-[12px]">cycle</span>
         </div>
 
@@ -69,20 +74,26 @@ export const RadarWidget: React.FC<RadarWidgetProps> = ({
         </div>
       </div>
 
-      {/* Quick Telemetry Specs */}
+      <p className="text-[10px] text-slate-400 -mt-1">
+        Demo fleet: unit positions and ETAs are illustrative, not live vehicle tracking.
+      </p>
+
+      {/* Live LTA / NEA readings for the pickup expressway */}
       <div className="grid grid-cols-2 gap-2 pt-1 text-xs">
         <div className="bg-slate-50 border border-slate-200 p-2.5 rounded">
-          <span className="text-slate-500 text-[10px] uppercase block font-semibold">
-            Nearest Bay
-          </span>
-          <span className="text-slate-900 font-bold">{nearestBay}</span>
+          <span className="text-slate-500 text-[10px] uppercase block font-semibold">{corridorCode} Traffic (LTA)</span>
+          <span className="text-slate-900 font-bold">{trafficSpeed}</span>
         </div>
         <div className="bg-slate-50 border border-slate-200 p-2.5 rounded">
-          <span className="text-slate-500 text-[10px] uppercase block font-semibold">
-            Traffic Flow
-          </span>
-          <span className="text-amber-700 font-bold">{trafficSpeed}</span>
+          <span className="text-slate-500 text-[10px] uppercase block font-semibold">{corridorCode} Incidents (LTA)</span>
+          <span className="text-slate-900 font-bold">{incidentsText}</span>
         </div>
+        {rainText && (
+          <div className="col-span-2 bg-slate-50 border border-slate-200 p-2.5 rounded">
+            <span className="text-slate-500 text-[10px] uppercase block font-semibold">Next 2h near pickup (NEA)</span>
+            <span className="text-slate-900 font-bold">{rainText}</span>
+          </div>
+        )}
       </div>
     </div>
   );

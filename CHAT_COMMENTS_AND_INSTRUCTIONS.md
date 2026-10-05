@@ -26,6 +26,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 19. [Turn 19: Default Tab Is Highway Cameras & EMAS](#19-turn-19-default-tab-is-highway-cameras--emas)
 20. [Turn 20: Live-Only Traffic Incidents](#20-turn-20-live-only-traffic-incidents)
 21. [Turn 21: Live Traffic Radar Without Simulated Readouts](#21-turn-21-live-traffic-radar-without-simulated-readouts)
+22. [Turn 22: Live Status Bar and SOS Readouts](#22-turn-22-live-status-bar-and-sos-readouts)
 
 ---
 
@@ -451,6 +452,26 @@ Build a comprehensive Singapore Live Traffic & Expressway Monitoring System feat
 2. **Speeds** show only LTA values; before they load or if LTA fails the cards say "Loading LTA speeds…" / "LTA speeds unavailable" with no status badge or bar. Bars scale against 90 km/h.
 3. **Header** shows "LTA DataMall & NEA Live Data" and the speed band update time; "Refresh Live Data" reloads speeds, travel times and incidents.
 4. **Selected expressway panel**: avg speed, share of segments below 40 km/h, active LTA incidents and travel time, plus "Need a tow on the {code}?". The map shows a loading/unavailable message instead of a fake speed blip.
+
+---
+
+## 22. Turn 22: Live Status Bar and SOS Readouts
+
+### User Request:
+> *"yes fix those too"* (simulated readouts in the top status bar and the Roadside SOS tab)
+
+### Rectifications Implemented:
+1. **Top status bar (`TelemetryBar.tsx`):**
+   - "Active GNSS Fix" with fixed "HDOP 0.8 • Satellites: 18" → "Pickup Location (demo)" with coordinates and expressway; the picker is "Choose Demo Pickup Location". `hdop`, `satellites` and the invented `nearestBay` were removed from `GnssMarker` and the marker data.
+   - "EMAS Expressway Incident Net: ACTIVE" → real LTA incident feed state ("live • N active", loading, or unavailable in amber).
+   - "38 Heavy & Flatbed Tows Online" → live LTA speed for the pickup expressway, e.g. "KPE (LTA): 65 km/h • Smooth".
+2. **Roadside SOS tab (`RadarWidget.tsx`):**
+   - Hardcoded "Traffic Flow: Congested (32 km/h)" → "{code} Traffic (LTA)" live speed and status.
+   - Invented "Nearest Bay" → "{code} Incidents (LTA)" live count.
+   - New "Next 2h near pickup (NEA)" forecast for the nearest NEA area.
+   - "Live Tow Fleet Radar" → "Tow Fleet Radar" with a "Sample units" badge and a note that unit positions and ETAs are illustrative.
+3. **`src/utils/expresswaySpeeds.ts`** (new): `useExpresswaySpeeds()` summary hook (60s poll) and `describeExpresswaySpeed()`.
+4. The SOS booking and dispatch flow itself remains a demo by design.
 
 ---
 
