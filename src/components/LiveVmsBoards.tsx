@@ -2,12 +2,15 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { EMAS_SIGNS, EXPRESSWAY_CORRIDORS } from '../data/mockData';
 import { EmasVariableMessageSign } from '../types/traffic';
 import type { SpeedSegment } from './SpeedBandMap';
+import { ForecastArea, nearestArea } from '../utils/rainForecast';
 
 const SAMPLE_BOARD_COUNT = 6;
 // LTA refreshes VMS messages about every 2 minutes.
 const VMS_POLL_MS = 60_000;
 // A sign further than this from any expressway link is labelled by equipment ID only.
 const MAX_MATCH_METRES = 300;
+// Gantries listed per board before "show all".
+const COLLAPSED_LOCATIONS = 3;
 
 interface LtaVmsSign {
   EquipmentID: string;
@@ -16,9 +19,21 @@ interface LtaVmsSign {
   Message: string;
 }
 
+interface GantryLocation {
+  id: string;
+  code: string | null;
+  area: string | null;
+  lat: number;
+  lon: number;
+}
+
 interface VmsBoard extends Omit<EmasVariableMessageSign, 'line1' | 'line2'> {
   lines: string[];
+  locations: GantryLocation[];
 }
+
+const NO_AREAS: ForecastArea[] = [];
+const mapLink = (lat: number, lon: number) => `https://www.google.com/maps?q=${lat},${lon}`;
 
 const EXPRESSWAY_NAMES: Record<string, string> = Object.fromEntries(
   EXPRESSWAY_CORRIDORS.map((c) => [c.code, c.name])
@@ -65,7 +80,46 @@ function groupByMessage(signs: LtaVmsSign[]): LtaVmsSign[][] {
     );
 }
 
-export const LiveVmsBoards: React.FC = () => {
+// Each gantry's expressway, nearest NEA area name and GPS position, with a map link.
+const GantryLocations: React.FC<{ locations: GantryLocation[] }> = ({ locations }) => {
+  const [expanded, setExpanded] = useState(false);
+  if (locations.length === 0) return null;
+  const shown = expanded ? locations : locations.slice(0, COLLAPSED_LOCATIONS);
+  const hidden = locations.length - shown.length;
+
+  return (
+    <div className="flex flex-col gap-1 text-[10px] border-t border-slate-800/80 pt-2">
+      {shown.map((loc) => (
+        <a
+          key={loc.id}
+          href={mapLink(loc.lat, loc.lon)}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={`${loc.id} • open in Google Maps`}
+          className="flex items-center gap-1 text-slate-400 hover:text-sky-300 transition-colors min-w-0"
+        >
+          <span className="material-symbols-outlined text-[13px] text-sky-400 shrink-0">location_on</span>
+          <span className="truncate">
+            {[loc.code, loc.area && `near ${loc.area}`].filter(Boolean).join(' • ') || loc.id}
+          </span>
+          <span className="font-mono text-slate-500 ml-auto shrink-0">
+            {loc.lat.toFixed(5)}, {loc.lon.toFixed(5)}
+          </span>
+        </a>
+      ))}
+      {locations.length > COLLAPSED_LOCATIONS && (
+        <button
+          onClick={() => setExpanded((v) => !v)}
+          className="self-start text-sky-400 hover:text-sky-300 font-semibold cursor-pointer"
+        >
+          {expanded ? 'Show fewer locations' : `Show all ${locations.length} locations (+${hidden})`}
+        </button>
+      )}
+    </div>
+  );
+};
+
+export const LiveVmsBoards: React.FC<{ areas?: ForecastArea[] }> = ({ areas = NO_AREAS }) => {
   const [signs, setSigns] = useState<LtaVmsSign[] | null>(null);
   const [fetchedAt, setFetchedAt] = useState<string>('');
   const [failed, setFailed] = useState(false);
@@ -91,22 +145,40 @@ export const LiveVmsBoards: React.FC = () => {
   }, []);
 
   // Expressway geometry (shared, CDN-cached speed band links) to name each sign's road.
+  // LTA speed bands occasionally return errors, so retry until the geometry loads once.
   useEffect(() => {
-    fetch('/api/expresswayspeeds?include=segments')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((json) => Array.isArray(json?.segments) && setSegments(json.segments))
-      .catch(() => undefined);
+    let interval: ReturnType<typeof setInterval> | undefined;
+    const loadSegments = async () => {
+      try {
+        const res = await fetch('/api/expresswayspeeds?include=segments');
+        const json = res.ok ? await res.json() : null;
+        if (Array.isArray(json?.segments) && json.segments.length > 0) {
+          setSegments(json.segments);
+          clearInterval(interval);
+        }
+      } catch {
+        // Retry on the next tick
+      }
+    };
+    loadSegments();
+    interval = setInterval(loadSegments, VMS_POLL_MS);
+    return () => clearInterval(interval);
   }, []);
 
   const boards: VmsBoard[] = useMemo(() => {
     if (!signs) {
-      return EMAS_SIGNS.slice(0, SAMPLE_BOARD_COUNT).map(({ line1, line2, ...rest }) => ({ ...rest, lines: [line1, line2] }));
+      return EMAS_SIGNS.slice(0, SAMPLE_BOARD_COUNT).map(({ line1, line2, ...rest }) => ({ ...rest, lines: [line1, line2], locations: [] }));
     }
     return groupByMessage(signs).map((group) => {
       const message = group[0].Message;
-      const codes = segments.length
-        ? [...new Set(group.map((s) => nearestExpressway(s.Latitude, s.Longitude, segments)).filter(Boolean))]
-        : [];
+      const locations: GantryLocation[] = group.map((s) => ({
+        id: s.EquipmentID,
+        code: segments.length ? nearestExpressway(s.Latitude, s.Longitude, segments) : null,
+        area: nearestArea(s.Latitude, s.Longitude, areas)?.name ?? null,
+        lat: s.Latitude,
+        lon: s.Longitude,
+      }));
+      const codes = [...new Set(locations.map((l) => l.code).filter(Boolean))];
       const corridor =
         codes.length === 1
           ? `${codes[0]} • ${EXPRESSWAY_NAMES[codes[0]!] || codes[0]}`
@@ -120,9 +192,10 @@ export const LiveVmsBoards: React.FC = () => {
         lines: message.split(',').map((l) => l.trim()).filter(Boolean),
         status: classify(message),
         updatedAt: fetchedAt ? `Fetched ${fetchedAt}` : '',
+        locations,
       };
     });
-  }, [signs, segments, fetchedAt]);
+  }, [signs, segments, areas, fetchedAt]);
 
   const uniqueMessages = signs ? boards.length : 0;
 
@@ -183,6 +256,8 @@ export const LiveVmsBoards: React.FC = () => {
                   </div>
                 ))}
               </div>
+
+              <GantryLocations locations={sign.locations} />
 
               {/* Signboard footer status */}
               <div className="flex items-center justify-between text-[10px] text-slate-400">

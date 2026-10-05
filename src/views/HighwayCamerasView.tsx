@@ -273,7 +273,7 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
       </div>
 
       {/* Live LTA Variable Message Signboards */}
-      <LiveVmsBoards />
+      <LiveVmsBoards areas={rainForecast?.areas} />
 
       {/* Camera Grid Section */}
       <div className="flex flex-col gap-3">

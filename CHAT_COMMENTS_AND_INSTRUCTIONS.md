@@ -28,6 +28,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 21. [Turn 21: Live Traffic Radar Without Simulated Readouts](#21-turn-21-live-traffic-radar-without-simulated-readouts)
 22. [Turn 22: Live Status Bar and SOS Readouts](#22-turn-22-live-status-bar-and-sos-readouts)
 23. [Turn 23: Show All Unique VMS Messages](#23-turn-23-show-all-unique-vms-messages)
+24. [Turn 24: VMS Gantry Locations](#24-turn-24-vms-gantry-locations)
 
 ---
 
@@ -486,6 +487,19 @@ Build a comprehensive Singapore Live Traffic & Expressway Monitoring System feat
 2. The header reads "LTA DataMall • N unique messages across M signs"; the "(showing 6)" suffix is gone. If no sign carries a message, an empty-state line says so.
 3. The 6 sample boards remain only as the fallback when the LTA VMS feed is unavailable.
 4. Verified locally: 9 unique messages across 25 signs, all 9 shown.
+
+---
+
+## 24. Turn 24: VMS Gantry Locations
+
+### User Request:
+> *"indicate the location of the Variable Message Signboards as the GPS location is provided."*
+
+### Rectifications Implemented:
+1. **`LiveVmsBoards.tsx`**: each board lists the gantries showing its message, using the GPS position LTA provides for every sign: expressway (when within 300 m of an LTA speed band link), nearest NEA area name (e.g. "near Paya Lebar"), and coordinates to 5 decimals. Each line links to Google Maps at that position; hovering shows the equipment ID.
+2. Boards shown on more than 3 gantries list 3 and offer "Show all N locations"/"Show fewer locations".
+3. NEA area names come from the 2-hour forecast already loaded by `HighwayCamerasView` (passed as `areas`).
+4. The expressway geometry request now retries every minute until it loads, since LTA speed bands were returning HTTP 500 locally and in production at the time; previously one failure left every board labelled "LTA Gantry" until reload.
 
 ---
 
