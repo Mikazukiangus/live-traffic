@@ -94,8 +94,18 @@ export interface ExpresswayCorridor {
 export interface IncidentAlert {
   id: string;
   corridor: string;
+  corridorCode?: string; // expressway code (e.g. 'KJE'); absent for non-expressway incidents
   location: string;
-  type: 'Accident' | 'Breakdown' | 'Obstacle' | 'Heavy Congestion' | 'Flash Flood';
+  type:
+    | 'Accident'
+    | 'Breakdown'
+    | 'Obstacle'
+    | 'Heavy Congestion'
+    | 'Flash Flood'
+    | 'Roadwork'
+    | 'Road Block'
+    | 'Diversion'
+    | 'Other';
   lane: string;
   severity: 'Critical' | 'Warning' | 'Info';
   timeAgo: string;

@@ -257,4 +257,29 @@ Build a comprehensive Singapore Live Traffic & Expressway Monitoring System feat
 
 ---
 
+## 11. Turn 11: Parse Expressway, Location and Type from LTA Incidents
+
+### User Request:
+> *"Label LTA incidents with their own expressway instead of the selected one, derive location from the message, use the LTA Type for type and severity, update corridor incident counts, and make Dispatch use the incident's own corridor"*
+
+### Investigation:
+- LTA `TrafficIncidents` records only carry `Type`, `Latitude`, `Longitude` and `Message`, e.g. `(5/10)10:53 Vehicle Breakdown on KJE (towards PIE) after PIE(Changi). Avoid lane 3.` The old mapping read non-existent `corridor`/`location` fields, so every incident fell back to the selected expressway's name and "Expressway segment". The 6s interval also captured the first render's corridor, so the label was usually KPE.
+- Messages use both codes ("PIE") and full names ("Road Works on Central Expressway ..."). Most of the live feed is `Roadwork`.
+- Incident Dispatch passed `inc.corridor` (a full name or "KPE Southbound") to `onSwitchToSos`, which matches `ALTERNATE_MARKERS` by code, so it never matched.
+
+### Rectifications Implemented:
+1. **New `src/utils/ltaIncidents.ts`:** parses the message after "on"/"at" for one of the 10 expressway codes or full names (from `EXPRESSWAY_CORRIDORS`) and labels the incident with the full corridor name. Non-expressway incidents are labelled "Singapore Road Network" and use the road text as their location.
+2. **Location / lane / time:** location is the text after the expressway (`towards PIE, after PIE(Changi)`); "Avoid lane N" becomes the lane field ("Lane 3 affected"); the `(d/m)hh:mm` SGT prefix becomes a relative time ("8 mins ago").
+3. **Type and severity from LTA `Type`:** Accident → Critical; Vehicle breakdown, Obstacle, Unattended Vehicle, Road Block, Weather → Warning; Heavy Traffic, Roadwork, Diversion → Info. Added `Roadwork`, `Road Block`, `Diversion` and `Other` to `IncidentAlert['type']`.
+4. **`LiveRadarView.tsx`:** maps all incidents (no longer the first 8), sorted by severity; each corridor card's "active events" count comes from the parsed incidents.
+5. **Dispatch:** `IncidentAlert` gains an optional `corridorCode`; the incident Dispatch button passes it (mock incidents now carry codes too). Non-expressway incidents pass an empty code, so the SOS tab opens with its current marker.
+
+### Verified:
+- `npm run lint` and `npm run build` pass. On the Live Traffic Radar tab with the live feed (20 incidents), KJE/SLE/PIE/CTE/ECP/TPE incidents show their own expressway while KPE is selected; card counts PIE 5, KJE 6, ECP 3, TPE 3, CTE 2, SLE 1; Dispatch on the PIE accident opens the SOS tab at the PIE marker.
+
+### Noted, not changed:
+- `ALTERNATE_MARKERS` only covers KPE, CTE, PIE and AYE, so Dispatch from incidents on other expressways keeps the current marker.
+
+---
+
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*
