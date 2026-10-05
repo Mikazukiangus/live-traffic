@@ -282,4 +282,23 @@ Build a comprehensive Singapore Live Traffic & Expressway Monitoring System feat
 
 ---
 
+## 12. Turn 12: Live LTA Variable Message Signboards
+
+### User Request:
+> *"The 'Live Expressway Variable Message Signboards (VMS)' doesn't seem to be showing updated information, can you check? And can we have more than 3 message boards, maybe 6 instead for more information."*
+
+### Root Cause Analysis:
+- The VMS section in `HighwayCamerasView.tsx` rendered the static `EMAS_SIGNS` mock array; nothing ever called `/api/vms`, even though the endpoint returns live LTA DataMall VMS data.
+- LTA VMS records only carry `EquipmentID`, coordinates and a comma-separated `Message`; there is no road name or timestamp.
+- At the time of checking, LTA reported 25 signs but only 2 distinct messages (F1 road-closure notices), all on KPE / ECP / PIE gantries.
+
+### Rectifications Implemented:
+1. **New `LiveVmsBoards.tsx`:** fetches `/api/vms` on load and every 60s (LTA refreshes about every 2 minutes) and shows **6 boards**.
+2. **Varied selection:** signs are grouped by message and picked round-robin (most severe message first), so distinct messages appear before repeats.
+3. **Road labels:** each sign is matched to the nearest expressway link from the cached speed band geometry (`/api/expresswayspeeds?include=segments`, all signs were within ~110 m); signs further than 300 m fall back to "LTA Gantry". The gantry's equipment ID is shown alongside.
+4. **Message display:** all comma-separated lines are shown (not just two); colour comes from the message (closures/accidents red, breakdowns/congestion amber, advisories green). Each board shows "Live LTA message" and its fetch time; the header shows "showing 6 of N signs (M distinct messages)".
+5. **Fallback:** if the VMS feed fails, the old sample signs are shown and clearly labelled as samples.
+
+---
+
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*

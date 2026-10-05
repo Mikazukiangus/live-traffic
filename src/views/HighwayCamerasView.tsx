@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { HIGHWAY_CAMERAS, EMAS_SIGNS } from '../data/mockData';
+import { HIGHWAY_CAMERAS } from '../data/mockData';
+import { LiveVmsBoards } from '../components/LiveVmsBoards';
 import { HighwayCameraFeed } from '../types/traffic';
 
 interface HighwayCamerasViewProps {
@@ -304,66 +305,8 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
         </div>
       </div>
 
-      {/* Realistic EMAS Electronic LED Signboards */}
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-            <span className="material-symbols-outlined text-amber-500">traffic</span>
-            <span>Live Expressway Variable Message Signboards (VMS)</span>
-          </h2>
-          <span className="text-xs text-slate-400 font-mono">Overhead Highway Gantries</span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {EMAS_SIGNS.map((sign) => {
-            const isCritical = sign.status === 'CRITICAL';
-            const isWarning = sign.status === 'WARNING';
-            const ledTextColor = isCritical
-              ? 'text-red-400'
-              : isWarning
-              ? 'text-amber-400'
-              : 'text-emerald-400';
-
-            return (
-              <div
-                key={sign.id}
-                className="bg-slate-950 p-4 rounded-xl border border-slate-800 shadow-lg flex flex-col gap-3 relative overflow-hidden"
-              >
-                {/* Header of signboard */}
-                <div className="flex items-center justify-between text-[11px] text-slate-400 border-b border-slate-800/80 pb-2">
-                  <span className="font-bold uppercase tracking-wider text-slate-300">
-                    {sign.corridor}
-                  </span>
-                  <span className="font-mono text-slate-500">{sign.marker}</span>
-                </div>
-
-                {/* Amber/Red LED Display Area */}
-                <div className="bg-black/95 p-3 rounded-lg border border-slate-800 font-mono tracking-widest text-center flex flex-col gap-1 shadow-inner">
-                  <div
-                    className={`text-xs sm:text-sm font-bold ${ledTextColor} drop-shadow-[0_0_8px_rgba(251,191,36,0.4)]`}
-                  >
-                    {sign.line1}
-                  </div>
-                  <div
-                    className={`text-xs sm:text-sm font-bold ${ledTextColor} drop-shadow-[0_0_8px_rgba(251,191,36,0.4)]`}
-                  >
-                    {sign.line2}
-                  </div>
-                </div>
-
-                {/* Signboard footer status */}
-                <div className="flex items-center justify-between text-[10px] text-slate-400">
-                  <span className="flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <span>Transmitting to Overhead Gantries</span>
-                  </span>
-                  <span className="font-mono text-slate-500">{sign.updatedAt}</span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      {/* Live LTA Variable Message Signboards */}
+      <LiveVmsBoards />
 
       {/* Camera Grid Section */}
       <div className="flex flex-col gap-3">
