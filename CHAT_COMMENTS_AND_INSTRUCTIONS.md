@@ -18,6 +18,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 11. [Turn 11: Parse Expressway, Location and Type from LTA Incidents](#11-turn-11-parse-expressway-location-and-type-from-lta-incidents)
 12. [Turn 12: Live LTA Variable Message Signboards](#12-turn-12-live-lta-variable-message-signboards)
 13. [Turn 13: Unique VMS Messages Only](#13-turn-13-unique-vms-messages-only)
+14. [Turn 14: Real LTA ERP Rate Schedule with Live Charging Status](#14-turn-14-real-lta-erp-rate-schedule-with-live-charging-status)
 
 ---
 
@@ -314,6 +315,29 @@ Build a comprehensive Singapore Live Traffic & Expressway Monitoring System feat
 2. Each board lists every expressway showing that message (e.g. "KPE / PIE / ECP") and the number of gantries ("16 gantries"), or the gantry ID when only one sign shows it.
 3. Header reads "N unique messages across M signs", adding "(showing 6)" only when more than 6 distinct messages exist.
 4. At the time of the change LTA had 25 signs with 2 distinct messages, so 2 boards are shown.
+
+---
+
+## 14. Turn 14: Real LTA ERP Rate Schedule with Live Charging Status
+
+### User Request:
+> *"Can we check 'Active Electronic Road Pricing (ERP) Gantry Rates' can have live data?"* → approved the recommended approach.
+
+### Investigation:
+- The ERP table in `CourierHubView.tsx` rendered 4 invented rows (`ERP_GANTRIES` mock) with static Active/Free badges and a hardcoded "Updated today".
+- LTA DataMall no longer lists an ERP Rates dataset; `ltaodataservice/ERPRates` returns 404 with a valid key. No ERP dataset exists on data.gov.sg either.
+- LTA now publishes ERP rates only as PDF rate tables on OneMotoring, revised roughly quarterly. The generic "ERP Rates.pdf" was stale (March 2026); the current table is effective 29 Jun 2026.
+- ERP rates are a fixed timetable (per gantry, weekday/Saturday, 5–30 minute slots), so "live" status can be computed from the clock.
+
+### Rectifications Implemented:
+1. **`src/data/erpRates.ts`:** all 19 expressway gantry groups (AYE, BKE, CTE, ECP, KPE, MCE, PIE) with LTA gantry numbers and full weekday schedules, extracted programmatically from the 29 Jun 2026 LTA rate table (every amount matched to its gantry column by position; none unmatched). Includes the effective date, source URL and LTA vehicle factors (heavy goods = 1.5× base). Six gantry groups currently carry no charge and are shown as such.
+2. **`src/components/ErpRatesTable.tsx`:** computes, in Singapore time regardless of the viewer's time zone and re-evaluated every 30s, each gantry's current status (Charging / Free now / No charge), current car and heavy-goods rate, the next change ("until 08:55, then S$4.00", "from 17:30 at S$1.50", "no more charges today", weekends free), and weekday charging hours. Charging gantries sort first, highest rate first. Header shows "N of 19 expressway gantries charging now" and links to the LTA PDF.
+3. Verified boundary cases (slot start inclusive/end exclusive, gaps between windows, after the last slot, weekends, zero-charge gantries, UTC→SGT conversion).
+4. Removed the unused `ERP_GANTRIES` mock and `ErpGantry` type.
+
+### Limitations / Maintenance:
+- Public holidays and temporary school-holiday rate reductions are not reflected (noted under the table).
+- `erpRates.ts` must be updated when LTA revises rates (typically quarterly); check the OneMotoring ERP page.
 
 ---
 

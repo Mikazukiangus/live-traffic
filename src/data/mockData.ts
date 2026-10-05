@@ -6,7 +6,6 @@ import {
   IncidentAlert,
   HighwayCameraFeed,
   EmasVariableMessageSign,
-  ErpGantry,
   GnssMarker,
 } from '../types/traffic';
 
@@ -632,44 +631,6 @@ export const EMAS_SIGNS: EmasVariableMessageSign[] = [
   },
 ];
 
-export const ERP_GANTRIES: ErpGantry[] = [
-  {
-    id: 'erp-1',
-    name: 'KPE Southbound before ECP slip',
-    zone: 'Expressway',
-    rateSedan: 'S$2.00',
-    rateHeavy: 'S$4.00',
-    activePeriod: '08:00 - 09:30',
-    status: 'Active',
-  },
-  {
-    id: 'erp-2',
-    name: 'CTE Northbound after Braddell Rd',
-    zone: 'Expressway',
-    rateSedan: 'S$3.00',
-    rateHeavy: 'S$6.00',
-    activePeriod: '17:30 - 20:00',
-    status: 'Active',
-  },
-  {
-    id: 'erp-3',
-    name: 'PIE Eastbound near Kallang Bahru',
-    zone: 'Expressway',
-    rateSedan: 'S$1.00',
-    rateHeavy: 'S$2.00',
-    activePeriod: '08:30 - 09:30',
-    status: 'Active',
-  },
-  {
-    id: 'erp-4',
-    name: 'AYE Westbound after Jurong Town Hall',
-    zone: 'Expressway',
-    rateSedan: 'S$0.00',
-    rateHeavy: 'S$0.00',
-    activePeriod: 'Free Window',
-    status: 'Free',
-  },
-];
 
 export const EMERGENCY_NUMBERS = [
   {

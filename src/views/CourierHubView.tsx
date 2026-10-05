@@ -1,5 +1,5 @@
 import React from 'react';
-import { ERP_GANTRIES } from '../data/mockData';
+import { ErpRatesTable } from '../components/ErpRatesTable';
 
 interface CourierHubViewProps {
   onOpenSlaModal: () => void;
@@ -104,56 +104,7 @@ export const CourierHubView: React.FC<CourierHubViewProps> = ({
       </div>
 
       {/* ERP Rates Table */}
-      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <span className="text-[11px] text-sky-600 font-bold uppercase tracking-wider">
-              LTA Dynamic Pricing
-            </span>
-            <h3 className="text-lg font-bold text-slate-900">
-              Active Electronic Road Pricing (ERP) Gantry Rates
-            </h3>
-          </div>
-          <span className="text-xs text-slate-500 font-mono">Updated today</span>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="border-b border-slate-200 text-slate-400 font-semibold uppercase text-[10px]">
-                <th className="py-2.5 px-3">Gantry Location</th>
-                <th className="py-2.5 px-3">Sector</th>
-                <th className="py-2.5 px-3">Passenger Car / Taxi</th>
-                <th className="py-2.5 px-3">Heavy Goods Vehicle</th>
-                <th className="py-2.5 px-3">Operating Window</th>
-                <th className="py-2.5 px-3 text-right">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {ERP_GANTRIES.map((gantry) => (
-                <tr key={gantry.id} className="hover:bg-slate-50/80 transition-colors">
-                  <td className="py-3 px-3 font-semibold text-slate-900">{gantry.name}</td>
-                  <td className="py-3 px-3 text-slate-500">{gantry.zone}</td>
-                  <td className="py-3 px-3 font-mono font-bold text-slate-900">{gantry.rateSedan}</td>
-                  <td className="py-3 px-3 font-mono font-bold text-slate-900">{gantry.rateHeavy}</td>
-                  <td className="py-3 px-3 text-slate-600 font-mono">{gantry.activePeriod}</td>
-                  <td className="py-3 px-3 text-right">
-                    <span
-                      className={`px-2 py-0.5 rounded text-[11px] font-bold ${
-                        gantry.status === 'Active'
-                          ? 'bg-amber-100 text-amber-800'
-                          : 'bg-emerald-100 text-emerald-800'
-                      }`}
-                    >
-                      {gantry.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <ErpRatesTable />
     </div>
   );
 };

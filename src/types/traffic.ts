@@ -133,13 +133,3 @@ export interface EmasVariableMessageSign {
   status: 'CRITICAL' | 'WARNING' | 'ADVISORY' | 'NORMAL';
   updatedAt: string;
 }
-
-export interface ErpGantry {
-  id: string;
-  name: string;
-  zone: string;
-  rateSedan: string;
-  rateHeavy: string;
-  activePeriod: string;
-  status: 'Active' | 'Free';
-}
