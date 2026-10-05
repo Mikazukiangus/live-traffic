@@ -10,6 +10,7 @@ import vmsHandler from './api/vms.ts';
 import travelTimesHandler from './api/traveltimes.ts';
 import imageProxyHandler from './api/imageproxy.ts';
 import expresswaySpeedsHandler from './api/expresswayspeeds.ts';
+import rainForecastHandler from './api/rainforecast.ts';
 
 function apiDevServerPlugin(): Plugin {
   return {
@@ -62,6 +63,9 @@ function apiDevServerPlugin(): Plugin {
               return;
             case '/api/expresswayspeeds':
               await expresswaySpeedsHandler(req, res);
+              return;
+            case '/api/rainforecast':
+              await rainForecastHandler(req, res);
               return;
             default:
               return next();

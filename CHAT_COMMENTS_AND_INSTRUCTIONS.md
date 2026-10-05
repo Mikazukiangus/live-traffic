@@ -21,6 +21,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 14. [Turn 14: Real LTA ERP Rate Schedule with Live Charging Status](#14-turn-14-real-lta-erp-rate-schedule-with-live-charging-status)
 15. [Turn 15: Live Camera Feed Audit After LTA Camera Retirement](#15-turn-15-live-camera-feed-audit-after-lta-camera-retirement)
 16. [Turn 16: Live LTA Cameras Only](#16-turn-16-live-lta-cameras-only)
+17. [Turn 17: NEA Two-Hour Rain Forecast](#17-turn-17-nea-two-hour-rain-forecast)
 
 ---
 
@@ -371,6 +372,20 @@ Build a comprehensive Singapore Live Traffic & Expressway Monitoring System feat
 2. Expressway filter pills are built from the live cameras ("All Cameras (8)", AYE, BKE, MCE), so new or removed LTA cameras are reflected automatically.
 3. If the feed is unavailable the grid shows "LTA camera feed unavailable. Retrying every 30 seconds."; after a failed refresh the last cameras stay and their capture age marks them "DELAYED LTA FEED" after 15 minutes. A live image that fails to load leaves the frame dark.
 4. Removed the `HIGHWAY_CAMERAS` mock from `mockData.ts` and the 20 stock CCTV photos in `public/images` (~21 MB), which are no longer referenced.
+
+---
+
+## 17. Turn 17: NEA Two-Hour Rain Forecast
+
+### User Request:
+> *"Help connect the below endpoints for two-hour rain forecast to add another data point. https://api-open.data.gov.sg/v2/real-time/api/two-hr-forecast"*
+
+### Rectifications Implemented:
+1. **`api/rainforecast.ts`** (new, keyless): unwraps the v2 response (`code`/`data`) and returns `issuedAt`, `validPeriod` (e.g. "Midday to 2.00 pm") and the 47 NEA areas with coordinates and forecast. CDN-cached for 5 minutes (NEA issues about every 30 minutes); 502 with the upstream error on failure. Registered in the Vite dev middleware.
+2. **`src/utils/rainForecast.ts`** (new): `useRainForecast()` polls every 5 minutes; `rainLevel()` classifies NEA wording as dry / rain / heavy / thundery; `nearestArea()`; `rainByExpressway()` assigns each LTA speed band link to its nearest forecast area, so each expressway gets the areas it passes through (e.g. PIE 14, MCE 2) and the worst forecast among them.
+3. **Live Traffic Radar:** each expressway card shows "Next 2h: No rain expected (14 areas)" or e.g. "Thundery Showers: Clementi, Jurong West (2 of 9 areas)", coloured and iconed by severity (hover lists every wet area). The map readout repeats it for the selected expressway, and the header shows the forecast period.
+4. **Expressway cameras:** each live camera card shows the forecast for its nearest NEA area (e.g. "Next 2h in Woodlands: Fair (Day)").
+5. **`/api/health`** probes the NEA endpoint as a 9th endpoint ("NEA 2-Hour Rain Forecast").
 
 ---
 

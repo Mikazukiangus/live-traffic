@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { LiveVmsBoards } from '../components/LiveVmsBoards';
 import { HighwayCameraFeed } from '../types/traffic';
+import { RAIN_LEVEL_STYLE, nearestArea, rainLevel, useRainForecast } from '../utils/rainForecast';
 
 interface HighwayCamerasViewProps {
   onCallHotline: (phone: string, title: string) => void;
@@ -70,6 +71,8 @@ const STALE_CAPTURE_MS = 15 * 60_000;
 interface CameraCard extends HighwayCameraFeed {
   // ISO capture time from LTA.
   capturedAt: string;
+  lat?: number;
+  lon?: number;
 }
 
 interface ExpresswaySpeed {
@@ -97,6 +100,7 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
   const [speeds, setSpeeds] = useState<Record<string, ExpresswaySpeed>>({});
   const [now, setNow] = useState(() => Date.now());
   const [selectedCam, setSelectedCam] = useState<CameraCard | null>(null);
+  const rainForecast = useRainForecast();
   const [selectedCorridor, setSelectedCorridor] = useState<string>('ALL');
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [liveSyncActive, setLiveSyncActive] = useState<boolean>(false);
@@ -169,6 +173,8 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
               speedStatus: '',
               weather: 'Dry',
               capturedAt,
+              lat: c.latitude ?? c.Latitude ?? c.location?.latitude,
+              lon: c.longitude ?? c.Longitude ?? c.location?.longitude,
             };
           });
 
@@ -194,6 +200,13 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
     const interval = setInterval(fetchLiveLtaCameras, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  // NEA 2-hour forecast for the area nearest each camera
+  const cameraRain = (cam: CameraCard) => {
+    if (!rainForecast || cam.lat == null || cam.lon == null) return null;
+    const area = nearestArea(cam.lat, cam.lon, rainForecast.areas);
+    return area ? { area, style: RAIN_LEVEL_STYLE[rainLevel(area.forecast)] } : null;
+  };
 
   const speedText = (corridor: string) => {
     const s = speeds[corridor];
@@ -303,6 +316,7 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredCameras.map((cam) => {
             const isStale = now - new Date(cam.capturedAt).getTime() > STALE_CAPTURE_MS;
+            const rain = cameraRain(cam);
 
             return (
               <div
@@ -356,6 +370,17 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
                       {cam.name}
                     </h3>
                     <p className="text-slate-500 text-[11px] mt-0.5 line-clamp-1">{cam.location}</p>
+                    {rain && (
+                      <p
+                        className={`text-[11px] mt-1 flex items-center gap-1 ${rain.style.className}`}
+                        title={`NEA 2-hour forecast, ${rainForecast?.validPeriod.text}`}
+                      >
+                        <span className="material-symbols-outlined text-sm">{rain.style.icon}</span>
+                        <span className="line-clamp-1">
+                          Next 2h in {rain.area.name}: {rain.area.forecast}
+                        </span>
+                      </p>
+                    )}
                   </div>
 
                   <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">

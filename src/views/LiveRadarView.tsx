@@ -3,6 +3,7 @@ import { EXPRESSWAY_CORRIDORS, INCIDENT_ALERTS, TOW_FLEET_UNITS } from '../data/
 import { ExpresswayCorridor, IncidentAlert } from '../types/traffic';
 import { SpeedBandMap, SpeedBandLegend, SpeedSegment } from '../components/SpeedBandMap';
 import { LtaIncidentRecord, countByCorridor, mapLtaIncident, sortBySeverity } from '../utils/ltaIncidents';
+import { RAIN_LEVEL_STYLE, describeCorridorRain, rainByExpressway, useRainForecast } from '../utils/rainForecast';
 
 interface LiveRadarViewProps {
   onSwitchToSos: (corridorCode: string) => void;
@@ -145,6 +146,13 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
   const [speedBandsUpdated, setSpeedBandsUpdated] = useState<string | null>(null);
   const [speedSegments, setSpeedSegments] = useState<SpeedSegment[]>([]);
   const hasLiveSpeedsRef = useRef(false);
+
+  // NEA 2-hour rain forecast, mapped onto each expressway via its speed band links
+  const rainForecast = useRainForecast();
+  const rainByCode = useMemo(
+    () => (rainForecast && speedSegments.length ? rainByExpressway(speedSegments, rainForecast.areas) : {}),
+    [rainForecast, speedSegments]
+  );
 
   const selectedCorridor = useMemo(() => {
     return corridors.find((c) => c.code === selectedCorridorCode) || corridors[0];
@@ -310,6 +318,9 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
             ) : (
               <span className="text-amber-700">Speeds: simulated (LTA speed bands loading or unavailable)</span>
             )}
+            {rainForecast && (
+              <span className="text-sky-700"> • Rain: NEA 2-hour forecast, {rainForecast.validPeriod.text}</span>
+            )}
           </p>
         </div>
 
@@ -352,6 +363,7 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
 
           const isSelected = selectedCorridor.code === corridor.code;
           const liveSpeed = speedDetails?.[corridor.code];
+          const rain = rainByCode[corridor.code];
 
           return (
             <div
@@ -419,6 +431,16 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
                 {liveSpeed && (
                   <div className="text-[11px] text-slate-500">
                     {liveSpeed.slowLinkPct}% of {liveSpeed.linkCount} segments below 40 km/h
+                  </div>
+                )}
+
+                {rain && (
+                  <div
+                    className={`text-[11px] flex items-center gap-1 ${RAIN_LEVEL_STYLE[rain.level].className}`}
+                    title={rain.wetAreas.map((a) => `${a.name}: ${a.forecast}`).join('\n') || undefined}
+                  >
+                    <span className="material-symbols-outlined text-sm">{RAIN_LEVEL_STYLE[rain.level].icon}</span>
+                    <span className="line-clamp-1">Next 2h: {describeCorridorRain(rain)}</span>
                   </div>
                 )}
 
@@ -530,6 +552,11 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
                     <div className="text-[10px] text-sky-300">
                       {speedDetails[selectedCorridor.code].slowLinkPct}% of{' '}
                       {speedDetails[selectedCorridor.code].linkCount} segments below 40 km/h
+                    </div>
+                  )}
+                  {rainByCode[selectedCorridor.code] && (
+                    <div className="text-[10px] text-sky-200">
+                      Next 2h: {describeCorridorRain(rainByCode[selectedCorridor.code])}
                     </div>
                   )}
                 </div>
