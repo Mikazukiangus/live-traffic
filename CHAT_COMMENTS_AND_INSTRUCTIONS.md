@@ -15,6 +15,8 @@ This document records all user instructions, feedback, technical inquiries, inve
 8. [Turn 8: LTA Key Setup, Endpoint Verification & Honest Health Probes](#8-turn-8-lta-key-setup-endpoint-verification--honest-health-probes)
 9. [Turn 9: Real LTA Speed Bands in Live Traffic Radar](#9-turn-9-real-lta-speed-bands-in-live-traffic-radar)
 10. [Turn 10: Speed Band Colours on the Radar Map](#10-turn-10-speed-band-colours-on-the-radar-map)
+11. [Turn 11: Parse Expressway, Location and Type from LTA Incidents](#11-turn-11-parse-expressway-location-and-type-from-lta-incidents)
+12. [Turn 12: Live LTA Variable Message Signboards](#12-turn-12-live-lta-variable-message-signboards)
 
 ---
 
