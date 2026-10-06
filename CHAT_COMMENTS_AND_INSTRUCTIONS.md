@@ -650,6 +650,14 @@ The rain outlook matched each expressway to NEA forecast areas using the road sh
 ### Verified locally:
 With the speeds request deliberately held, the Weather tab listed all 10 expressways within 3 seconds while the header still read "Loading LTA speeds…".
 
+## 33. Turn 33: Rain List Fix Goes Live
+
+**User Instruction:**
+> "merge into main"
+
+### Done:
+- Fast-forwarded `main` to the `rain-without-speeds` branch (Turn 32), so the Weather tab's rain list and the rain lines on the expressway cards no longer wait for LTA speeds. Pushing `main` deploys it to production on Vercel.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*
