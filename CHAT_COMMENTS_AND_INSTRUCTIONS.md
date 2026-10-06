@@ -667,6 +667,14 @@ With the speeds request deliberately held, the Weather tab listed all 10 express
 - The Woodlands and Tuas drive-time chips on the camera page now read "~N min to checkpoint + queue at checkpoint" (replacing the small "est."), so the figure isn't mistaken for the full crossing time. The hover text still gives the range and says it excludes the checkpoint queue and immigration.
 - Verified locally: "~13 min to checkpoint + queue at checkpoint" alongside "Massive jam near checkpoint".
 
+## 35. Turn 35: Checkpoint Queue Note Goes Live
+
+**User Instruction:**
+> "merge into main"
+
+### Done:
+- Fast-forwarded `main` to the `checkpoint-queue-note` branch (Turn 34). Pushing `main` deploys it to production on Vercel.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*
