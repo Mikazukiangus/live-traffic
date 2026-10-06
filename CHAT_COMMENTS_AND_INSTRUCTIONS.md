@@ -604,6 +604,14 @@ The Vercel MCP connection works for the Vercel API (deployments, logs, settings)
 ### Fixed:
 - **`vite.config.ts`:** the bundler helpers go in their own small chunk (`helpers`), so ONNX Runtime's file no longer imports the main app and loads cleanly in the worker.
 
+## 29. Turn 29: Camera Page Changes Go Live
+
+**User Instruction:**
+> "merge into main"
+
+### Done:
+- Fast-forwarded `main` to the `camera-tabs-phase1` branch (Turns 25 to 28): camera tabs and lighter layout, road signs tab, jam readings, checkpoint drive-time estimates, in-browser vehicle counts, and the browser caching fix. Type check and production build passed before the merge. Pushing `main` deploys it to production on Vercel, where the LTA key gives all 8 cameras, speeds and signs.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*
