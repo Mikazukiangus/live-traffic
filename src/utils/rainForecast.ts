@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import type { SpeedSegment } from '../components/SpeedBandMap';
 
 export interface ForecastArea {
   name: string;
@@ -63,19 +62,33 @@ export interface CorridorRain {
   wetAreas: ForecastArea[];
 }
 
-// Rain outlook per expressway: each speed band link is assigned its nearest forecast area.
-export function rainByExpressway(segments: SpeedSegment[], areas: ForecastArea[]): Record<string, CorridorRain> {
-  const areasByCode = new Map<string, Set<ForecastArea>>();
-  for (const [code, , sLon, sLat, eLon, eLat] of segments) {
-    const area = nearestArea((sLat + eLat) / 2, (sLon + eLon) / 2, areas);
-    if (!area) continue;
-    if (!areasByCode.has(code)) areasByCode.set(code, new Set());
-    areasByCode.get(code)!.add(area);
+// NEA forecast areas along each expressway: every LTA speed band link assigned to its nearest
+// area (link midpoint). Fixed, since neither moves, so the rain outlook needs no road geometry.
+// Generated on 2026-10-06 from /api/expresswayspeeds?include=segments and /api/rainforecast.
+export const EXPRESSWAY_RAIN_AREAS: Record<string, string[]> = {
+  PIE: ['Bedok', 'Bukit Batok', 'Bukit Panjang', 'Bukit Timah', 'Changi', 'Clementi', 'Geylang', 'Jalan Bahar', 'Jurong West', 'Novena', 'Pioneer', 'Tampines', 'Tengah', 'Toa Payoh'],
+  AYE: ['Boon Lay', 'Bukit Merah', 'City', 'Clementi', 'Jalan Bahar', 'Jurong East', 'Jurong West', 'Pioneer', 'Queenstown'],
+  ECP: ['Bedok', 'Changi', 'City', 'Kallang', 'Marine Parade', 'Tampines'],
+  CTE: ['Ang Mo Kio', 'Bukit Merah', 'City', 'Kallang', 'Seletar', 'Serangoon', 'Toa Payoh'],
+  TPE: ['Changi', 'Pasir Ris', 'Paya Lebar', 'Punggol', 'Seletar', 'Tampines'],
+  KPE: ['Geylang', 'Hougang', 'Kallang', 'Marine Parade', 'Paya Lebar', 'Punggol', 'Sengkang'],
+  SLE: ['Ang Mo Kio', 'Central Water Catchment', 'Mandai', 'Seletar', 'Sungei Kadut', 'Woodlands', 'Yishun'],
+  BKE: ['Bukit Panjang', 'Bukit Timah', 'Choa Chu Kang', 'Sungei Kadut', 'Woodlands'],
+  KJE: ['Bukit Panjang', 'Choa Chu Kang', 'Sungei Kadut', 'Tengah'],
+  MCE: ['City', 'Marine Parade'],
+};
+
+// Rain outlook per expressway from the latest NEA 2-hour forecast.
+export function rainByExpressway(areas: ForecastArea[]): Record<string, CorridorRain> {
+  const byName = new Map(areas.map((a) => [a.name, a]));
+  const areasByCode = new Map<string, ForecastArea[]>();
+  for (const [code, names] of Object.entries(EXPRESSWAY_RAIN_AREAS)) {
+    const found = names.map((n) => byName.get(n)).filter((a): a is ForecastArea => !!a);
+    if (found.length) areasByCode.set(code, found);
   }
 
   const result: Record<string, CorridorRain> = {};
-  for (const [code, set] of areasByCode) {
-    const list = [...set];
+  for (const [code, list] of areasByCode) {
     const wetAreas = list
       .filter((a) => rainLevel(a.forecast) !== 'dry')
       .sort((a, b) => LEVEL_RANK[rainLevel(b.forecast)] - LEVEL_RANK[rainLevel(a.forecast)]);

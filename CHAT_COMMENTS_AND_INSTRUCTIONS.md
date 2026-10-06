@@ -635,6 +635,21 @@ All three tabs work with live LTA and NEA data (20 incidents). The tabs stay pin
 ### Done:
 - Fast-forwarded `main` to the `radar-tabs` branch (Turn 30): Expressways, Weather and Incidents tabs on the Live Traffic Radar page, with the lighter header. The production build passed before the merge. Pushing `main` deploys it to production on Vercel.
 
+## 32. Turn 32: Rain List No Longer Waits for LTA Speeds
+
+**User Instruction:**
+> "yes make the rain list not wait for speeds"
+
+### Why it waited:
+The rain outlook matched each expressway to NEA forecast areas using the road shapes in the LTA speed data. Right after a deploy, the first speeds request took about 28 seconds (nothing cached yet), so the Weather tab showed "Loading" until then.
+
+### Fixed (preview branch `rain-without-speeds`):
+- **`src/utils/rainForecast.ts`:** `EXPRESSWAY_RAIN_AREAS` is a fixed table of the NEA areas along each expressway (PIE 14 areas, AYE 9, ECP 6, CTE 7, TPE 6, KPE 7, SLE 7, BKE 5, KJE 4, MCE 2). It was generated once from today's LTA road links and NEA areas with the same nearest-area rule, so results are unchanged. `rainByExpressway()` now needs only the NEA forecast.
+- The rain lines on the expressway cards also appear straight away now.
+
+### Verified locally:
+With the speeds request deliberately held, the Weather tab listed all 10 expressways within 3 seconds while the header still read "Loading LTA speeds…".
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*

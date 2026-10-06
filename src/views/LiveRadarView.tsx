@@ -99,11 +99,11 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
   // LTA estimated travel times per expressway and direction
   const travelTimes = useLtaTravelTimes();
 
-  // NEA 2-hour rain forecast, mapped onto each expressway via its speed band links
+  // NEA 2-hour rain forecast for the areas along each expressway (needs no LTA speed data)
   const rainForecast = useRainForecast();
   const rainByCode = useMemo(
-    () => (rainForecast && speedSegments.length ? rainByExpressway(speedSegments, rainForecast.areas) : {}),
-    [rainForecast, speedSegments]
+    () => (rainForecast ? rainByExpressway(rainForecast.areas) : {}),
+    [rainForecast]
   );
 
   const selectedCorridor = corridors.find((c) => c.code === selectedCorridorCode) || corridors[0];
@@ -485,7 +485,7 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
           </div>
           {Object.keys(rainByCode).length === 0 ? (
             <div className="text-xs text-slate-400">
-              {rainForecast || speedStatus === 'loading' ? 'Loading rain forecast…' : 'Rain forecast unavailable. Retrying every 5 minutes.'}
+              Loading NEA rain forecast…
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
