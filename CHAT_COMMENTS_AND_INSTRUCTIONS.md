@@ -627,6 +627,14 @@ The Vercel MCP connection works for the Vercel API (deployments, logs, settings)
 ### Verified locally:
 All three tabs work with live LTA and NEA data (20 incidents). The tabs stay pinned when scrolling, the phone layout has no sideways scrolling, and there are no console errors.
 
+## 31. Turn 31: Radar Tabs Go Live
+
+**User Instruction:**
+> "merge into main"
+
+### Done:
+- Fast-forwarded `main` to the `radar-tabs` branch (Turn 30): Expressways, Weather and Incidents tabs on the Live Traffic Radar page, with the lighter header. The production build passed before the merge. Pushing `main` deploys it to production on Vercel.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*
