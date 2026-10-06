@@ -427,7 +427,7 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
                 >
                   <span className="material-symbols-outlined text-base text-sky-600">schedule</span>~{checkpoint.minutes} min to
                   checkpoint
-                  <span className="text-xs font-normal text-slate-400">est.</span>
+                  <span className="text-xs font-normal text-slate-500">+ queue at checkpoint</span>
                 </span>
               )}
               {checkpoint && queueLevel && (

@@ -658,6 +658,15 @@ With the speeds request deliberately held, the Weather tab listed all 10 express
 ### Done:
 - Fast-forwarded `main` to the `rain-without-speeds` branch (Turn 32), so the Weather tab's rain list and the rain lines on the expressway cards no longer wait for LTA speeds. Pushing `main` deploys it to production on Vercel.
 
+## 34. Turn 34: "+ queue at checkpoint" on the Drive Time
+
+**User Instruction:**
+> "add "+ queue at checkpoint" to the drive time"
+
+### Done (preview branch `checkpoint-queue-note`):
+- The Woodlands and Tuas drive-time chips on the camera page now read "~N min to checkpoint + queue at checkpoint" (replacing the small "est."), so the figure isn't mistaken for the full crossing time. The hover text still gives the range and says it excludes the checkpoint queue and immigration.
+- Verified locally: "~13 min to checkpoint + queue at checkpoint" alongside "Massive jam near checkpoint".
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*
