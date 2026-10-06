@@ -29,6 +29,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 22. [Turn 22: Live Status Bar and SOS Readouts](#22-turn-22-live-status-bar-and-sos-readouts)
 23. [Turn 23: Show All Unique VMS Messages](#23-turn-23-show-all-unique-vms-messages)
 24. [Turn 24: VMS Gantry Locations](#24-turn-24-vms-gantry-locations)
+25. [Turn 25: Camera Page Tabs and Lighter Layout (Phase 1)](#25-turn-25-camera-page-tabs-and-lighter-layout-phase-1)
 
 ---
 
@@ -500,6 +501,27 @@ Build a comprehensive Singapore Live Traffic & Expressway Monitoring System feat
 2. Boards shown on more than 3 gantries list 3 and offer "Show all N locations"/"Show fewer locations".
 3. NEA area names come from the 2-hour forecast already loaded by `HighwayCamerasView` (passed as `areas`).
 4. The expressway geometry request now retries every minute until it loads, since LTA speed bands were returning HTTP 500 locally and in production at the time; previously one failure left every board labelled "LTA Gantry" until reload.
+
+---
+
+## 25. Turn 25: Camera Page Tabs and Lighter Layout (Phase 1)
+
+### User Request:
+> User feedback: fewer words, more white space, tabs to jump to the camera wanted without scrolling or waiting; later an AI summary of what each camera sees and an estimated Causeway crossing time.
+> *"yes start phase 1, put road signs in their own tab. Suggest alternative to Phase 2 instead of anthropic API for summary of the image. for Phase 3, choose A."*
+
+### Rectifications Implemented (Phase 1, `HighwayCamerasView.tsx`):
+1. **Tabs:** Woodlands (3) • Tuas (3) • Sentosa (2) • Road Signs, pinned under the site header while scrolling and remembered between visits (localStorage, wrapped in try/catch). An "Other" tab appears only if LTA publishes a camera missing from the directory. On phones the tabs share the width and counts are hidden.
+2. **Instant switching:** every tab stays mounted and hidden when inactive, and camera images load eagerly, so all 8 photos and the road signs are ready before a tab is tapped.
+3. **Fewer words:** header is "Live Cameras", "Updated N min ago", an info icon (source and the 30 Jun 2026 retirement note) and a refresh icon. The duplicate heading, source badges and "Sync Latest LTA Snapshots" text were removed.
+4. **Each place** shows one summary row (LTA speed for its expressway, NEA 2-hour forecast), then larger 16:9 camera cards with only a short name and a capture-age chip ("Delayed" in amber after 15 min).
+5. **Enlarged view:** short name, full name, capture time, speed, 2-hour forecast and "Report incident"; closes on the backdrop or the close button.
+6. **Road Signs tab** (`LiveVmsBoards.tsx`): title "Expressway Message Signs", "N messages • M signs", shorter board footers, wider gaps.
+7. Released first on a preview branch for review before production.
+
+### Decisions recorded:
+- Phase 2 (camera summaries): alternatives to the Anthropic API to be proposed.
+- Phase 3 (Causeway crossing time): option A, built from LTA data, Singapore side only, labelled as an estimate.
 
 ---
 

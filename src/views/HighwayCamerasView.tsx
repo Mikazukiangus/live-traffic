@@ -17,50 +17,89 @@ const hideBrokenImage = (e: React.SyntheticEvent<HTMLImageElement>) => {
 };
 
 // Official verified LTA directory for live cameras based on real-world coordinates and Singapore gantry IDs
+type CameraPlace = 'woodlands' | 'tuas' | 'sentosa';
+
 const REAL_LTA_CAMERA_DIRECTORY: Record<
   string,
-  { name: string; corridor: string; locationDesc: string }
+  { name: string; short: string; place: CameraPlace; corridor: string; locationDesc: string }
 > = {
   '2701': {
     name: 'BKE • Woodlands Causeway (Towards Johor)',
+    short: 'Causeway towards Johor',
+    place: 'woodlands',
     corridor: 'BKE',
     locationDesc: 'Causeway Bridge Inspection Entry • Camera #2701',
   },
   '2702': {
     name: 'BKE • Woodlands Checkpoint Viaduct',
+    short: 'Checkpoint viaduct',
+    place: 'woodlands',
     corridor: 'BKE',
     locationDesc: 'Woodlands Crossing Approach to BKE • Camera #2702',
   },
   '2704': {
     name: 'BKE • Woodlands South Flyover (Exit 10)',
+    short: 'Woodlands South flyover',
+    place: 'woodlands',
     corridor: 'BKE',
     locationDesc: 'BKE before Turf Club Avenue • Camera #2704',
   },
   '4703': {
     name: 'AYE • Tuas Second Link Bridge (Towards Malaysia)',
+    short: 'Second Link towards Malaysia',
+    place: 'tuas',
     corridor: 'AYE',
     locationDesc: 'Second Link International Bridge KM 1.2 • Camera #4703',
   },
   '4712': {
     name: 'AYE • Tuas Checkpoint Arrival Viaduct',
+    short: 'Checkpoint arrival viaduct',
+    place: 'tuas',
     corridor: 'AYE',
     locationDesc: 'Jalan Ahmad Ibrahim Approach • Camera #4712',
   },
   '4713': {
     name: 'AYE • Tuas West Checkpoint Departure',
+    short: 'Tuas West departure',
+    place: 'tuas',
     corridor: 'AYE',
     locationDesc: 'Tuas West Extension Viaduct • Camera #4713',
   },
   '4798': {
     name: 'MCE • Sentosa Gateway / HarbourFront Viaduct',
+    short: 'Sentosa Gateway',
+    place: 'sentosa',
     corridor: 'MCE',
     locationDesc: 'Sentosa Gateway after Telok Blangah Rd • Camera #4798',
   },
   '4799': {
     name: 'MCE • Telok Blangah Rd / Keppel Bay Approach',
+    short: 'Telok Blangah / Keppel Bay',
+    place: 'sentosa',
     corridor: 'MCE',
     locationDesc: 'HarbourFront towards Marina Coastal Expressway • Camera #4799',
   },
+};
+
+type TabId = CameraPlace | 'other' | 'signs';
+
+const PLACE_TABS: { id: CameraPlace | 'other'; label: string; icon: string }[] = [
+  { id: 'woodlands', label: 'Woodlands', icon: 'directions_car' },
+  { id: 'tuas', label: 'Tuas', icon: 'directions_car' },
+  { id: 'sentosa', label: 'Sentosa', icon: 'beach_access' },
+  { id: 'other', label: 'Other', icon: 'videocam' },
+];
+
+const TAB_STORAGE_KEY = 'trafficpulse.cameraTab';
+
+const readSavedTab = (): TabId => {
+  try {
+    const saved = localStorage.getItem(TAB_STORAGE_KEY);
+    if (saved && ['woodlands', 'tuas', 'sentosa', 'other', 'signs'].includes(saved)) return saved as TabId;
+  } catch {
+    // Storage blocked; use the default tab
+  }
+  return 'woodlands';
 };
 
 // LTA retired every other expressway camera feed on this date (ERP 2.0 transition).
@@ -71,6 +110,8 @@ const STALE_CAPTURE_MS = 15 * 60_000;
 interface CameraCard extends HighwayCameraFeed {
   // ISO capture time from LTA.
   capturedAt: string;
+  short: string;
+  place: CameraPlace | 'other';
   lat?: number;
   lon?: number;
 }
@@ -101,12 +142,20 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
   const [now, setNow] = useState(() => Date.now());
   const [selectedCam, setSelectedCam] = useState<CameraCard | null>(null);
   const rainForecast = useRainForecast();
-  const [selectedCorridor, setSelectedCorridor] = useState<string>('ALL');
+  const [activeTab, setActiveTab] = useState<TabId>(readSavedTab);
   const [refreshing, setRefreshing] = useState<boolean>(false);
-  const [liveSyncActive, setLiveSyncActive] = useState<boolean>(false);
-  const [lastRefreshedAt, setLastRefreshedAt] = useState<string>('Just now');
-  const [liveCaptureTime, setLiveCaptureTime] = useState<string>('');
-  const [liveSourceDesc, setLiveSourceDesc] = useState<string>('LTA Data Traffic Images');
+  const [feedFailed, setFeedFailed] = useState<boolean>(false);
+  const [latestCapture, setLatestCapture] = useState<string>('');
+  const [liveSourceDesc, setLiveSourceDesc] = useState<string>('LTA Traffic Images');
+
+  const selectTab = (tab: TabId) => {
+    setActiveTab(tab);
+    try {
+      localStorage.setItem(TAB_STORAGE_KEY, tab);
+    } catch {
+      // Storage blocked; the tab just isn't remembered
+    }
+  };
 
   // Live LTA corridor speeds (CDN-cached speed bands) replace per-camera speed guesses.
   const fetchSpeeds = async () => {
@@ -154,7 +203,7 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
       }
 
       if (rawCameras.length > 0) {
-        if (captureTimestamp) setLiveCaptureTime(formatSgt(captureTimestamp));
+        if (captureTimestamp) setLatestCapture(captureTimestamp);
 
         // Every camera LTA still publishes is shown, named from the directory where known.
         const liveCameras: CameraCard[] = rawCameras
@@ -166,6 +215,8 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
             return {
               id: `lta-live-${camId}`,
               name: meta?.name || `LTA Camera #${camId}`,
+              short: meta?.short || `Camera #${camId}`,
+              place: meta?.place || 'other',
               corridor: meta?.corridor || 'LTA',
               location: meta?.locationDesc || `Camera #${camId}`,
               imageUrl: c.image || c.ImageLink,
@@ -179,9 +230,8 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
           });
 
         setCameras(liveCameras);
-        setLiveSyncActive(true);
+        setFeedFailed(false);
         setNow(Date.now());
-        setLastRefreshedAt(new Date().toLocaleTimeString());
         setRefreshing(false);
         return;
       }
@@ -189,9 +239,8 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
       // Keep the last cameras if the network is offline; their capture age flags them as delayed.
     }
 
-    setLiveSyncActive(false);
+    setFeedFailed(true);
     setNow(Date.now());
-    setLastRefreshedAt(new Date().toLocaleTimeString());
     setRefreshing(false);
   };
 
@@ -210,253 +259,218 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
 
   const speedText = (corridor: string) => {
     const s = speeds[corridor];
-    return s ? `${corridor} avg ${s.avgSpeedKmH} km/h • ${s.status}` : 'Corridor speed unavailable';
+    return s ? `${corridor} ${s.avgSpeedKmH} km/h • ${s.status}` : null;
   };
 
-  // Filter pills only for expressways that still have a live LTA camera.
-  const corridors = useMemo(
-    () => [
-      { id: 'ALL', label: `All Cameras (${cameras.length})` },
-      ...[...new Set(cameras.map((c) => c.corridor))].sort().map((code) => ({ id: code, label: code })),
-    ],
-    [cameras]
-  );
+  const camerasByPlace = useMemo(() => {
+    const groups: Record<string, CameraCard[]> = {};
+    for (const cam of cameras) (groups[cam.place] ||= []).push(cam);
+    return groups;
+  }, [cameras]);
 
-  const filteredCameras = useMemo(
-    () => (selectedCorridor === 'ALL' ? cameras : cameras.filter((c) => c.corridor === selectedCorridor)),
-    [cameras, selectedCorridor]
-  );
+  // "Other" only appears if LTA publishes a camera missing from the directory.
+  const placeTabs = PLACE_TABS.filter((t) => t.id !== 'other' || camerasByPlace.other?.length);
+  const shownTab: TabId = activeTab === 'other' && !camerasByPlace.other?.length ? 'woodlands' : activeTab;
+
+  const tabClass = (selected: boolean) =>
+    `flex-1 sm:flex-none px-2 sm:px-4 py-2 rounded-lg text-[13px] sm:text-sm font-semibold whitespace-nowrap flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
+      selected ? 'bg-sky-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
+    }`;
+
+  const latestAge = latestCapture ? captureAge(latestCapture, now) : null;
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-6 flex flex-col gap-6">
-      {/* Header with Live LTA Broadcast Status */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
+    <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 py-8 flex flex-col gap-6">
+      {/* Header */}
+      <div className="flex items-end justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span className="text-xs font-bold text-sky-600 uppercase tracking-wider">
-              LTA EMAS Traffic CCTV Network
+          <h1 className="text-2xl font-extrabold text-slate-900">Live Cameras</h1>
+          <p className="text-sm text-slate-500 mt-1 flex items-center gap-1.5">
+            <span className={`w-2 h-2 rounded-full ${feedFailed ? 'bg-amber-400' : 'bg-emerald-500 animate-pulse'}`}></span>
+            <span>
+              {feedFailed ? 'Feed unavailable, retrying' : latestAge ? `Updated ${latestAge}` : 'Loading…'}
             </span>
-            {liveSyncActive && (
-              <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold uppercase tracking-wider font-mono flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                <span>{liveSourceDesc}</span>
-              </span>
-            )}
-            {liveCaptureTime && (
-              <span className="px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200 text-[10px] font-bold font-mono">
-                Latest LTA Photo Capture: {liveCaptureTime} SGT
-              </span>
-            )}
-          </div>
-          <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 mt-1">
-            Expressway Surveillance Live View
-          </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Latest LTA traffic camera snapshots, refreshed every 30s. LTA retired its other expressway cameras on{' '}
-            {LTA_CAMERAS_RETIRED_ON}; only the Woodlands and Tuas Checkpoint and Sentosa Gateway cameras remain.
+            <span
+              className="material-symbols-outlined text-base text-slate-400 cursor-help"
+              title={`${liveSourceDesc}, refreshed every 30 seconds. LTA retired its other expressway cameras on ${LTA_CAMERAS_RETIRED_ON}; only the Woodlands, Tuas and Sentosa cameras remain.`}
+            >
+              info
+            </span>
           </p>
         </div>
+        <button
+          onClick={fetchLiveLtaCameras}
+          disabled={refreshing}
+          aria-label="Refresh cameras"
+          title="Refresh cameras"
+          className="w-10 h-10 rounded-full bg-white border border-slate-200 hover:bg-slate-100 text-slate-600 flex items-center justify-center cursor-pointer shadow-xs disabled:opacity-50"
+        >
+          <span className={`material-symbols-outlined ${refreshing ? 'animate-spin' : ''}`}>refresh</span>
+        </button>
+      </div>
 
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            onClick={fetchLiveLtaCameras}
-            disabled={refreshing}
-            className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50"
-          >
-            <span className={`material-symbols-outlined text-sm ${refreshing ? 'animate-spin' : ''}`}>
-              refresh
-            </span>
-            <span>{refreshing ? 'Fetching Live Photos...' : 'Sync Latest LTA Snapshots'}</span>
+      {/* Tabs stay pinned under the fixed site header while scrolling */}
+      <nav className="sticky top-16 z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 py-2 bg-slate-50/95 backdrop-blur-sm">
+        <div className="flex gap-1 p-1 bg-white border border-slate-200 rounded-xl shadow-xs w-full sm:w-fit">
+          {placeTabs.map((t) => (
+            <button key={t.id} onClick={() => selectTab(t.id)} className={tabClass(shownTab === t.id)}>
+              <span>{t.label}</span>
+              <span className={`hidden sm:inline text-xs ${shownTab === t.id ? 'text-sky-100' : 'text-slate-400'}`}>
+                {camerasByPlace[t.id]?.length || 0}
+              </span>
+            </button>
+          ))}
+          <button onClick={() => selectTab('signs')} className={tabClass(shownTab === 'signs')}>
+            Road Signs
           </button>
         </div>
-      </div>
+      </nav>
 
-      {/* Live LTA Variable Message Signboards */}
-      <LiveVmsBoards areas={rainForecast?.areas} />
-
-      {/* Camera Grid Section */}
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div>
-            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <span className="material-symbols-outlined text-sky-600">videocam</span>
-              <span>Expressway Surveillance Live View</span>
-            </h2>
-            <span className="text-xs text-slate-500">
-              Showing {filteredCameras.length} live LTA cameras • Feed synchronized at: {lastRefreshedAt}
-            </span>
-          </div>
-
-          {/* Corridor filter pills */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            {corridors.map((c) => (
-              <button
-                key={c.id}
-                onClick={() => setSelectedCorridor(c.id)}
-                className={`px-3 py-1 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
-                  selectedCorridor === c.id
-                    ? 'bg-sky-600 text-white shadow-xs'
-                    : 'bg-white hover:bg-slate-100 text-slate-600 border border-slate-200'
-                }`}
-              >
-                {c.label}
-              </button>
-            ))}
-          </div>
+      {cameras.length === 0 && shownTab !== 'signs' && (
+        <div className="bg-white rounded-2xl border border-slate-200 p-10 text-center text-sm text-slate-500">
+          {refreshing ? 'Loading cameras…' : 'Camera feed unavailable. Retrying every 30 seconds.'}
         </div>
+      )}
 
-        {cameras.length === 0 && (
-          <div className="bg-white rounded-xl border border-slate-200 p-8 text-center text-sm text-slate-500">
-            {refreshing ? 'Loading live LTA cameras…' : 'LTA camera feed unavailable. Retrying every 30 seconds.'}
-          </div>
-        )}
+      {/* Every tab stays mounted (hidden when inactive) so images and signs are ready on tap */}
+      {placeTabs.map((t) => {
+        const placeCams = camerasByPlace[t.id] || [];
+        if (placeCams.length === 0) return null;
+        const speed = speedText(placeCams[0].corridor);
+        const rain = cameraRain(placeCams[0]);
 
-        {/* Live Traffic Camera Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredCameras.map((cam) => {
-            const isStale = now - new Date(cam.capturedAt).getTime() > STALE_CAPTURE_MS;
-            const rain = cameraRain(cam);
+        return (
+          <section key={t.id} className={shownTab === t.id ? 'flex flex-col gap-5' : 'hidden'}>
+            {/* One-line summary for the place */}
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              {speed && (
+                <span className="px-3 py-1 rounded-full bg-white border border-slate-200 text-slate-700 flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-base text-sky-600">speed</span>
+                  {speed}
+                </span>
+              )}
+              {rain && (
+                <span
+                  className={`px-3 py-1 rounded-full bg-white border border-slate-200 flex items-center gap-1.5 ${rain.style.className}`}
+                  title={`NEA 2-hour forecast for ${rain.area.name}, ${rainForecast?.validPeriod.text}`}
+                >
+                  <span className="material-symbols-outlined text-base">{rain.style.icon}</span>
+                  {rain.area.forecast}
+                </span>
+              )}
+            </div>
 
-            return (
-              <div
-                key={cam.id}
-                onClick={() => setSelectedCam(cam)}
-                className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs hover:shadow-md transition-all cursor-pointer group flex flex-col"
-              >
-                {/* CCTV Snapshot container */}
-                <div className="h-56 relative bg-slate-950 overflow-hidden">
-                  <img
-                    src={getResolvedCameraUrl(cam.imageUrl)}
-                    alt={cam.name}
-                    loading="lazy"
-                    onLoad={(e) => ((e.target as HTMLImageElement).style.visibility = 'visible')}
-                    referrerPolicy="no-referrer"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    onError={hideBrokenImage}
-                  />
-
-                  {/* CCTV Overlays */}
-                  <div className="absolute top-2 left-2 px-2 py-0.5 rounded bg-black/80 backdrop-blur-md text-white text-[10px] font-mono flex items-center gap-1.5 border border-white/10">
-                    <span
-                      className={`w-2 h-2 rounded-full ${
-                        isStale ? 'bg-amber-400' : 'bg-red-500 animate-pulse'
-                      }`}
-                    ></span>
-                    <span>{isStale ? 'DELAYED LTA FEED' : 'LIVE LTA CAMERA'} • {cam.corridor}</span>
-                  </div>
-
-                  <div className="absolute top-2 right-2 px-2 py-0.5 rounded bg-black/80 backdrop-blur-md text-emerald-400 text-[10px] font-mono border border-white/10 flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[11px]">photo_camera</span>
-                    <span>{captureAge(cam.capturedAt, now)}</span>
-                  </div>
-
-                  <div className="absolute bottom-2 left-2 right-2 px-2 py-1.5 rounded bg-black/85 backdrop-blur-md text-white text-[11px] font-mono flex items-center justify-between">
-                    <span className="truncate">{speedText(cam.corridor)}</span>
-                    <span
-                      className={`text-[10px] shrink-0 pl-1 font-semibold ${
-                        isStale ? 'text-amber-400' : 'text-emerald-400'
-                      }`}
-                    >
-                      {cam.updatedTime}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Card Footer Metadata */}
-                <div className="p-3.5 flex flex-col gap-1.5 flex-1 justify-between">
-                  <div>
-                    <h3 className="font-bold text-slate-900 text-xs sm:text-sm group-hover:text-sky-600 transition-colors line-clamp-1">
-                      {cam.name}
-                    </h3>
-                    <p className="text-slate-500 text-[11px] mt-0.5 line-clamp-1">{cam.location}</p>
-                    {rain && (
-                      <p
-                        className={`text-[11px] mt-1 flex items-center gap-1 ${rain.style.className}`}
-                        title={`NEA 2-hour forecast, ${rainForecast?.validPeriod.text}`}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {placeCams.map((cam) => {
+                const isStale = now - new Date(cam.capturedAt).getTime() > STALE_CAPTURE_MS;
+                return (
+                  <button
+                    key={cam.id}
+                    onClick={() => setSelectedCam(cam)}
+                    className="text-left bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs hover:shadow-md transition-shadow cursor-pointer group"
+                  >
+                    <div className="aspect-video relative bg-slate-900 overflow-hidden">
+                      <img
+                        src={getResolvedCameraUrl(cam.imageUrl)}
+                        alt={cam.short}
+                        loading="eager"
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        onError={hideBrokenImage}
+                      />
+                      <span
+                        className={`absolute top-3 left-3 px-2 py-0.5 rounded-full bg-black/70 text-xs font-medium flex items-center gap-1.5 ${
+                          isStale ? 'text-amber-300' : 'text-white'
+                        }`}
                       >
-                        <span className="material-symbols-outlined text-sm">{rain.style.icon}</span>
-                        <span className="line-clamp-1">
-                          Next 2h in {rain.area.name}: {rain.area.forecast}
-                        </span>
-                      </p>
-                    )}
-                  </div>
+                        <span className={`w-1.5 h-1.5 rounded-full ${isStale ? 'bg-amber-400' : 'bg-red-500 animate-pulse'}`}></span>
+                        {isStale ? `Delayed • ${captureAge(cam.capturedAt, now)}` : captureAge(cam.capturedAt, now)}
+                      </span>
+                    </div>
+                    <div className="px-4 py-3 text-sm font-semibold text-slate-900 group-hover:text-sky-600 transition-colors">
+                      {cam.short}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })}
 
-                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                    <span className="font-semibold flex items-center gap-1 text-emerald-700">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                      <span>Live LTA traffic camera</span>
-                    </span>
-                    <span className="text-sky-600 font-bold flex items-center gap-0.5 group-hover:translate-x-0.5 transition-transform">
-                      Enlarge <span className="material-symbols-outlined text-xs">zoom_in</span>
-                    </span>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      <section className={shownTab === 'signs' ? '' : 'hidden'}>
+        <LiveVmsBoards areas={rainForecast?.areas} />
+      </section>
 
-      {/* Snapshot Preview Modal */}
+      {/* Enlarged camera */}
       {selectedCam && (
-        <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-xl max-w-3xl w-full p-4 sm:p-5 flex flex-col gap-3 shadow-2xl relative">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+        <div
+          onClick={() => setSelectedCam(null)}
+          className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-2xl max-w-4xl w-full p-5 flex flex-col gap-4 shadow-2xl"
+          >
+            <div className="flex items-start justify-between gap-3">
               <div>
-                <h3 className="font-bold text-slate-900 text-base">{selectedCam.name}</h3>
-                <p className="text-xs text-slate-500">{selectedCam.location}</p>
+                <h3 className="font-bold text-slate-900 text-lg">{selectedCam.short}</h3>
+                <p className="text-xs text-slate-500">{selectedCam.name}</p>
               </div>
               <button
                 onClick={() => setSelectedCam(null)}
+                aria-label="Close"
                 className="p-1.5 rounded-md hover:bg-slate-100 text-slate-500 cursor-pointer"
               >
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
 
-            <div className="w-full h-96 rounded-lg overflow-hidden relative bg-slate-950 flex items-center justify-center">
+            <div className="w-full aspect-video rounded-xl overflow-hidden bg-slate-900">
               <img
                 src={getResolvedCameraUrl(selectedCam.imageUrl)}
-                alt={selectedCam.name}
+                alt={selectedCam.short}
                 referrerPolicy="no-referrer"
                 className="w-full h-full object-contain"
                 onError={hideBrokenImage}
               />
-              <div className="absolute top-3 left-3 bg-black/80 backdrop-blur-md px-3 py-1 rounded text-white text-xs font-mono flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-                <span>LIVE LTA CAMERA • {selectedCam.corridor}</span>
-              </div>
-              <div className="absolute bottom-3 left-3 right-3 bg-black/80 backdrop-blur-md px-3 py-2 rounded text-white text-xs font-mono flex items-center justify-between">
-                <span>{speedText(selectedCam.corridor)}</span>
-                <span className="text-emerald-400">
-                  {selectedCam.updatedTime} SGT ({captureAge(selectedCam.capturedAt, now)})
-                </span>
-              </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 text-xs">
-              <span className="text-slate-500">
-                Source: Land Transport Authority Singapore Expressway Monitoring &amp; Advisory System (EMAS)
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-slate-600">
+              <span className="flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-base text-slate-400">schedule</span>
+                {formatSgt(selectedCam.capturedAt)} SGT ({captureAge(selectedCam.capturedAt, now)})
               </span>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setSelectedCam(null)}
-                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded font-semibold"
-                >
-                  Close
-                </button>
-                <button
-                  onClick={() => {
-                    setSelectedCam(null);
-                    onCallHotline('18002255582', `EMAS Emergency on ${selectedCam.name}`);
-                  }}
-                  className="px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded font-bold cursor-pointer"
-                >
-                  Report Incident on this Feed
-                </button>
-              </div>
+              {speedText(selectedCam.corridor) && (
+                <span className="flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-base text-sky-600">speed</span>
+                  {speedText(selectedCam.corridor)}
+                </span>
+              )}
+              {(() => {
+                const rain = cameraRain(selectedCam);
+                return (
+                  rain && (
+                    <span className={`flex items-center gap-1.5 ${rain.style.className}`}>
+                      <span className="material-symbols-outlined text-base">{rain.style.icon}</span>
+                      Next 2h: {rain.area.forecast}
+                    </span>
+                  )
+                );
+              })()}
+            </div>
+
+            <div className="flex items-center justify-between gap-2 pt-3 border-t border-slate-100">
+              <span className="text-xs text-slate-400">{selectedCam.location}</span>
+              <button
+                onClick={() => {
+                  setSelectedCam(null);
+                  onCallHotline('18002255582', `EMAS Emergency on ${selectedCam.name}`);
+                }}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm rounded-lg font-bold cursor-pointer shrink-0"
+              >
+                Report incident
+              </button>
             </div>
           </div>
         </div>

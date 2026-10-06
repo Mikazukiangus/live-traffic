@@ -191,7 +191,7 @@ export const LiveVmsBoards: React.FC<{ areas?: ForecastArea[] }> = ({ areas = NO
         marker: group.length === 1 ? group[0].EquipmentID : `${group.length} gantries`,
         lines: message.split(',').map((l) => l.trim()).filter(Boolean),
         status: classify(message),
-        updatedAt: fetchedAt ? `Fetched ${fetchedAt}` : '',
+        updatedAt: fetchedAt,
         locations,
       };
     });
@@ -204,18 +204,17 @@ export const LiveVmsBoards: React.FC<{ areas?: ForecastArea[] }> = ({ areas = NO
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
           <span className="material-symbols-outlined text-amber-500">traffic</span>
-          <span>Live Expressway Variable Message Signboards (VMS)</span>
+          <span>Expressway Message Signs</span>
         </h2>
         <span className="text-xs font-mono">
           {signs ? (
             <span className="text-emerald-700">
-              LTA DataMall • {uniqueMessages} unique {uniqueMessages === 1 ? 'message' : 'messages'} across{' '}
-              {signs.length} signs
+              {uniqueMessages} {uniqueMessages === 1 ? 'message' : 'messages'} • {signs.length} signs
             </span>
           ) : failed ? (
-            <span className="text-amber-700">Sample signs • LTA VMS feed unavailable</span>
+            <span className="text-amber-700">Sample signs • LTA feed unavailable</span>
           ) : (
-            <span className="text-slate-400">Loading live LTA signs…</span>
+            <span className="text-slate-400">Loading…</span>
           )}
         </span>
       </div>
@@ -226,7 +225,7 @@ export const LiveVmsBoards: React.FC<{ areas?: ForecastArea[] }> = ({ areas = NO
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {boards.map((sign) => {
           const isCritical = sign.status === 'CRITICAL';
           const isWarning = sign.status === 'WARNING';
@@ -265,7 +264,7 @@ export const LiveVmsBoards: React.FC<{ areas?: ForecastArea[] }> = ({ areas = NO
                   <span
                     className={`w-1.5 h-1.5 rounded-full animate-pulse ${signs ? 'bg-emerald-500' : 'bg-amber-400'}`}
                   ></span>
-                  <span>{signs ? 'Live LTA message' : 'Sample message'}</span>
+                  <span>{signs ? 'Live' : 'Sample'}</span>
                 </span>
                 <span className="font-mono text-slate-500">{sign.updatedAt}</span>
               </div>
