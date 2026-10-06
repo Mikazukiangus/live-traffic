@@ -588,6 +588,22 @@ Checked visually: boxes land on real vehicles (cars, buses, most lorries in the 
 - All 8 cameras counted: Causeway 107 (Massive jam), Checkpoint viaduct 12, Woodlands South 12, Second Link 47, Tuas arrival 5, Tuas West 15, Sentosa Gateway 9, Telok Blangah 30.
 - The phone layout works.
 
+## 28. Turn 28: Vehicle Counts Fixed on the Vercel Build
+
+**User Instruction:**
+> "you are connected to vercel through MCP, why can't you access vercel?"
+
+### Answer:
+The Vercel MCP connection works for the Vercel API (deployments, logs, settings) but cannot open a page and run its JavaScript, and the built-in browser was not signed in to Vercel. A temporary Vercel access link was used instead (not shared) to open the protected preview and test it.
+
+### Found on the preview:
+1. **Vehicle counts failed on every camera** ("no available backend found"). ONNX Runtime runs inference in a Web Worker that re-loads ONNX Runtime's own file. In the production build, Vite put two small bundler helpers in the main app file, so the worker loaded the whole app, which uses `document` (not available in a worker) and crashed. Development mode does not bundle, so it worked locally.
+2. **Only 6 of 8 cameras on the preview:** preview deployments have no LTA key, so they use the free data.gov.sg feed, which currently does not list camera 4703 (Second Link) or 4798 (Sentosa Gateway). Production, with the LTA key, shows all 8.
+3. The 401 responses for VMS, speeds and incidents on the preview are also due to the missing LTA key.
+
+### Fixed:
+- **`vite.config.ts`:** the bundler helpers go in their own small chunk (`helpers`), so ONNX Runtime's file no longer imports the main app and loads cleanly in the worker.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*

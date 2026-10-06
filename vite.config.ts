@@ -101,6 +101,18 @@ export default defineConfig(({ mode }) => {
         '@': path.resolve(__dirname, '.'),
       },
     },
+    build: {
+      rolldownOptions: {
+        output: {
+          codeSplitting: {
+            // ONNX Runtime re-loads its own chunk inside a Web Worker. Keep the bundler helpers
+            // it shares with the app in a small chunk of their own, so the worker doesn't import
+            // the whole app (which uses `document` and crashes there).
+            groups: [{ name: 'helpers', test: /^\0(rolldown\/runtime|vite\/preload-helper)/ }],
+          },
+        },
+      },
+    },
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
       // Do not modify—file watching is disabled to prevent flickering during agent edits.
