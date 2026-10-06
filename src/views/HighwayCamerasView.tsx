@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { LiveVmsBoards } from '../components/LiveVmsBoards';
 import { HighwayCameraFeed } from '../types/traffic';
 import { RAIN_LEVEL_STYLE, nearestArea, rainLevel, useRainForecast } from '../utils/rainForecast';
+import { JAM_STYLE, NearbyTraffic, jamLevel, trafficNear } from '../utils/expresswaySpeeds';
+import type { SpeedSegment } from '../components/SpeedBandMap';
 
 interface HighwayCamerasViewProps {
   onCallHotline: (phone: string, title: string) => void;
@@ -122,6 +124,21 @@ interface ExpresswaySpeed {
   status: string;
 }
 
+// From /api/expresswayspeeds: drive to each checkpoint towards Johor, Singapore side only.
+interface CheckpointApproach {
+  id: 'woodlands' | 'tuas';
+  name: string;
+  via: string;
+  km: number;
+  minutes: number;
+  minMinutes: number;
+  maxMinutes: number;
+  queueSpeedKmH: number | null;
+}
+
+// LTA speed bands change every 5 minutes, so the 30-second camera refresh needn't refetch them.
+const SPEEDS_REFRESH_MS = 2 * 60_000;
+
 const formatSgt = (iso: string) =>
   new Date(iso).toLocaleTimeString('en-SG', {
     hour: '2-digit',
@@ -139,6 +156,9 @@ const captureAge = (iso: string, now: number) => {
 export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHotline }) => {
   const [cameras, setCameras] = useState<CameraCard[]>([]);
   const [speeds, setSpeeds] = useState<Record<string, ExpresswaySpeed>>({});
+  const [segments, setSegments] = useState<SpeedSegment[]>([]);
+  const [checkpoints, setCheckpoints] = useState<Record<string, CheckpointApproach>>({});
+  const speedsFetchedAt = useRef(0);
   const [now, setNow] = useState(() => Date.now());
   const [selectedCam, setSelectedCam] = useState<CameraCard | null>(null);
   const rainForecast = useRainForecast();
@@ -159,12 +179,18 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
 
   // Live LTA corridor speeds (CDN-cached speed bands) replace per-camera speed guesses.
   const fetchSpeeds = async () => {
+    if (Date.now() - speedsFetchedAt.current < SPEEDS_REFRESH_MS) return;
     try {
-      const res = await fetch('/api/expresswayspeeds');
+      const res = await fetch('/api/expresswayspeeds?include=segments');
       if (!res.ok) return;
       const json = await res.json();
       if (!Array.isArray(json?.expressways)) return;
       setSpeeds(Object.fromEntries(json.expressways.map((e: ExpresswaySpeed) => [e.code, e])));
+      if (Array.isArray(json.segments)) setSegments(json.segments);
+      if (Array.isArray(json.checkpoints)) {
+        setCheckpoints(Object.fromEntries(json.checkpoints.map((c: CheckpointApproach) => [c.id, c])));
+      }
+      speedsFetchedAt.current = Date.now();
     } catch {
       // Cards fall back to showing no speed.
     }
@@ -262,6 +288,15 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
     return s ? `${corridor} ${s.avgSpeedKmH} km/h • ${s.status}` : null;
   };
 
+  // Slower direction of LTA expressway traffic within 400 m of each camera.
+  const nearbyTraffic = useMemo(() => {
+    const byCam: Record<string, NearbyTraffic | null> = {};
+    for (const cam of cameras) {
+      byCam[cam.id] = segments.length && cam.lat != null && cam.lon != null ? trafficNear(cam.lat, cam.lon, segments) : null;
+    }
+    return byCam;
+  }, [cameras, segments]);
+
   const camerasByPlace = useMemo(() => {
     const groups: Record<string, CameraCard[]> = {};
     for (const cam of cameras) (groups[cam.place] ||= []).push(cam);
@@ -336,13 +371,35 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
       {placeTabs.map((t) => {
         const placeCams = camerasByPlace[t.id] || [];
         if (placeCams.length === 0) return null;
-        const speed = speedText(placeCams[0].corridor);
+        const checkpoint = checkpoints[t.id];
+        // Checkpoint tabs lead with the drive-time estimate; Sentosa shows its expressway average.
+        const speed = checkpoint ? null : speedText(placeCams[0].corridor);
         const rain = cameraRain(placeCams[0]);
+        const queueLevel = checkpoint?.queueSpeedKmH != null ? jamLevel(checkpoint.queueSpeedKmH) : null;
 
         return (
           <section key={t.id} className={shownTab === t.id ? 'flex flex-col gap-5' : 'hidden'}>
             {/* One-line summary for the place */}
             <div className="flex flex-wrap items-center gap-2 text-sm">
+              {checkpoint && (
+                <span
+                  className="px-3 py-1 rounded-full bg-white border border-slate-200 text-slate-800 font-semibold flex items-center gap-1.5 cursor-help"
+                  title={`Estimated drive to ${checkpoint.name}: ${checkpoint.minMinutes}–${checkpoint.maxMinutes} min over ${checkpoint.km} km (${checkpoint.via}), from LTA speed bands. Singapore side only; excludes the checkpoint queue and immigration.`}
+                >
+                  <span className="material-symbols-outlined text-base text-sky-600">schedule</span>~{checkpoint.minutes} min to
+                  checkpoint
+                  <span className="text-xs font-normal text-slate-400">est.</span>
+                </span>
+              )}
+              {checkpoint && queueLevel && (
+                <span
+                  className={`px-3 py-1 rounded-full bg-white border border-slate-200 flex items-center gap-1.5 cursor-help ${JAM_STYLE[queueLevel].text}`}
+                  title={`Average LTA speed over the last 1 km before ${checkpoint.name}: ${checkpoint.queueSpeedKmH} km/h`}
+                >
+                  <span className={`w-2 h-2 rounded-full ${JAM_STYLE[queueLevel].dot}`}></span>
+                  {queueLevel} near checkpoint
+                </span>
+              )}
               {speed && (
                 <span className="px-3 py-1 rounded-full bg-white border border-slate-200 text-slate-700 flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-base text-sky-600">speed</span>
@@ -363,6 +420,7 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {placeCams.map((cam) => {
                 const isStale = now - new Date(cam.capturedAt).getTime() > STALE_CAPTURE_MS;
+                const traffic = nearbyTraffic[cam.id];
                 return (
                   <button
                     key={cam.id}
@@ -386,6 +444,16 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
                         <span className={`w-1.5 h-1.5 rounded-full ${isStale ? 'bg-amber-400' : 'bg-red-500 animate-pulse'}`}></span>
                         {isStale ? `Delayed • ${captureAge(cam.capturedAt, now)}` : captureAge(cam.capturedAt, now)}
                       </span>
+                      {traffic && (
+                        <span
+                          className="absolute bottom-3 left-3 px-2.5 py-1 rounded-full bg-white/95 text-xs font-semibold flex items-center gap-1.5 shadow-sm"
+                          title="Slower direction within 400 m, from LTA speed bands"
+                        >
+                          <span className={`w-2 h-2 rounded-full ${JAM_STYLE[traffic.level].dot}`}></span>
+                          <span className={JAM_STYLE[traffic.level].text}>{traffic.level}</span>
+                          <span className="text-slate-500 font-normal">{traffic.speedKmH} km/h</span>
+                        </span>
+                      )}
                     </div>
                     <div className="px-4 py-3 text-sm font-semibold text-slate-900 group-hover:text-sky-600 transition-colors">
                       {cam.short}
@@ -441,11 +509,18 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
                 <span className="material-symbols-outlined text-base text-slate-400">schedule</span>
                 {formatSgt(selectedCam.capturedAt)} SGT ({captureAge(selectedCam.capturedAt, now)})
               </span>
-              {speedText(selectedCam.corridor) && (
-                <span className="flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-base text-sky-600">speed</span>
-                  {speedText(selectedCam.corridor)}
+              {nearbyTraffic[selectedCam.id] ? (
+                <span className="flex items-center gap-1.5" title="Slower direction within 400 m, from LTA speed bands">
+                  <span className={`w-2 h-2 rounded-full ${JAM_STYLE[nearbyTraffic[selectedCam.id]!.level].dot}`}></span>
+                  {nearbyTraffic[selectedCam.id]!.level} here • {nearbyTraffic[selectedCam.id]!.speedKmH} km/h
                 </span>
+              ) : (
+                speedText(selectedCam.corridor) && (
+                  <span className="flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-base text-sky-600">speed</span>
+                    {speedText(selectedCam.corridor)}
+                  </span>
+                )
               )}
               {(() => {
                 const rain = cameraRain(selectedCam);

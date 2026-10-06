@@ -30,6 +30,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 23. [Turn 23: Show All Unique VMS Messages](#23-turn-23-show-all-unique-vms-messages)
 24. [Turn 24: VMS Gantry Locations](#24-turn-24-vms-gantry-locations)
 25. [Turn 25: Camera Page Tabs and Lighter Layout (Phase 1)](#25-turn-25-camera-page-tabs-and-lighter-layout-phase-1)
+26. [Turn 26: Jam Readings and Checkpoint Drive Times (Phases 2 and 3)](#26-turn-26-jam-readings-and-checkpoint-drive-times-phases-2-and-3)
 
 ---
 
@@ -522,6 +523,31 @@ Build a comprehensive Singapore Live Traffic & Expressway Monitoring System feat
 ### Decisions recorded:
 - Phase 2 (camera summaries): alternatives to the Anthropic API to be proposed.
 - Phase 3 (Causeway crossing time): option A, built from LTA data, Singapore side only, labelled as an estimate.
+
+---
+
+## 26. Turn 26: Jam Readings and Checkpoint Drive Times (Phases 2 and 3)
+
+### User Request:
+> *"yes build phase 2 and 3 on the preview branch."* (Phase 2: option 1, in-browser vehicle counting combined with LTA speeds; Phase 3: option A, LTA data, Singapore side only, labelled as an estimate.)
+
+### Phase 2 findings:
+1. **COCO-SSD (TensorFlow.js) was tried and dropped.** On the live Woodlands Checkpoint viaduct photo (roughly 50 vehicles, including a queue of about 10 lorries) it found 0-10 vehicles across model sizes, tile grids and score thresholds; the cameras are high, hazy and wide, so vehicles are too small for it. The packages were uninstalled.
+2. **Proposed instead:** YOLOX (Apache-2.0) via ONNX Runtime Web (MIT). Its model file (Nano 3.7 MB or Tiny 20 MB) comes from Megvii's GitHub releases; awaiting the user's approval before downloading it.
+3. **Built now (no download):** a jam reading per camera from LTA speed bands, the speed of the slower traffic direction within 400 m (`trafficNear()` in `src/utils/expresswaySpeeds.ts`). Levels: Smooth (60+ km/h), Busy (40-59), Jam (20-39), Massive jam (under 20). Shown as a chip on each photo and in the enlarged view. The Causeway and Sentosa cameras have no expressway links within 400 m, so they show none.
+
+### Phase 3 (`api/expresswayspeeds.ts`, new `checkpoints` field):
+1. Drive time to each checkpoint towards Johor, traced backwards from the checkpoint along mainline links (RoadCategory 1), following the straightest link at each merge:
+   - **Woodlands:** BKE northbound from PIE to the checkpoint slip roads, 11.0 km.
+   - **Tuas:** last 5.8 km of AYE westbound, up to the booths.
+2. Typical minutes from band speeds, a range from band limits (5 km/h floor), and the average speed over the last 1 km as "Smooth/Busy/Jam/Massive jam near checkpoint".
+3. **Tuas booth zone excluded** from both the route and the camera readings: links through the immigration booths always read 0-20 km/h because every vehicle stops, and they made an almost empty road (Tuas West departure camera) show "Massive jam". Woodlands booths are on differently named roads and were never included.
+4. **Camera page:** Woodlands and Tuas tabs lead with "~N min to checkpoint (est.)" and the near-checkpoint level; the hover text explains the route and range and says it covers the Singapore side only, excluding the checkpoint queue and immigration. Sentosa keeps the MCE average.
+5. Speed data is fetched with segments at most every 2 minutes (LTA updates every 5).
+
+### Notes:
+- The browser can reuse a cached `/api/expresswayspeeds` response for up to 10 minutes because `stale-while-revalidate` in `Cache-Control` also applies to browsers; first seen locally as missing checkpoint estimates until a reload. Not changed in this turn.
+- LTA speed bands returned HTTP 500 for an extended period during this turn; the route trace was also checked against a saved LTA snapshot.
 
 ---
 
