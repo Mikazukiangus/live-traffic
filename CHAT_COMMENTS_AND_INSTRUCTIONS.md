@@ -31,6 +31,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 24. [Turn 24: VMS Gantry Locations](#24-turn-24-vms-gantry-locations)
 25. [Turn 25: Camera Page Tabs and Lighter Layout (Phase 1)](#25-turn-25-camera-page-tabs-and-lighter-layout-phase-1)
 26. [Turn 26: Jam Readings and Checkpoint Drive Times (Phases 2 and 3)](#26-turn-26-jam-readings-and-checkpoint-drive-times-phases-2-and-3)
+27. [Turn 27: In-Browser Vehicle Counts (YOLOX) and Browser Caching Fix](#27-turn-27-in-browser-vehicle-counts-yolox-and-browser-caching-fix)
 
 ---
 
@@ -548,6 +549,44 @@ Build a comprehensive Singapore Live Traffic & Expressway Monitoring System feat
 ### Notes:
 - The browser can reuse a cached `/api/expresswayspeeds` response for up to 10 minutes because `stale-while-revalidate` in `Cache-Control` also applies to browsers; first seen locally as missing checkpoint estimates until a reload. Not changed in this turn.
 - LTA speed bands returned HTTP 500 for an extended period during this turn; the route trace was also checked against a saved LTA snapshot.
+
+---
+
+## 27. Turn 27: In-Browser Vehicle Counts (YOLOX) and Browser Caching Fix
+
+### User Request:
+> *"do you need the lta key for the lta feed? and down the yolox for testing.. fix the caching."*
+
+### Answer:
+- Yes: every LTA DataMall service used (VMS, speed bands, incidents, travel times, DataMall camera images) requires the AccountKey. It is configured locally and for Production, not for Preview deployments. The HTTP 500 errors seen earlier were LTA-side outages, not key problems.
+
+### YOLOX testing (models from Megvii's official GitHub release 0.1.1rc0):
+| Model | Settings | Woodlands viaduct photo | Time per photo |
+|---|---|---|---|
+| COCO-SSD (previous turn) | best of 12 settings | 10 | ~0.1-0.4 s |
+| YOLOX-Nano | 4x3 tiles, score 0.2 | 20 | ~2 s |
+| YOLOX-Tiny | 4x3 tiles, score 0.2 | 22 | ~9 s |
+| **YOLOX-Nano (chosen)** | **6x4 tiles, score 0.12** | **47** | **~0.7 s** |
+| YOLOX-Tiny | 6x4 tiles, score 0.15 | 31 | ~3 s |
+
+Checked visually: boxes land on real vehicles (cars, buses, most lorries in the Causeway queue); motorcycles and the most distant vehicles are undercounted. The packed Causeway photo gave 77, later 107.
+
+### Implemented:
+1. **`src/utils/vehicleDetection.ts`:** YOLOX-Nano in ONNX Runtime Web 1.30.0 (pinned), inference in a worker (`ort.env.wasm.proxy`). Each photo is split into 6x4 overlapping tiles, each letterboxed to 416x416 BGR; outputs are decoded per stride, vehicle classes (car, motorcycle, bus, truck) are kept at score 0.12 or more, merged boxes wider than 25% of the photo are dropped, and duplicates are removed (IoU 0.45). `useVehicleCounts()` counts one photo at a time, the open tab's cameras first, recounts new captures, pauses while the page is hidden and resumes when it becomes visible again. Skipped when the browser's data saver is on.
+2. **Files served from this site:** `public/models/yolox_nano.onnx` (3.7 MB, about 3.4 MB compressed) with `public/models/YOLOX-LICENSE.txt` (Apache-2.0), and the ONNX Runtime engine bundled by Vite (14 MB, about 3.7 MB compressed). Both load only when the camera page counts vehicles; the browser then keeps them.
+3. **Image proxy:** allows LTA's S3 camera host (exact hostname and https only, replacing the old `endsWith` check) so photos can be read for counting. Camera photos on the page now load through the proxy with `crossOrigin`, so they are downloaded once. Each photo URL is unique per capture, so browsers and Vercel's CDN cache it for 15 minutes.
+4. **Camera page:**
+   - Each card shows "~N" vehicles.
+   - The jam chip uses LTA speeds where available, otherwise the vehicle count for calibrated cameras. Only the Causeway camera is calibrated so far: busy 30, jam 50, massive jam 65 or more.
+   - The Woodlands tab adds "Causeway: Massive jam" (hover shows the count).
+   - The enlarged view shows "~N vehicles in view".
+   - Hover text explains the counts come from an open-source model on the device and miss some motorcycles and distant vehicles.
+5. **Caching fix (`api/_client.ts` `liveCacheHeaders()`):** live endpoints now send `Cache-Control: public, max-age=0, must-revalidate` for browsers and `Vercel-CDN-Cache-Control: max-age=N, stale-while-revalidate=M` for Vercel's CDN only. This applies to the LTA proxies, traffic images, speeds, the 2-hour and 24-hour forecasts, and health. Previously `stale-while-revalidate` let browsers show data up to 10 minutes old on first load. Error responses send `no-store` and are no longer cached for 30 seconds by the old CORS helper.
+
+### Verified locally:
+- With LTA speeds back, the Tuas booth exclusion shows Tuas West departure as "Smooth 80 km/h" (it was "Massive jam").
+- All 8 cameras counted: Causeway 107 (Massive jam), Checkpoint viaduct 12, Woodlands South 12, Second Link 47, Tuas arrival 5, Tuas West 15, Sentosa Gateway 9, Telok Blangah 30.
+- The phone layout works.
 
 ---
 

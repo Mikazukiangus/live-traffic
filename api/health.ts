@@ -2,7 +2,7 @@
  * Health check & diagnostic endpoint for TrafficPulse LTA DataMall serverless connection.
  * Each endpoint's status comes from a live probe of its upstream source, not a static flag.
  */
-import { getLtaAccountKey, setCorsHeaders } from './_client.ts';
+import { getLtaAccountKey, liveCacheHeaders, setCorsHeaders, setHeaders } from './_client.ts';
 
 const LTA_BASE = 'https://datamall2.mytransport.sg/ltaodataservice';
 const DATA_GOV_TRAFFIC_IMAGES = 'https://api.data.gov.sg/v1/transport/traffic-images';
@@ -183,12 +183,12 @@ export default async function handler(req: any, res?: any) {
   };
 
   // Short CDN cache so page loads don't each fan out seven upstream requests.
-  const cacheControl = 'public, max-age=0, s-maxage=30, stale-while-revalidate=30';
+  const cache = liveCacheHeaders(30, 30);
 
   if (res && typeof res.status === 'function') {
     setCorsHeaders(res);
     res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Cache-Control', cacheControl);
+    setHeaders(res, cache);
     return res.status(200).json(healthData);
   }
 
@@ -197,7 +197,7 @@ export default async function handler(req: any, res?: any) {
     headers: {
       'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': '*',
-      'Cache-Control': cacheControl,
+      ...cache,
     },
   });
 }

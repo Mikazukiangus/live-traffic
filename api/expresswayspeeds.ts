@@ -6,7 +6,7 @@
  * `?include=segments` adds every expressway link's coordinates and band for map rendering.
  * Header: AccountKey: <LTA_ACCOUNT_KEY>
  */
-import { getLtaAccountKey, setCorsHeaders } from './_client.ts';
+import { NO_STORE, getLtaAccountKey, liveCacheHeaders, setCorsHeaders, setHeaders } from './_client.ts';
 
 const SPEED_BANDS_ENDPOINT = 'https://datamall2.mytransport.sg/ltaodataservice/v4/TrafficSpeedBands';
 const PAGE_SIZE = 500;
@@ -286,22 +286,22 @@ export default async function handler(req: any, res?: any) {
     return new Response(null, { status: 204 });
   }
 
-  const send = (status: number, body: any, cacheControl: string) => {
+  const send = (status: number, body: any, cache: Record<string, string>) => {
     if (res && typeof res.status === 'function') {
       setCorsHeaders(res);
       res.setHeader('Content-Type', 'application/json');
-      res.setHeader('Cache-Control', cacheControl);
+      setHeaders(res, cache);
       return res.status(status).json(body);
     }
     return new Response(JSON.stringify(body), {
       status,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': cacheControl },
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', ...cache },
     });
   };
 
   const accountKey = getLtaAccountKey();
   if (!accountKey) {
-    return send(401, { success: false, error: 'LTA_ACCOUNT_KEY not configured' }, 'no-store');
+    return send(401, { success: false, error: 'LTA_ACCOUNT_KEY not configured' }, NO_STORE);
   }
 
   try {
@@ -310,9 +310,9 @@ export default async function handler(req: any, res?: any) {
       cache = { expiresAt: Date.now() + CACHE_TTL_MS, payload, segments };
     }
     const body = wantsSegments(req) ? { ...cache.payload, segments: cache.segments } : cache.payload;
-    return send(200, body, 'public, max-age=0, s-maxage=300, stale-while-revalidate=600');
+    return send(200, body, liveCacheHeaders(300, 600));
   } catch (err: any) {
-    return send(502, { success: false, error: 'Failed to aggregate LTA speed bands', message: err?.message }, 'no-store');
+    return send(502, { success: false, error: 'Failed to aggregate LTA speed bands', message: err?.message }, NO_STORE);
   }
 }
 

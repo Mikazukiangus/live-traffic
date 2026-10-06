@@ -4,7 +4,10 @@
  * - If LTA_ACCOUNT_KEY is missing: seamlessly fetches official real-time traffic images from Data.gov.sg open transport API
  * Returns normalized live camera feed with real-time timestamps and direct image URLs.
  */
-import { handleLtaRequest } from './_client.ts';
+import { handleLtaRequest, liveCacheHeaders, setHeaders } from './_client.ts';
+
+// LTA captures every 1-5 minutes; the page polls every 30 seconds.
+const CACHE = liveCacheHeaders(30, 60);
 
 const LTA_DATAMALL_TRAFFIC_IMAGES = 'https://datamall2.mytransport.sg/ltaodataservice/Traffic-Imagesv2';
 const DATA_GOV_TRAFFIC_IMAGES = 'https://api.data.gov.sg/v1/transport/traffic-images';
@@ -58,14 +61,14 @@ export default async function handler(req: any, res?: any) {
 
         if (res && typeof res.status === 'function') {
           res.setHeader('Content-Type', 'application/json');
-          res.setHeader('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
+          setHeaders(res, CACHE);
           return res.status(200).json(payload);
         }
         return new Response(JSON.stringify(payload), {
           status: 200,
           headers: {
             'Content-Type': 'application/json',
-            'Cache-Control': 'public, max-age=30, stale-while-revalidate=60',
+            ...CACHE,
           },
         });
       }
@@ -106,14 +109,14 @@ export default async function handler(req: any, res?: any) {
 
       if (res && typeof res.status === 'function') {
         res.setHeader('Content-Type', 'application/json');
-        res.setHeader('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
+        setHeaders(res, CACHE);
         return res.status(200).json(payload);
       }
       return new Response(JSON.stringify(payload), {
         status: 200,
         headers: {
           'Content-Type': 'application/json',
-          'Cache-Control': 'public, max-age=30, stale-while-revalidate=60',
+          ...CACHE,
         },
       });
     }

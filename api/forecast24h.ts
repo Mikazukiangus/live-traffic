@@ -3,23 +3,23 @@
  * Upstream: https://api-open.data.gov.sg/v2/real-time/api/twenty-four-hr-forecast
  * Returns the island-wide outlook and the forecast for each region over the next three periods.
  */
-import { setCorsHeaders } from './_client.ts';
+import { NO_STORE, liveCacheHeaders, setCorsHeaders, setHeaders } from './_client.ts';
 
 const TWENTY_FOUR_HR_FORECAST = 'https://api-open.data.gov.sg/v2/real-time/api/twenty-four-hr-forecast';
 // NEA reissues this a few times a day.
-const CACHE_CONTROL = 'public, max-age=0, s-maxage=900, stale-while-revalidate=1800';
+const CACHE = liveCacheHeaders(900, 1800);
 const REGIONS = ['north', 'south', 'east', 'west', 'central'] as const;
 
-function send(res: any, status: number, body: unknown, cacheControl = 'no-store') {
+function send(res: any, status: number, body: unknown, cache = NO_STORE) {
   if (res && typeof res.status === 'function') {
     setCorsHeaders(res);
     res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Cache-Control', cacheControl);
+    setHeaders(res, cache);
     return res.status(status).json(body);
   }
   return new Response(JSON.stringify(body), {
     status,
-    headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': cacheControl },
+    headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', ...cache },
   });
 }
 
@@ -73,7 +73,7 @@ export default async function handler(req: any, res?: any) {
           regions: Object.fromEntries(REGIONS.map((r) => [r, p.regions?.[r]?.text || null])),
         })),
       },
-      CACHE_CONTROL
+      CACHE
     );
   } catch (error: any) {
     return send(res, 502, {

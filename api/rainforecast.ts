@@ -3,22 +3,22 @@
  * Upstream: https://api-open.data.gov.sg/v2/real-time/api/two-hr-forecast
  * Returns the 47 forecast areas with their coordinates and current 2-hour forecast.
  */
-import { setCorsHeaders } from './_client.ts';
+import { NO_STORE, liveCacheHeaders, setCorsHeaders, setHeaders } from './_client.ts';
 
 const TWO_HR_FORECAST = 'https://api-open.data.gov.sg/v2/real-time/api/two-hr-forecast';
 // NEA issues a new forecast about every 30 minutes.
-const CACHE_CONTROL = 'public, max-age=0, s-maxage=300, stale-while-revalidate=600';
+const CACHE = liveCacheHeaders(300, 600);
 
-function send(res: any, status: number, body: unknown, cacheControl = 'no-store') {
+function send(res: any, status: number, body: unknown, cache = NO_STORE) {
   if (res && typeof res.status === 'function') {
     setCorsHeaders(res);
     res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Cache-Control', cacheControl);
+    setHeaders(res, cache);
     return res.status(status).json(body);
   }
   return new Response(JSON.stringify(body), {
     status,
-    headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': cacheControl },
+    headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', ...cache },
   });
 }
 
@@ -68,7 +68,7 @@ export default async function handler(req: any, res?: any) {
         validPeriod: item.valid_period,
         areas,
       },
-      CACHE_CONTROL
+      CACHE
     );
   } catch (error: any) {
     return send(res, 502, {

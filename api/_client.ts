@@ -37,9 +37,30 @@ export function setCorsHeaders(res: any) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, AccountKey, Authorization, x-account-key');
-    res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
   }
 }
+
+/**
+ * Cache headers for live data. Only Vercel's CDN may cache (and serve stale while it refreshes);
+ * Vercel-CDN-Cache-Control is not passed on, so browsers see max-age=0 and always revalidate.
+ * A plain `s-maxage, stale-while-revalidate` Cache-Control would also let browsers show
+ * minutes-old data on first load.
+ */
+export function liveCacheHeaders(cdnSeconds: number, staleSeconds: number): Record<string, string> {
+  return {
+    'Cache-Control': 'public, max-age=0, must-revalidate',
+    'Vercel-CDN-Cache-Control': `max-age=${cdnSeconds}, stale-while-revalidate=${staleSeconds}`,
+  };
+}
+
+export const NO_STORE: Record<string, string> = { 'Cache-Control': 'no-store' };
+
+export function setHeaders(res: any, headers: Record<string, string>) {
+  for (const [k, v] of Object.entries(headers)) res.setHeader(k, v);
+}
+
+// LTA DataMall incidents, VMS and travel times refresh every 1-5 minutes.
+const LTA_PROXY_CACHE = liveCacheHeaders(30, 60);
 
 /**
  * Universal Serverless Handler for LTA DataMall endpoints.
@@ -135,8 +156,10 @@ export async function handleLtaRequest(
       }
     }
 
+    const cache = response.ok ? LTA_PROXY_CACHE : NO_STORE;
     if (res && typeof res.status === 'function') {
       setCorsHeaders(res);
+      setHeaders(res, cache);
       return res.status(response.status).json(data);
     }
 
@@ -145,7 +168,7 @@ export async function handleLtaRequest(
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
-        'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',
+        ...cache,
       },
     });
   } catch (error: any) {

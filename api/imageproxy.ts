@@ -3,8 +3,23 @@
  * Fixes browser MIME-type blocking (x-content-type-options: nosniff on application/octet-stream)
  * by proxying the image and serving with correct image/jpeg headers and caching.
  */
+import { setHeaders } from './_client.ts';
 
-const ALLOWED_HOSTS = ['images.data.gov.sg', 'datamall2.mytransport.sg', 'datamall.lta.gov.sg'];
+// LTA DataMall camera images are S3 links without CORS headers; proxying them lets the
+// browser read pixels for vehicle counting.
+// Each LTA image link is unique per capture (and expires after 15 minutes), so the photo
+// behind a URL never changes: browsers and Vercel's CDN can both keep it for that long.
+const IMAGE_CACHE = {
+  'Cache-Control': 'public, max-age=900',
+  'Vercel-CDN-Cache-Control': 'max-age=900',
+};
+
+const ALLOWED_HOSTS = [
+  'images.data.gov.sg',
+  'datamall2.mytransport.sg',
+  'datamall.lta.gov.sg',
+  'dm-traffic-camera-itsc.s3.ap-southeast-1.amazonaws.com',
+];
 
 export default async function handler(req: any, res?: any) {
   if (req && req.method === 'OPTIONS') {
@@ -35,7 +50,7 @@ export default async function handler(req: any, res?: any) {
 
   try {
     const parsed = new URL(imageUrl);
-    if (!ALLOWED_HOSTS.some((host) => parsed.hostname.endsWith(host))) {
+    if (parsed.protocol !== 'https:' || !ALLOWED_HOSTS.includes(parsed.hostname)) {
       const err = { error: 'Host not permitted in proxy' };
       if (res && typeof res.status === 'function') {
         return res.status(403).json(err);
@@ -60,7 +75,7 @@ export default async function handler(req: any, res?: any) {
     if (res && typeof res.status === 'function') {
       res.setHeader('Content-Type', 'image/jpeg');
       res.setHeader('Access-Control-Allow-Origin', '*');
-      res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=120');
+      setHeaders(res, IMAGE_CACHE);
       res.statusCode = 200;
       if (typeof res.send === 'function') {
         return res.send(buffer);
@@ -73,7 +88,7 @@ export default async function handler(req: any, res?: any) {
       headers: {
         'Content-Type': 'image/jpeg',
         'Access-Control-Allow-Origin': '*',
-        'Cache-Control': 'public, max-age=60, stale-while-revalidate=120',
+        ...IMAGE_CACHE,
       },
     });
   } catch (error: any) {

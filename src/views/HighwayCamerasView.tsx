@@ -2,16 +2,34 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { LiveVmsBoards } from '../components/LiveVmsBoards';
 import { HighwayCameraFeed } from '../types/traffic';
 import { RAIN_LEVEL_STYLE, nearestArea, rainLevel, useRainForecast } from '../utils/rainForecast';
-import { JAM_STYLE, NearbyTraffic, jamLevel, trafficNear } from '../utils/expresswaySpeeds';
+import { JAM_STYLE, JamLevel, NearbyTraffic, jamLevel, trafficNear } from '../utils/expresswaySpeeds';
 import type { SpeedSegment } from '../components/SpeedBandMap';
+import { useVehicleCounts } from '../utils/vehicleDetection';
 
 interface HighwayCamerasViewProps {
   onCallHotline: (phone: string, title: string) => void;
 }
 
+// data.gov.sg serves images as octet-stream with nosniff, and LTA DataMall's S3 links send no
+// CORS headers (needed to count vehicles in the photo), so both go through our image proxy.
+const PROXIED_IMAGE_HOSTS = ['https://images.data.gov.sg/', 'https://dm-traffic-camera-itsc.s3.ap-southeast-1.amazonaws.com/'];
 const getResolvedCameraUrl = (url: string): string =>
-  // data.gov.sg serves images as octet-stream with nosniff, so pipe them through our proxy.
-  url.startsWith('https://images.data.gov.sg/') ? `/api/imageproxy?url=${encodeURIComponent(url)}` : url;
+  PROXIED_IMAGE_HOSTS.some((h) => url.startsWith(h)) ? `/api/imageproxy?url=${encodeURIComponent(url)}` : url;
+
+// Vehicle counts that mean busy / jam / massive jam, for cameras with no LTA speed data close by.
+// Calibrated by eye on the Causeway camera (#2701): about 75 found when the bridge was packed.
+const COUNT_LEVELS: Record<string, { busy: number; jam: number; massive: number }> = {
+  '2701': { busy: 30, jam: 50, massive: 65 },
+};
+
+const countLevel = (camId: string, count: number): JamLevel | null => {
+  const t = COUNT_LEVELS[camId];
+  if (!t) return null;
+  return count >= t.massive ? 'Massive jam' : count >= t.jam ? 'Jam' : count >= t.busy ? 'Busy' : 'Smooth';
+};
+
+const COUNT_NOTE =
+  'Counted on this device by an open-source model (YOLOX-Nano). It misses some motorcycles and distant vehicles.';
 
 // Hide a live image that fails to load rather than show a substitute.
 const hideBrokenImage = (e: React.SyntheticEvent<HTMLImageElement>) => {
@@ -307,6 +325,24 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
   const placeTabs = PLACE_TABS.filter((t) => t.id !== 'other' || camerasByPlace.other?.length);
   const shownTab: TabId = activeTab === 'other' && !camerasByPlace.other?.length ? 'woodlands' : activeTab;
 
+  // Count vehicles in each photo, cameras on the open tab first.
+  const countQueue = useMemo(() => {
+    const list = cameras.map((c) => ({ id: c.id, place: c.place, imageUrl: getResolvedCameraUrl(c.imageUrl) }));
+    return [...list.filter((c) => c.place === shownTab), ...list.filter((c) => c.place !== shownTab)];
+  }, [cameras, shownTab]);
+  const { counts: vehicleCounts } = useVehicleCounts(countQueue);
+
+  // One jam reading per camera: LTA speeds nearby, else the vehicle count where it's calibrated.
+  const cameraLevel = (cam: CameraCard): { level: JamLevel; detail: string; source: string } | null => {
+    const traffic = nearbyTraffic[cam.id];
+    if (traffic) {
+      return { level: traffic.level, detail: `${traffic.speedKmH} km/h`, source: 'Slower direction within 400 m, from LTA speed bands' };
+    }
+    const counted = vehicleCounts[cam.id];
+    const level = counted ? countLevel(cam.id.replace('lta-live-', ''), counted.count) : null;
+    return level ? { level, detail: `${counted!.count} vehicles`, source: `Estimated from the vehicle count. ${COUNT_NOTE}` } : null;
+  };
+
   const tabClass = (selected: boolean) =>
     `flex-1 sm:flex-none px-2 sm:px-4 py-2 rounded-lg text-[13px] sm:text-sm font-semibold whitespace-nowrap flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
       selected ? 'bg-sky-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
@@ -376,6 +412,9 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
         const speed = checkpoint ? null : speedText(placeCams[0].corridor);
         const rain = cameraRain(placeCams[0]);
         const queueLevel = checkpoint?.queueSpeedKmH != null ? jamLevel(checkpoint.queueSpeedKmH) : null;
+        // The Causeway itself has no LTA speed data, so its reading comes from the camera's vehicle count.
+        const causewayCam = t.id === 'woodlands' ? placeCams.find((c) => c.id === 'lta-live-2701') : undefined;
+        const causeway = causewayCam ? cameraLevel(causewayCam) : null;
 
         return (
           <section key={t.id} className={shownTab === t.id ? 'flex flex-col gap-5' : 'hidden'}>
@@ -400,6 +439,15 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
                   {queueLevel} near checkpoint
                 </span>
               )}
+              {causeway && (
+                <span
+                  className={`px-3 py-1 rounded-full bg-white border border-slate-200 flex items-center gap-1.5 cursor-help ${JAM_STYLE[causeway.level].text}`}
+                  title={`Causeway camera: ${causeway.detail}. ${causeway.source}`}
+                >
+                  <span className={`w-2 h-2 rounded-full ${JAM_STYLE[causeway.level].dot}`}></span>
+                  Causeway: {causeway.level}
+                </span>
+              )}
               {speed && (
                 <span className="px-3 py-1 rounded-full bg-white border border-slate-200 text-slate-700 flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-base text-sky-600">speed</span>
@@ -420,7 +468,8 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {placeCams.map((cam) => {
                 const isStale = now - new Date(cam.capturedAt).getTime() > STALE_CAPTURE_MS;
-                const traffic = nearbyTraffic[cam.id];
+                const reading = cameraLevel(cam);
+                const counted = vehicleCounts[cam.id];
                 return (
                   <button
                     key={cam.id}
@@ -432,6 +481,7 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
                         src={getResolvedCameraUrl(cam.imageUrl)}
                         alt={cam.short}
                         loading="eager"
+                        crossOrigin="anonymous"
                         referrerPolicy="no-referrer"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         onError={hideBrokenImage}
@@ -444,19 +494,26 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
                         <span className={`w-1.5 h-1.5 rounded-full ${isStale ? 'bg-amber-400' : 'bg-red-500 animate-pulse'}`}></span>
                         {isStale ? `Delayed • ${captureAge(cam.capturedAt, now)}` : captureAge(cam.capturedAt, now)}
                       </span>
-                      {traffic && (
+                      {reading && (
                         <span
                           className="absolute bottom-3 left-3 px-2.5 py-1 rounded-full bg-white/95 text-xs font-semibold flex items-center gap-1.5 shadow-sm"
-                          title="Slower direction within 400 m, from LTA speed bands"
+                          title={reading.source}
                         >
-                          <span className={`w-2 h-2 rounded-full ${JAM_STYLE[traffic.level].dot}`}></span>
-                          <span className={JAM_STYLE[traffic.level].text}>{traffic.level}</span>
-                          <span className="text-slate-500 font-normal">{traffic.speedKmH} km/h</span>
+                          <span className={`w-2 h-2 rounded-full ${JAM_STYLE[reading.level].dot}`}></span>
+                          <span className={JAM_STYLE[reading.level].text}>{reading.level}</span>
+                          <span className="text-slate-500 font-normal">{reading.detail}</span>
                         </span>
                       )}
                     </div>
-                    <div className="px-4 py-3 text-sm font-semibold text-slate-900 group-hover:text-sky-600 transition-colors">
-                      {cam.short}
+                    <div className="px-4 py-3 flex items-center justify-between gap-3">
+                      <span className="text-sm font-semibold text-slate-900 group-hover:text-sky-600 transition-colors">
+                        {cam.short}
+                      </span>
+                      {counted && (
+                        <span className="text-xs text-slate-500 flex items-center gap-1 shrink-0" title={COUNT_NOTE}>
+                          <span className="material-symbols-outlined text-sm">directions_car</span>~{counted.count}
+                        </span>
+                      )}
                     </div>
                   </button>
                 );
@@ -498,6 +555,7 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
               <img
                 src={getResolvedCameraUrl(selectedCam.imageUrl)}
                 alt={selectedCam.short}
+                crossOrigin="anonymous"
                 referrerPolicy="no-referrer"
                 className="w-full h-full object-contain"
                 onError={hideBrokenImage}
@@ -509,10 +567,16 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
                 <span className="material-symbols-outlined text-base text-slate-400">schedule</span>
                 {formatSgt(selectedCam.capturedAt)} SGT ({captureAge(selectedCam.capturedAt, now)})
               </span>
-              {nearbyTraffic[selectedCam.id] ? (
-                <span className="flex items-center gap-1.5" title="Slower direction within 400 m, from LTA speed bands">
-                  <span className={`w-2 h-2 rounded-full ${JAM_STYLE[nearbyTraffic[selectedCam.id]!.level].dot}`}></span>
-                  {nearbyTraffic[selectedCam.id]!.level} here • {nearbyTraffic[selectedCam.id]!.speedKmH} km/h
+              {vehicleCounts[selectedCam.id] && (
+                <span className="flex items-center gap-1.5" title={COUNT_NOTE}>
+                  <span className="material-symbols-outlined text-base text-slate-400">directions_car</span>~
+                  {vehicleCounts[selectedCam.id].count} vehicles in view
+                </span>
+              )}
+              {cameraLevel(selectedCam) ? (
+                <span className="flex items-center gap-1.5" title={cameraLevel(selectedCam)!.source}>
+                  <span className={`w-2 h-2 rounded-full ${JAM_STYLE[cameraLevel(selectedCam)!.level].dot}`}></span>
+                  {cameraLevel(selectedCam)!.level} here • {cameraLevel(selectedCam)!.detail}
                 </span>
               ) : (
                 speedText(selectedCam.corridor) && (
