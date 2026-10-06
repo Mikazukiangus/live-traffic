@@ -612,6 +612,21 @@ The Vercel MCP connection works for the Vercel API (deployments, logs, settings)
 ### Done:
 - Fast-forwarded `main` to the `camera-tabs-phase1` branch (Turns 25 to 28): camera tabs and lighter layout, road signs tab, jam readings, checkpoint drive-time estimates, in-browser vehicle counts, and the browser caching fix. Type check and production build passed before the merge. Pushing `main` deploys it to production on Vercel, where the LTA key gives all 8 cameras, speeds and signs.
 
+## 30. Turn 30: Live Traffic Radar Tabs
+
+**User Instruction:**
+> "Do the similar tabs for "Live  Traffic Radar",  when you click the top level tab for Expressway travel  card,  the expressway weather and the Active Traffic Incidents."
+
+### Implemented (preview branch `radar-tabs`):
+1. **Tabs like the camera page:** Expressways (10), Weather, and Incidents (live count, red when any incident is critical). The bar stays pinned under the site header while scrolling, the chosen tab is remembered on the device (`trafficpulse.radarTab`), and every tab stays loaded so switching is instant.
+2. **Expressways tab:** the 10 expressway cards, then the selected expressway's speed map and readings at full width.
+3. **Weather tab:** a new "Rain Along Each Expressway" list (NEA 2-hour forecast for each expressway, hover for the wet areas), then the NEA 24-hour Expressway Weather outlook.
+4. **Incidents tab:** Active Traffic Incidents at full width in two columns on desktop, with the All / Critical / Warning filters; no inner scroll box.
+5. **Lighter header, as on the camera page:** "Live Traffic", "Updated HH:MM SGT", data sources in the info tooltip, a round refresh button, and the Report Road Hazard button (icon only on phones).
+
+### Verified locally:
+All three tabs work with live LTA and NEA data (20 incidents). The tabs stay pinned when scrolling, the phone layout has no sideways scrolling, and there are no console errors.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*

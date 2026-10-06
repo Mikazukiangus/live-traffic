@@ -46,6 +46,25 @@ const STATUS_BAR: Record<CongestionStatus, string> = {
 const describeTravelTimes = (times: DirectionTravelTime[]) =>
   times.map((t) => `${t.minutes} min to ${t.towards}`).join(' • ');
 
+type RadarTab = 'expressways' | 'weather' | 'incidents';
+
+const TAB_STORAGE_KEY = 'trafficpulse.radarTab';
+
+const readSavedTab = (): RadarTab => {
+  try {
+    const saved = localStorage.getItem(TAB_STORAGE_KEY);
+    if (saved === 'expressways' || saved === 'weather' || saved === 'incidents') return saved;
+  } catch {
+    // Storage blocked; use the default tab
+  }
+  return 'expressways';
+};
+
+const tabClass = (selected: boolean) =>
+  `flex-1 sm:flex-none px-2 sm:px-4 py-2 rounded-lg text-[13px] sm:text-sm font-semibold whitespace-nowrap flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
+    selected ? 'bg-sky-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
+  }`;
+
 export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
   onSwitchToSos,
   onCallHotline,
@@ -54,11 +73,22 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
   const corridors = EXPRESSWAY_CORRIDORS;
   const [selectedCorridorCode, setSelectedCorridorCode] = useState<string>('KPE');
   const [filterSeverity, setFilterSeverity] = useState<'all' | 'critical' | 'warning'>('all');
+  const [activeTab, setActiveTab] = useState<RadarTab>(readSavedTab);
+
+  const selectTab = (tab: RadarTab) => {
+    setActiveTab(tab);
+    try {
+      localStorage.setItem(TAB_STORAGE_KEY, tab);
+    } catch {
+      // Storage blocked; the tab just isn't remembered
+    }
+  };
 
   // Live LTA incidents (shared with the notifications drawer)
   const { incidents, status: incidentStatus, fetchedAt: incidentsFetchedAt } = incidentFeed;
   const incidentCounts = useMemo(() => countByCorridor(incidents), [incidents]);
   const expresswayIncidentCount = incidents.filter((inc) => inc.corridorCode).length;
+  const criticalCount = incidents.filter((inc) => inc.severity === 'Critical').length;
 
   // Real expressway speeds from LTA speed bands (no values until the first successful fetch)
   const [speedDetails, setSpeedDetails] = useState<Record<string, ExpresswaySpeedSummary> | null>(null);
@@ -134,182 +164,191 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
   });
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-6 flex flex-col gap-6">
-      {/* Header with data sources */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-8 flex flex-col gap-6">
+      {/* Header */}
+      <div className="flex items-end justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 flex-wrap">
+          <h1 className="text-2xl font-extrabold text-slate-900">Live Traffic</h1>
+          <p className="text-sm text-slate-500 mt-1 flex items-center gap-1.5">
             <span
-              className={`w-2.5 h-2.5 rounded-full ${speedStatus === 'live' ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'}`}
+              className={`w-2 h-2 rounded-full ${speedStatus === 'live' ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'}`}
             ></span>
-            <span className="text-xs font-bold text-sky-600 uppercase tracking-wider">
-              LTA DataMall &amp; NEA Live Data
+            <span>
+              {speedsUpdatedSgt
+                ? `Updated ${speedsUpdatedSgt} SGT${speedStatus === 'error' ? ', refresh failed' : ''}`
+                : speedUnavailableText}
             </span>
-            {speedsUpdatedSgt && (
-              <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold uppercase tracking-wider font-mono">
-                Speeds updated {speedsUpdatedSgt} SGT
-              </span>
-            )}
-          </div>
-          <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 mt-1">
-            Singapore Expressway Radar &amp; Traffic Health
-          </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Live LTA speed bands, travel times and incidents for all 10 expressways, with NEA rain forecasts.
-          </p>
-          <p className="text-[11px] mt-1 font-mono">
-            {speedDetails ? (
-              <span className={speedStatus === 'error' ? 'text-amber-700' : 'text-emerald-700'}>
-                Speeds: LTA DataMall speed bands
-                {speedsUpdatedSgt ? ` • updated ${speedsUpdatedSgt} SGT` : ''}
-                {speedStatus === 'error' ? ' • refresh failed' : ''}
-              </span>
-            ) : (
-              <span className="text-amber-700">Speeds: {speedUnavailableText}</span>
-            )}
-            {rainForecast && (
-              <span className="text-sky-700"> • Rain: NEA 2-hour forecast, {rainForecast.validPeriod.text}</span>
-            )}
+            <span
+              className="material-symbols-outlined text-base text-slate-400 cursor-help"
+              title={`LTA DataMall speed bands, travel times and incidents for all 10 expressways, refreshed every minute.${
+                rainForecast ? ` Rain: NEA 2-hour forecast, ${rainForecast.validPeriod.text}.` : ''
+              }`}
+            >
+              info
+            </span>
           </p>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
           <button
-            onClick={refreshAll}
-            disabled={refreshing}
-            className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-            title="Reload LTA speeds, travel times and incidents now"
-          >
-            <span className={`material-symbols-outlined text-sm ${refreshing ? 'animate-spin' : ''}`}>
-              refresh
-            </span>
-            <span>{refreshing ? 'Refreshing…' : 'Refresh Live Data'}</span>
-          </button>
-
-          <button
             onClick={() => onCallHotline('18002255582', 'EMAS Operation Center')}
-            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
+            aria-label="Report road hazard"
+            title="Call the LTA EMAS Operation Centre"
+            className="h-10 px-3 sm:px-4 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-full transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
           >
             <span className="material-symbols-outlined text-base">emergency</span>
-            <span>Report Road Hazard</span>
+            <span className="hidden sm:inline">Report Road Hazard</span>
+          </button>
+          <button
+            onClick={refreshAll}
+            disabled={refreshing}
+            aria-label="Refresh live data"
+            title="Reload LTA speeds, travel times and incidents now"
+            className="w-10 h-10 rounded-full bg-white border border-slate-200 hover:bg-slate-100 text-slate-600 flex items-center justify-center cursor-pointer shadow-xs disabled:opacity-50"
+          >
+            <span className={`material-symbols-outlined ${refreshing ? 'animate-spin' : ''}`}>refresh</span>
           </button>
         </div>
       </div>
 
-      {/* Main Grid: Expressway Corridors Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {corridors.map((corridor) => {
-          const isSelected = selectedCorridor.code === corridor.code;
-          const liveSpeed = speedDetails?.[corridor.code];
-          const rain = rainByCode[corridor.code];
+      {/* Tabs stay pinned under the fixed site header while scrolling */}
+      <nav className="sticky top-16 z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 py-2 bg-slate-50/95 backdrop-blur-sm">
+        <div className="flex gap-1 p-1 bg-white border border-slate-200 rounded-xl shadow-xs w-full sm:w-fit">
+          <button onClick={() => selectTab('expressways')} className={tabClass(activeTab === 'expressways')}>
+            <span>Expressways</span>
+            <span className={`hidden sm:inline text-xs ${activeTab === 'expressways' ? 'text-sky-100' : 'text-slate-400'}`}>
+              {corridors.length}
+            </span>
+          </button>
+          <button onClick={() => selectTab('weather')} className={tabClass(activeTab === 'weather')}>
+            Weather
+          </button>
+          <button onClick={() => selectTab('incidents')} className={tabClass(activeTab === 'incidents')}>
+            <span>Incidents</span>
+            {incidentStatus !== 'loading' && (
+              <span
+                className={`text-xs ${
+                  activeTab === 'incidents' ? 'text-sky-100' : criticalCount > 0 ? 'text-red-600 font-bold' : 'text-slate-400'
+                }`}
+              >
+                {incidents.length}
+              </span>
+            )}
+          </button>
+        </div>
+      </nav>
 
-          return (
-            <div
-              key={corridor.code}
-              onClick={() => setSelectedCorridorCode(corridor.code)}
-              className={`p-4 rounded-xl border bg-white cursor-pointer transition-all shadow-xs flex flex-col justify-between gap-3 relative overflow-hidden ${
-                isSelected
-                  ? 'border-sky-500 ring-2 ring-sky-500/20 shadow-md'
-                  : 'border-slate-200 hover:border-slate-300'
-              }`}
-            >
-              {/* Active selection accent line */}
-              {isSelected && <div className="absolute top-0 left-0 right-0 h-1 bg-sky-500"></div>}
+      {/* Every tab stays mounted (hidden when inactive) so switching is instant */}
+      <section className={activeTab === 'expressways' ? 'flex flex-col gap-6' : 'hidden'}>
+        {/* Main Grid: Expressway Corridors Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {corridors.map((corridor) => {
+            const isSelected = selectedCorridor.code === corridor.code;
+            const liveSpeed = speedDetails?.[corridor.code];
+            const rain = rainByCode[corridor.code];
 
-              <div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-base font-extrabold text-slate-900 font-mono">
-                      {corridor.code}
-                    </span>
-                    <span className="text-xs text-slate-500 line-clamp-1">{corridor.name}</span>
+            return (
+              <div
+                key={corridor.code}
+                onClick={() => setSelectedCorridorCode(corridor.code)}
+                className={`p-4 rounded-xl border bg-white cursor-pointer transition-all shadow-xs flex flex-col justify-between gap-3 relative overflow-hidden ${
+                  isSelected
+                    ? 'border-sky-500 ring-2 ring-sky-500/20 shadow-md'
+                    : 'border-slate-200 hover:border-slate-300'
+                }`}
+              >
+                {/* Active selection accent line */}
+                {isSelected && <div className="absolute top-0 left-0 right-0 h-1 bg-sky-500"></div>}
+
+                <div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-base font-extrabold text-slate-900 font-mono">
+                        {corridor.code}
+                      </span>
+                      <span className="text-xs text-slate-500 line-clamp-1">{corridor.name}</span>
+                    </div>
+                    {liveSpeed ? (
+                      <span className={`px-2 py-0.5 rounded text-[11px] font-bold border ${STATUS_BADGE[liveSpeed.status]}`}>
+                        {liveSpeed.status}
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded text-[11px] font-bold border bg-slate-50 text-slate-400 border-slate-200">
+                        —
+                      </span>
+                    )}
                   </div>
-                  {liveSpeed ? (
-                    <span className={`px-2 py-0.5 rounded text-[11px] font-bold border ${STATUS_BADGE[liveSpeed.status]}`}>
-                      {liveSpeed.status}
-                    </span>
-                  ) : (
-                    <span className="px-2 py-0.5 rounded text-[11px] font-bold border bg-slate-50 text-slate-400 border-slate-200">
-                      —
-                    </span>
-                  )}
+
+                  <div className="text-[11px] text-slate-400 mt-1">{corridor.fromTo}</div>
                 </div>
 
-                <div className="text-[11px] text-slate-400 mt-1">{corridor.fromTo}</div>
-              </div>
+                {/* LTA speed */}
+                <div className="flex flex-col gap-1.5 pt-2 border-t border-slate-100">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-500 font-medium flex items-center gap-1">
+                      <span className={`w-1.5 h-1.5 rounded-full ${liveSpeed ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`}></span>
+                      <span>Avg Speed (LTA)</span>
+                    </span>
+                    <span className="font-mono font-bold text-slate-900">
+                      {liveSpeed ? `${liveSpeed.avgSpeedKmH} km/h` : <span className="text-slate-400 font-normal">{speedUnavailableText}</span>}
+                    </span>
+                  </div>
 
-              {/* LTA speed */}
-              <div className="flex flex-col gap-1.5 pt-2 border-t border-slate-100">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-500 font-medium flex items-center gap-1">
-                    <span className={`w-1.5 h-1.5 rounded-full ${liveSpeed ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`}></span>
-                    <span>Avg Speed (LTA)</span>
-                  </span>
-                  <span className="font-mono font-bold text-slate-900">
-                    {liveSpeed ? `${liveSpeed.avgSpeedKmH} km/h` : <span className="text-slate-400 font-normal">{speedUnavailableText}</span>}
-                  </span>
-                </div>
+                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                    {liveSpeed && (
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${STATUS_BAR[liveSpeed.status]}`}
+                        style={{ width: `${Math.min(100, (liveSpeed.avgSpeedKmH / SPEED_BAR_MAX_KMH) * 100)}%` }}
+                      ></div>
+                    )}
+                  </div>
 
-                <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                   {liveSpeed && (
-                    <div
-                      className={`h-full rounded-full transition-all duration-500 ${STATUS_BAR[liveSpeed.status]}`}
-                      style={{ width: `${Math.min(100, (liveSpeed.avgSpeedKmH / SPEED_BAR_MAX_KMH) * 100)}%` }}
-                    ></div>
+                    <div className="text-[11px] text-slate-500">
+                      {liveSpeed.slowLinkPct}% of {liveSpeed.linkCount} segments below 40 km/h
+                    </div>
                   )}
+
+                  {rain && (
+                    <div
+                      className={`text-[11px] flex items-center gap-1 ${RAIN_LEVEL_STYLE[rain.level].className}`}
+                      title={rain.wetAreas.map((a) => `${a.name}: ${a.forecast}`).join('\n') || undefined}
+                    >
+                      <span className="material-symbols-outlined text-sm">{RAIN_LEVEL_STYLE[rain.level].icon}</span>
+                      <span className="line-clamp-1">Next 2h: {describeCorridorRain(rain)}</span>
+                    </div>
+                  )}
+
+                  <div className="text-[11px] text-slate-500 pt-1 flex items-start gap-1" title={travelTimeText(corridor.code)}>
+                    <span className="material-symbols-outlined text-sm text-slate-400">schedule</span>
+                    <span className="line-clamp-2">Travel time: {travelTimeText(corridor.code)}</span>
+                  </div>
                 </div>
 
-                {liveSpeed && (
-                  <div className="text-[11px] text-slate-500">
-                    {liveSpeed.slowLinkPct}% of {liveSpeed.linkCount} segments below 40 km/h
-                  </div>
-                )}
-
-                {rain && (
-                  <div
-                    className={`text-[11px] flex items-center gap-1 ${RAIN_LEVEL_STYLE[rain.level].className}`}
-                    title={rain.wetAreas.map((a) => `${a.name}: ${a.forecast}`).join('\n') || undefined}
+                <div className="flex items-center justify-between pt-1 border-t border-slate-50 text-xs">
+                  <span className="text-[11px] text-slate-400 font-mono">
+                    {incidentStatus === 'loading'
+                      ? 'Loading incidents…'
+                      : `${incidentCounts[corridor.code] || 0} active LTA ${incidentCounts[corridor.code] === 1 ? 'incident' : 'incidents'}`}
+                  </span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSwitchToSos(corridor.code);
+                    }}
+                    className="text-sky-600 hover:text-sky-700 font-bold flex items-center gap-0.5 text-xs"
                   >
-                    <span className="material-symbols-outlined text-sm">{RAIN_LEVEL_STYLE[rain.level].icon}</span>
-                    <span className="line-clamp-1">Next 2h: {describeCorridorRain(rain)}</span>
-                  </div>
-                )}
-
-                <div className="text-[11px] text-slate-500 pt-1 flex items-start gap-1" title={travelTimeText(corridor.code)}>
-                  <span className="material-symbols-outlined text-sm text-slate-400">schedule</span>
-                  <span className="line-clamp-2">Travel time: {travelTimeText(corridor.code)}</span>
+                    <span>Dispatch Here</span>
+                    <span className="material-symbols-outlined text-xs">arrow_forward</span>
+                  </button>
                 </div>
               </div>
+            );
+          })}
+        </div>
 
-              <div className="flex items-center justify-between pt-1 border-t border-slate-50 text-xs">
-                <span className="text-[11px] text-slate-400 font-mono">
-                  {incidentStatus === 'loading'
-                    ? 'Loading incidents…'
-                    : `${incidentCounts[corridor.code] || 0} active LTA ${incidentCounts[corridor.code] === 1 ? 'incident' : 'incidents'}`}
-                </span>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onSwitchToSos(corridor.code);
-                  }}
-                  className="text-sky-600 hover:text-sky-700 font-bold flex items-center gap-0.5 text-xs"
-                >
-                  <span>Dispatch Here</span>
-                  <span className="material-symbols-outlined text-xs">arrow_forward</span>
-                </button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* NEA 24-hour weather outlook */}
-      <WeatherOutlook24h />
-
-      {/* Selected Expressway Deep-Dive & Incidents Feed */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left: Selected expressway map and live readings */}
-        <div className="lg:col-span-7 bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col gap-4">
+        {/* Selected expressway map and live readings */}
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col gap-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div>
               <span className="text-[11px] text-sky-600 font-bold uppercase tracking-wider">
@@ -430,8 +469,54 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
           </div>
         </div>
 
-        {/* Right: Active Expressway Incidents Feed with Real-time Updates */}
-        <div className="lg:col-span-5 bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col gap-3">
+      </section>
+
+      <section className={activeTab === 'weather' ? 'flex flex-col gap-6' : 'hidden'}>
+        {/* NEA 2-hour rain forecast along each expressway */}
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col gap-4">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <span className="text-[11px] text-sky-600 font-bold uppercase tracking-wider">NEA 2-Hour Forecast</span>
+              <h3 className="text-lg font-bold text-slate-900">Rain Along Each Expressway</h3>
+            </div>
+            {rainForecast && (
+              <span className="text-xs text-slate-500 font-mono">{rainForecast.validPeriod.text}</span>
+            )}
+          </div>
+          {Object.keys(rainByCode).length === 0 ? (
+            <div className="text-xs text-slate-400">
+              {rainForecast || speedStatus === 'loading' ? 'Loading rain forecast…' : 'Rain forecast unavailable. Retrying every 5 minutes.'}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {corridors.map((corridor) => {
+                const rain = rainByCode[corridor.code];
+                if (!rain) return null;
+                return (
+                  <div
+                    key={corridor.code}
+                    className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 border border-slate-100 text-xs"
+                    title={rain.wetAreas.map((a) => `${a.name}: ${a.forecast}`).join('\n') || undefined}
+                  >
+                    <span className={`material-symbols-outlined text-xl ${RAIN_LEVEL_STYLE[rain.level].className}`}>
+                      {RAIN_LEVEL_STYLE[rain.level].icon}
+                    </span>
+                    <span className="font-extrabold font-mono text-slate-900 w-10 shrink-0">{corridor.code}</span>
+                    <span className={`line-clamp-2 ${RAIN_LEVEL_STYLE[rain.level].className}`}>{describeCorridorRain(rain)}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* NEA 24-hour weather outlook */}
+        <WeatherOutlook24h />
+      </section>
+
+      <section className={activeTab === 'incidents' ? '' : 'hidden'}>
+        {/* Active expressway incidents, live from LTA */}
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col gap-3">
           <div className="flex items-center justify-between border-b border-slate-100 pb-2">
             <div>
               <div className="flex items-center gap-1.5">
@@ -482,7 +567,7 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
           </div>
 
           {/* Dynamic Incidents List */}
-          <div className="flex flex-col gap-2.5 max-h-[460px] overflow-y-auto pr-1">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2.5">
             {filteredIncidents.length === 0 ? (
               <div className="p-6 text-center text-slate-400 text-xs">
                 {incidentStatus === 'loading'
@@ -558,7 +643,7 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
             )}
           </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 };
