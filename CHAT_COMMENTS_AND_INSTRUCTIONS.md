@@ -786,6 +786,14 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Production build: the service worker activated. After stopping the server, a reload still opened the app with the last air quality, rain and 24-hour data.
 - The phone layout fits at 375 px.
 
+## 44. Turn 44: Links, Warnings, Install & Near Me Go Live
+
+**User Instruction:**
+> "merge to main."
+
+### Done:
+- Fast-forwarded `main` to the `preview/deeplinks-pwa-nearme` branch (Turn 43): links for every view, out-of-date data warnings, install and offline support, and Near me. Pushing `main` deploys it to production on Vercel.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*
