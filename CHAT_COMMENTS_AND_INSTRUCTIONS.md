@@ -721,6 +721,14 @@ data.gov.sg returns HTTP 429 after about six quick keyless calls. The air qualit
 ### Verified locally:
 Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 120 and Central 132 (Unhealthy). Camera chips: Woodlands "PSI 100 Moderate", Tuas "PSI 120 Unhealthy", Sentosa "PSI 100 Moderate". The phone layout fits.
 
+## 39. Turn 39: Air Quality Goes Live
+
+**User Instruction:**
+> "merge into main."
+
+### Done:
+- Fast-forwarded `main` to the `air-quality` branch (Turn 38): NEA PSI and PM2.5 on the Weather tab and camera page, and the 30-second retries for the weather panels. Pushing `main` deploys it to production on Vercel.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*
