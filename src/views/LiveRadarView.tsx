@@ -476,44 +476,6 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
       </section>
 
       <section className={activeTab === 'weather' ? 'flex flex-col gap-6' : 'hidden'}>
-        {/* NEA 2-hour rain forecast along each expressway */}
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col gap-4">
-          <div className="flex flex-wrap items-start justify-between gap-2">
-            <div>
-              <span className="text-[11px] text-sky-600 font-bold uppercase tracking-wider">NEA 2-Hour Forecast</span>
-              <h3 className="text-lg font-bold text-slate-900">Rain Along Each Expressway</h3>
-            </div>
-            {rainForecast && (
-              <span className="text-xs text-slate-500 font-mono">{rainForecast.validPeriod.text}</span>
-            )}
-          </div>
-          {Object.keys(rainByCode).length === 0 ? (
-            <div className="text-xs text-slate-400">
-              Loading NEA rain forecast…
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {corridors.map((corridor) => {
-                const rain = rainByCode[corridor.code];
-                if (!rain) return null;
-                return (
-                  <div
-                    key={corridor.code}
-                    className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 border border-slate-100 text-xs"
-                    title={rain.wetAreas.map((a) => `${a.name}: ${a.forecast}`).join('\n') || undefined}
-                  >
-                    <span className={`material-symbols-outlined text-xl ${RAIN_LEVEL_STYLE[rain.level].className}`}>
-                      {RAIN_LEVEL_STYLE[rain.level].icon}
-                    </span>
-                    <span className="font-extrabold font-mono text-slate-900 w-10 shrink-0">{corridor.code}</span>
-                    <span className={`line-clamp-2 ${RAIN_LEVEL_STYLE[rain.level].className}`}>{describeCorridorRain(rain)}</span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
         {/* NEA air quality: 24-hour PSI and 1-hour PM2.5 per region */}
         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col gap-4">
           <div className="flex flex-wrap items-start justify-between gap-2">
@@ -562,6 +524,44 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
           <p className="text-[11px] text-slate-500">
             PSI is the 24-hour index (Good up to 50, Moderate 51–100, Unhealthy 101–200). PM2.5 is the latest 1-hour reading.
           </p>
+        </div>
+
+        {/* NEA 2-hour rain forecast along each expressway */}
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col gap-4">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <span className="text-[11px] text-sky-600 font-bold uppercase tracking-wider">NEA 2-Hour Forecast</span>
+              <h3 className="text-lg font-bold text-slate-900">Rain Along Each Expressway</h3>
+            </div>
+            {rainForecast && (
+              <span className="text-xs text-slate-500 font-mono">{rainForecast.validPeriod.text}</span>
+            )}
+          </div>
+          {Object.keys(rainByCode).length === 0 ? (
+            <div className="text-xs text-slate-400">
+              Loading NEA rain forecast…
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {corridors.map((corridor) => {
+                const rain = rainByCode[corridor.code];
+                if (!rain) return null;
+                return (
+                  <div
+                    key={corridor.code}
+                    className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 border border-slate-100 text-xs"
+                    title={rain.wetAreas.map((a) => `${a.name}: ${a.forecast}`).join('\n') || undefined}
+                  >
+                    <span className={`material-symbols-outlined text-xl ${RAIN_LEVEL_STYLE[rain.level].className}`}>
+                      {RAIN_LEVEL_STYLE[rain.level].icon}
+                    </span>
+                    <span className="font-extrabold font-mono text-slate-900 w-10 shrink-0">{corridor.code}</span>
+                    <span className={`line-clamp-2 ${RAIN_LEVEL_STYLE[rain.level].className}`}>{describeCorridorRain(rain)}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* NEA 24-hour weather outlook */}
