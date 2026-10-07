@@ -737,6 +737,14 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 ### Done (preview branch `air-quality-first`):
 - The Weather tab on Live Traffic now shows, in order: NEA Air Quality (PSI & PM2.5 by Region), then the NEA 2-hour rain forecast by expressway, then the NEA 24-hour outlook. Verified locally.
 
+## 41. Turn 41: Air Quality Order Goes Live
+
+**User Instruction:**
+> "merge into main"
+
+### Done:
+- Fast-forwarded `main` to the `air-quality-first` branch (Turn 40). Pushing `main` deploys it to production on Vercel.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*
