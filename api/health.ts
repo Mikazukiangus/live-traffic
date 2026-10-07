@@ -8,6 +8,8 @@ const LTA_BASE = 'https://datamall2.mytransport.sg/ltaodataservice';
 const DATA_GOV_TRAFFIC_IMAGES = 'https://api.data.gov.sg/v1/transport/traffic-images';
 const NEA_TWO_HR_FORECAST = 'https://api-open.data.gov.sg/v2/real-time/api/two-hr-forecast';
 const NEA_24_HR_FORECAST = 'https://api-open.data.gov.sg/v2/real-time/api/twenty-four-hr-forecast';
+const NEA_PSI = 'https://api-open.data.gov.sg/v2/real-time/api/psi';
+const NEA_PM25 = 'https://api-open.data.gov.sg/v2/real-time/api/pm25';
 const PROBE_TIMEOUT_MS = 8000;
 
 interface ProbeResult {
@@ -61,7 +63,7 @@ export default async function handler(req: any, res?: any) {
   const ltaProbe = (path: string) => (accountKey ? probe(`${LTA_BASE}/${path}`, ltaHeaders) : Promise.resolve(missingKey()));
 
   const startTime = Date.now();
-  const [incidents, images, speedBands, vms, travelTimes, rainForecast, forecast24h] = await Promise.all([
+  const [incidents, images, speedBands, vms, travelTimes, rainForecast, forecast24h, psi, pm25] = await Promise.all([
     ltaProbe('TrafficIncidents'),
     accountKey ? probe(`${LTA_BASE}/Traffic-Imagesv2`, ltaHeaders) : probe(DATA_GOV_TRAFFIC_IMAGES),
     ltaProbe('v4/TrafficSpeedBands'),
@@ -70,7 +72,14 @@ export default async function handler(req: any, res?: any) {
     // Keyless, so probed whether or not an LTA key is configured.
     probe(NEA_TWO_HR_FORECAST),
     probe(NEA_24_HR_FORECAST),
+    probe(NEA_PSI),
+    probe(NEA_PM25),
   ]);
+
+  // /api/airquality serves whichever of PSI and PM2.5 answers, so it is UP if either is.
+  const airQuality: ProbeResult = psi.status === 'UP' || pm25.status === 'UP'
+    ? { status: 'UP', httpCode: 200, latencyMs: Math.max(psi.latencyMs, pm25.latencyMs) }
+    : { ...psi, error: `PSI: ${psi.error}; PM2.5: ${pm25.error}` };
 
   const endpoints = [
     {
@@ -147,6 +156,14 @@ export default async function handler(req: any, res?: any) {
       purpose: 'Island-wide and regional weather outlook for the next 24 hours',
       upstream: 'data.gov.sg v2 twenty-four-hr-forecast',
       ...forecast24h,
+    },
+    {
+      path: '/api/airquality',
+      name: 'NEA Air Quality (PSI & PM2.5)',
+      method: 'GET',
+      purpose: '24-hour PSI and 1-hour PM2.5 for the five regions',
+      upstream: 'data.gov.sg v2 psi + pm25',
+      ...airQuality,
     },
     {
       // The proxy only relays camera image links, so it is as healthy as the images feed.

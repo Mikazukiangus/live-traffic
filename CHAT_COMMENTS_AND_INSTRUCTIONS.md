@@ -704,6 +704,23 @@ Live Cameras, Live Traffic (Expressways, map, Incidents), Roadside SOS and Couri
 ### Done:
 - Fast-forwarded `main` to the `wada-palette` branch (Turn 36). Pushing `main` deploys the new light palette to production on Vercel.
 
+## 38. Turn 38: NEA PSI and PM2.5 Air Quality
+
+**User Instruction:**
+> "Connect the below endpoints for PSI and Pm25 data to be added to the weather section under "Live Traffic Radar" and "Highway Cameras" images. # Weather & environment (v2 host, wrapped responses) - all keyless, all live: https://api-open.data.gov.sg/v2/real-time/api/psi ; https://api-open.data.gov.sg/v2/real-time/api/pm25"
+
+### Implemented (preview branch `air-quality`):
+1. **`api/airquality.ts` (new, keyless):** fetches both feeds in parallel and returns, for the five regions, the 24-hour PSI, the latest 1-hour PM2.5 and the 24-hour PM2.5, with each feed's reading time. If one feed fails the other is still returned (that partial answer is not cached); it fails only if both do. Cached on Vercel's CDN for 5 minutes. Wired into the dev server and the API health check (now 11 endpoints).
+2. **`src/utils/airQuality.ts` (new):** `useAirQuality()` (polls every 10 minutes), NEA's PSI descriptors (Good to 50, Moderate 51–100, Unhealthy 101–200, Very unhealthy 201–300, Hazardous above 300), NEA's 1-hour PM2.5 bands (Normal to 55, Elevated 56–150, High 151–250, Very high above 250), and `nearestRegion()`.
+3. **Live Traffic › Weather tab:** new "PSI & PM2.5 by Region" panel between the rain list and the 24-hour outlook: one card per region with the PSI and its descriptor and the PM2.5 reading and its band.
+4. **Highway Cameras:** each place's summary row adds "PSI {n} {descriptor}" for the nearest region (Woodlands: North, Tuas: West, Sentosa: South); hover shows the region, reading time and PM2.5. The enlarged camera view shows it too.
+
+### Found and fixed while testing:
+data.gov.sg returns HTTP 429 after about six quick keyless calls. The air quality endpoint now retries once after 1.5 seconds on a 429. The air quality, 2-hour rain and 24-hour outlook panels now retry every 30 seconds until they load, instead of waiting for the next 5–15 minute poll.
+
+### Verified locally:
+Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 120 and Central 132 (Unhealthy). Camera chips: Woodlands "PSI 100 Moderate", Tuas "PSI 120 Unhealthy", Sentosa "PSI 100 Moderate". The phone layout fits.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*

@@ -12,6 +12,7 @@ import imageProxyHandler from './api/imageproxy.ts';
 import expresswaySpeedsHandler from './api/expresswayspeeds.ts';
 import rainForecastHandler from './api/rainforecast.ts';
 import forecast24hHandler from './api/forecast24h.ts';
+import airQualityHandler from './api/airquality.ts';
 
 function apiDevServerPlugin(): Plugin {
   return {
@@ -70,6 +71,9 @@ function apiDevServerPlugin(): Plugin {
               return;
             case '/api/forecast24h':
               await forecast24hHandler(req, res);
+              return;
+            case '/api/airquality':
+              await airQualityHandler(req, res);
               return;
             default:
               return next();

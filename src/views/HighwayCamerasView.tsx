@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { LiveVmsBoards } from '../components/LiveVmsBoards';
 import { HighwayCameraFeed } from '../types/traffic';
 import { RAIN_LEVEL_STYLE, nearestArea, rainLevel, useRainForecast } from '../utils/rainForecast';
+import { REGION_LABEL, nearestRegion, pm25Band, psiBand, sgtHour, useAirQuality } from '../utils/airQuality';
 import { JAM_STYLE, JamLevel, NearbyTraffic, jamLevel, trafficNear } from '../utils/expresswaySpeeds';
 import type { SpeedSegment } from '../components/SpeedBandMap';
 import { useVehicleCounts } from '../utils/vehicleDetection';
@@ -180,6 +181,7 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
   const [now, setNow] = useState(() => Date.now());
   const [selectedCam, setSelectedCam] = useState<CameraCard | null>(null);
   const rainForecast = useRainForecast();
+  const airQuality = useAirQuality();
   const [activeTab, setActiveTab] = useState<TabId>(readSavedTab);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [feedFailed, setFeedFailed] = useState<boolean>(false);
@@ -295,6 +297,19 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
   }, []);
 
   // NEA 2-hour forecast for the area nearest each camera
+  // NEA 24-hour PSI and 1-hour PM2.5 for the camera's region.
+  const cameraAir = (cam: CameraCard) => {
+    if (!airQuality || cam.lat == null || cam.lon == null) return null;
+    const region = nearestRegion(cam.lat, cam.lon, airQuality);
+    if (!region || region.psi24h == null) return null;
+    const pm = region.pm25OneHour != null ? `, PM2.5 ${region.pm25OneHour} µg/m³ (${pm25Band(region.pm25OneHour).label.toLowerCase()}, 1-hour)` : '';
+    return {
+      psi: region.psi24h,
+      band: psiBand(region.psi24h),
+      detail: `NEA ${REGION_LABEL[region.name]} region at ${sgtHour(airQuality.psiTimestamp)} SGT: 24-hour PSI ${region.psi24h}${pm}`,
+    };
+  };
+
   const cameraRain = (cam: CameraCard) => {
     if (!rainForecast || cam.lat == null || cam.lon == null) return null;
     const area = nearestArea(cam.lat, cam.lon, rainForecast.areas);
@@ -411,6 +426,7 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
         // Checkpoint tabs lead with the drive-time estimate; Sentosa shows its expressway average.
         const speed = checkpoint ? null : speedText(placeCams[0].corridor);
         const rain = cameraRain(placeCams[0]);
+        const air = cameraAir(placeCams[0]);
         const queueLevel = checkpoint?.queueSpeedKmH != null ? jamLevel(checkpoint.queueSpeedKmH) : null;
         // The Causeway itself has no LTA speed data, so its reading comes from the camera's vehicle count.
         const causewayCam = t.id === 'woodlands' ? placeCams.find((c) => c.id === 'lta-live-2701') : undefined;
@@ -461,6 +477,15 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
                 >
                   <span className="material-symbols-outlined text-base">{rain.style.icon}</span>
                   {rain.area.forecast}
+                </span>
+              )}
+              {air && (
+                <span
+                  className={`px-3 py-1 rounded-full bg-white border border-slate-200 flex items-center gap-1.5 cursor-help ${air.band.text}`}
+                  title={air.detail}
+                >
+                  <span className={`w-2 h-2 rounded-full ${air.band.dot}`}></span>
+                  PSI {air.psi} {air.band.label}
                 </span>
               )}
             </div>
@@ -593,6 +618,17 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
                     <span className={`flex items-center gap-1.5 ${rain.style.className}`}>
                       <span className="material-symbols-outlined text-base">{rain.style.icon}</span>
                       Next 2h: {rain.area.forecast}
+                    </span>
+                  )
+                );
+              })()}
+              {(() => {
+                const air = cameraAir(selectedCam);
+                return (
+                  air && (
+                    <span className={`flex items-center gap-1.5 cursor-help ${air.band.text}`} title={air.detail}>
+                      <span className={`w-2 h-2 rounded-full ${air.band.dot}`}></span>
+                      PSI {air.psi} {air.band.label}
                     </span>
                   )
                 );
