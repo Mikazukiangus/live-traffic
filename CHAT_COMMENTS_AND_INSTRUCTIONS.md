@@ -696,6 +696,14 @@ A design canvas (private Claude artifact "TrafficPulse Wada Sanzo Colours") show
 ### Verified locally:
 Live Cameras, Live Traffic (Expressways, map, Incidents), Roadside SOS and Courier Hub all render in the new palette with live data; no console errors.
 
+## 37. Turn 37: Wada Sanzo Palette Goes Live
+
+**User Instruction:**
+> "merge into main"
+
+### Done:
+- Fast-forwarded `main` to the `wada-palette` branch (Turn 36). Pushing `main` deploys the new light palette to production on Vercel.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*
