@@ -936,6 +936,14 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - The Flash Floods panel on the Weather tab, and the "Flood alerts" map layer button, now appear only while PUB has an active alert. The lines on the cards and the circles on the map already showed only for real alerts.
 - Verified locally: with no alerts, the panel and the map button are hidden. With an injected test alert, both appear ("Flood alerts (1)", "Jalan Boon Lay").
 
+## 52. Turn 52: Fourteen Improvements Merged to Main
+
+**User Instruction:**
+> "Merge into main and push"
+
+### Done:
+- Fast-forward merged `preview/more-improvements` (Turns 50–51) into `main` and pushed. Vercel deploys it to production.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*
