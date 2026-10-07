@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { TabType } from '../types/traffic';
+import { useInstallPrompt } from '../utils/installPrompt';
 
 interface HeaderProps {
   activeTab: TabType;
@@ -19,6 +20,7 @@ export const Header: React.FC<HeaderProps> = ({
   notificationCount,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const installer = useInstallPrompt();
 
   const navItems: { id: TabType; label: string }[] = [
     { id: 'live-traffic-radar', label: 'Live Traffic Radar' },
@@ -100,6 +102,16 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Right: Notification & Profile */}
         <div className="flex items-center gap-2 shrink-0">
+          {installer.mode === 'prompt' && (
+            <button
+              onClick={installer.install}
+              title="Install TrafficPulse as an app"
+              className="h-9 px-3 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold flex items-center gap-1.5 transition-colors"
+            >
+              <span className="material-symbols-outlined text-lg">install_mobile</span>
+              <span className="hidden sm:inline">Install app</span>
+            </button>
+          )}
           <button
             onClick={onOpenNotifications}
             aria-label="Notifications"
@@ -162,6 +174,14 @@ export const Header: React.FC<HeaderProps> = ({
               )}
             </button>
           ))}
+          {installer.mode === 'ios' && (
+            <div className="px-3 py-2.5 rounded-lg bg-sky-50 border border-sky-100 text-xs text-sky-900 flex items-start gap-2">
+              <span className="material-symbols-outlined text-base text-sky-600">ios_share</span>
+              <span>
+                <span className="font-semibold">Install on iPhone:</span> tap Share in Safari, then Add to Home Screen.
+              </span>
+            </div>
+          )}
           <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
             <span>LTA DataMall Singapore Connected</span>
             <span className="text-emerald-600 font-semibold">● Real-time</span>

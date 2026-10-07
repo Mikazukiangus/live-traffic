@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { TabType, Workshop, TriageSituation, ActiveDispatch } from './types/traffic';
 import {
   INITIAL_GNSS,
@@ -25,9 +25,31 @@ import { SosWorkshopsView } from './views/SosWorkshopsView';
 import { LiveRadarView } from './views/LiveRadarView';
 import { HighwayCamerasView } from './views/HighwayCamerasView';
 import { CourierHubView } from './views/CourierHubView';
+import { useUrlParam, writeParams } from './utils/urlState';
+
+// Short page names for the address bar, e.g. ?page=radar
+const PAGE_SLUGS: Record<TabType, string> = {
+  'live-traffic-radar': 'radar',
+  'highway-cameras-emas': 'cameras',
+  'roadside-sos-workshops': 'sos',
+  'route-alerts-courier-hub': 'courier',
+};
+const DEFAULT_PAGE: TabType = 'highway-cameras-emas';
+const pageFromSlug = (slug: string | null): TabType =>
+  (Object.keys(PAGE_SLUGS) as TabType[]).find((t) => PAGE_SLUGS[t] === slug) || DEFAULT_PAGE;
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<TabType>('highway-cameras-emas');
+  const [pageSlug] = useUrlParam('page');
+  const activeTab = pageFromSlug(pageSlug);
+  // A new page starts on its own default tab, and Back returns to the previous page.
+  const setActiveTab = (tab: TabType) => {
+    if (tab !== activeTab) writeParams({ page: PAGE_SLUGS[tab], tab: null, cam: null }, true);
+    window.scrollTo({ top: 0 });
+  };
+  // Show the page in the address from the first load, so it can be copied straight away.
+  useEffect(() => {
+    if (pageSlug !== PAGE_SLUGS[activeTab]) writeParams({ page: PAGE_SLUGS[activeTab] });
+  }, [pageSlug, activeTab]);
   const [currentMarker, setCurrentMarker] = useState(INITIAL_GNSS);
   const [isBroadcasting, setIsBroadcasting] = useState(false);
   const [activeDispatch, setActiveDispatch] = useState<ActiveDispatch | null>(null);

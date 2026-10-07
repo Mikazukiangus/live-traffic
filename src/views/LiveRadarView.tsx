@@ -4,9 +4,22 @@ import { CongestionStatus } from '../types/traffic';
 import { SpeedBandMap, SpeedBandLegend, SpeedSegment } from '../components/SpeedBandMap';
 import { IncidentFeed, countByCorridor } from '../utils/ltaIncidents';
 import { WeatherOutlook24h } from '../components/WeatherOutlook24h';
-import { RAIN_LEVEL_STYLE, describeCorridorRain, rainByExpressway, useRainForecast } from '../utils/rainForecast';
+import {
+  EXPRESSWAY_RAIN_AREAS,
+  RAIN_LEVEL_STYLE,
+  describeCorridorRain,
+  nearestArea,
+  rainByExpressway,
+  rainLevel,
+  useRainForecast,
+} from '../utils/rainForecast';
 import { DirectionTravelTime, useLtaTravelTimes } from '../utils/ltaTravelTimes';
-import { REGION_LABEL, pm25Band, psiBand, sgtHour, useAirQuality } from '../utils/airQuality';
+import { REGION_LABEL, nearestRegion, pm25Band, psiBand, sgtHour, useAirQuality } from '../utils/airQuality';
+import { useUrlParam } from '../utils/urlState';
+import { StaleFeed, parseSgt, sgtClock, useNow, useOnline } from '../utils/freshness';
+import { formatKm, kmBetween, locate, nearestExpressway, useNearMe } from '../utils/nearMe';
+import { StaleDataNotice } from '../components/StaleDataNotice';
+import { ShareButton } from '../components/ShareButton';
 
 interface LiveRadarViewProps {
   onSwitchToSos: (corridorCode: string) => void;
@@ -48,13 +61,19 @@ const describeTravelTimes = (times: DirectionTravelTime[]) =>
   times.map((t) => `${t.minutes} min to ${t.towards}`).join(' • ');
 
 type RadarTab = 'expressways' | 'weather' | 'incidents';
+const isRadarTab = (t: string | null): t is RadarTab => t === 'expressways' || t === 'weather' || t === 'incidents';
+
+// LTA publishes speed bands every 5 minutes; three missed updates means the feed has stalled.
+const SPEEDS_STALE_MS = 15 * 60_000;
+// NEA publishes PSI hourly.
+const AIR_STALE_MS = 3 * 60 * 60_000;
 
 const TAB_STORAGE_KEY = 'trafficpulse.radarTab';
 
 const readSavedTab = (): RadarTab => {
   try {
     const saved = localStorage.getItem(TAB_STORAGE_KEY);
-    if (saved === 'expressways' || saved === 'weather' || saved === 'incidents') return saved;
+    if (isRadarTab(saved)) return saved;
   } catch {
     // Storage blocked; use the default tab
   }
@@ -74,10 +93,16 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
   const corridors = EXPRESSWAY_CORRIDORS;
   const [selectedCorridorCode, setSelectedCorridorCode] = useState<string>('KPE');
   const [filterSeverity, setFilterSeverity] = useState<'all' | 'critical' | 'warning'>('all');
-  const [activeTab, setActiveTab] = useState<RadarTab>(readSavedTab);
+  // The tab is in the address (?tab=weather) so it can be shared; otherwise the last one used.
+  const [tabParam, setTabParam] = useUrlParam('tab');
+  const [savedTab] = useState<RadarTab>(readSavedTab);
+  const activeTab: RadarTab = isRadarTab(tabParam) ? tabParam : savedTab;
+  useEffect(() => {
+    if (tabParam !== activeTab) setTabParam(activeTab, false);
+  }, [tabParam, activeTab]);
 
   const selectTab = (tab: RadarTab) => {
-    setActiveTab(tab);
+    if (tab !== activeTab) setTabParam(tab);
     try {
       localStorage.setItem(TAB_STORAGE_KEY, tab);
     } catch {
@@ -159,6 +184,57 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
   const speedUnavailableText = speedStatus === 'loading' ? 'Loading LTA speeds…' : 'LTA speeds unavailable';
   const speedsUpdatedSgt = speedBandsUpdated ? speedBandsUpdated.slice(11, 16) : null;
 
+  // Which feeds are behind, said plainly rather than shown as if current
+  const now = useNow();
+  const online = useOnline();
+  const staleFeeds: StaleFeed[] = [];
+  const speedsAt = parseSgt(speedBandsUpdated);
+  if (speedStatus === 'error' || (speedsAt && now - speedsAt > SPEEDS_STALE_MS)) {
+    staleFeeds.push({
+      label: 'LTA speeds',
+      detail: speedsAt ? `from ${sgtClock(speedsAt)} SGT${speedStatus === 'error' ? ', the feed is not responding' : ''}` : 'unavailable, the feed is not responding',
+    });
+  }
+  if (travelTimes.status === 'error') staleFeeds.push({ label: 'LTA travel times', detail: 'not responding; times may be old or missing' });
+  if (incidentStatus === 'error') {
+    staleFeeds.push({
+      label: 'LTA incidents',
+      detail: incidentsFetchedAt ? `last received ${incidentsFetchedAt} SGT, the feed is not responding` : 'unavailable, the feed is not responding',
+    });
+  }
+  const rainEnds = parseSgt(rainForecast?.validPeriod.end);
+  if (rainEnds && now > rainEnds) {
+    staleFeeds.push({ label: 'NEA rain forecast', detail: `expired at ${sgtClock(rainEnds)} SGT; no newer forecast received` });
+  }
+  const psiAt = parseSgt(airQuality?.psiTimestamp);
+  if (psiAt && now - psiAt > AIR_STALE_MS) staleFeeds.push({ label: 'NEA air quality', detail: `readings from ${sgtClock(psiAt)} SGT` });
+
+  // Near me: nearest expressway, rain area and air region (location stays on the device)
+  const nearMe = useNearMe();
+  const nearYou = useMemo(() => {
+    if (nearMe.status !== 'found' || nearMe.lat == null || nearMe.lon == null) return null;
+    const { lat, lon } = nearMe;
+    const area = rainForecast ? nearestArea(lat, lon, rainForecast.areas) : null;
+    let road: { code: string; km: number; approx?: boolean } | null = speedSegments.length
+      ? nearestExpressway(lat, lon, speedSegments)
+      : null;
+    // Without LTA speeds, use the nearest forecast area that an expressway passes through.
+    if (!road && rainForecast) {
+      const onRoute = rainForecast.areas.filter((a) => Object.values(EXPRESSWAY_RAIN_AREAS).some((names) => names.includes(a.name)));
+      const via = nearestArea(lat, lon, onRoute);
+      const code = via && Object.keys(EXPRESSWAY_RAIN_AREAS).find((c) => EXPRESSWAY_RAIN_AREAS[c].includes(via.name));
+      if (via && code) road = { code, km: kmBetween(lat, lon, via.lat, via.lon), approx: true };
+    }
+    const region = airQuality ? nearestRegion(lat, lon, airQuality) : null;
+    return { area, road, region };
+  }, [nearMe, rainForecast, speedSegments, airQuality]);
+
+  const showOnMap = (code: string) => {
+    setSelectedCorridorCode(code);
+    selectTab('expressways');
+    setTimeout(() => document.getElementById('speed-map')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
+  };
+
   // Filtered incidents
   const filteredIncidents = incidents.filter((inc) => {
     if (filterSeverity === 'all') return true;
@@ -195,6 +271,21 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
 
         <div className="flex items-center gap-2 shrink-0">
           <button
+            onClick={locate}
+            disabled={nearMe.status === 'locating'}
+            aria-label="Near me"
+            title="Show the expressway, rain and air quality nearest you. Your location stays on this device."
+            className={`h-10 px-3 rounded-full border text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-60 ${
+              nearMe.status === 'found' ? 'bg-sky-50 border-sky-200 text-sky-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
+            }`}
+          >
+            <span className={`material-symbols-outlined text-base ${nearMe.status === 'locating' ? 'animate-spin' : ''}`}>
+              {nearMe.status === 'locating' ? 'progress_activity' : 'my_location'}
+            </span>
+            <span className="hidden sm:inline">Near me</span>
+          </button>
+          <ShareButton title="Live Traffic SG" />
+          <button
             onClick={() => onCallHotline('18002255582', 'EMAS Operation Center')}
             aria-label="Report road hazard"
             title="Call the LTA EMAS Operation Centre"
@@ -214,6 +305,65 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
           </button>
         </div>
       </div>
+
+      <StaleDataNotice feeds={staleFeeds} online={online} />
+
+      {(nearMe.status === 'denied' || nearMe.status === 'unavailable') && (
+        <p className="text-sm text-slate-600 flex items-center gap-2">
+          <span className="material-symbols-outlined text-base text-slate-400">location_off</span>
+          {nearMe.status === 'denied'
+            ? 'Location is blocked for this site. Allow it in your browser settings to use Near me.'
+            : "Couldn't find your location. Try again in a moment."}
+        </p>
+      )}
+
+      {nearYou && (
+        <div className="rounded-2xl border border-sky-200 bg-white px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 text-sm shadow-xs">
+          <div className="flex items-center gap-2 font-bold text-sky-700 shrink-0">
+            <span className="material-symbols-outlined text-base">my_location</span>
+            Near you{nearYou.area ? ` · ${nearYou.area.name}` : ''}
+          </div>
+          {!nearYou.road && !nearYou.area && !nearYou.region && (
+            <span className="text-slate-500">Loading the nearest expressway, rain forecast and air quality…</span>
+          )}
+          {nearYou.road && (
+            <button
+              onClick={() => showOnMap(nearYou.road!.code)}
+              className="text-left flex items-center gap-2 cursor-pointer hover:text-sky-700"
+              title="Show this expressway on the map"
+            >
+              <span className="font-mono font-bold">{nearYou.road.code}</span>
+              <span className="text-slate-500">
+                {nearYou.road.approx ? `about ${formatKm(nearYou.road.km)}` : formatKm(nearYou.road.km)} away
+              </span>
+              {speedDetails?.[nearYou.road.code] && (
+                <span className={`px-2 py-0.5 rounded text-[11px] font-bold border ${STATUS_BADGE[speedDetails[nearYou.road.code].status]}`}>
+                  {speedDetails[nearYou.road.code].avgSpeedKmH} km/h · {speedDetails[nearYou.road.code].status}
+                </span>
+              )}
+              {(incidentCounts[nearYou.road.code] || 0) > 0 && (
+                <span className="text-red-700 font-semibold">
+                  {incidentCounts[nearYou.road.code]} incident{incidentCounts[nearYou.road.code] === 1 ? '' : 's'}
+                </span>
+              )}
+              <span className="material-symbols-outlined text-base text-slate-400">map</span>
+            </button>
+          )}
+          {nearYou.area && (
+            <span className={`flex items-center gap-1.5 ${RAIN_LEVEL_STYLE[rainLevel(nearYou.area.forecast)].className}`}>
+              <span className="material-symbols-outlined text-base">{RAIN_LEVEL_STYLE[rainLevel(nearYou.area.forecast)].icon}</span>
+              {nearYou.area.forecast}
+            </span>
+          )}
+          {nearYou.region?.psi24h != null && (
+            <span className={`flex items-center gap-1.5 ${psiBand(nearYou.region.psi24h).text}`}>
+              <span className={`w-2 h-2 rounded-full ${psiBand(nearYou.region.psi24h).dot}`}></span>
+              PSI {nearYou.region.psi24h} {psiBand(nearYou.region.psi24h).label}
+              <span className="text-slate-500">({REGION_LABEL[nearYou.region.name]})</span>
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Tabs stay pinned under the fixed site header while scrolling */}
       <nav className="sticky top-16 z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 py-2 bg-slate-50/95 backdrop-blur-sm">
@@ -352,7 +502,7 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
         </div>
 
         {/* Selected expressway map and live readings */}
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col gap-4">
+        <div id="speed-map" className="scroll-mt-32 bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col gap-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div>
               <span className="text-[11px] text-sky-600 font-bold uppercase tracking-wider">

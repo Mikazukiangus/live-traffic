@@ -745,6 +745,47 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 ### Done:
 - Fast-forwarded `main` to the `air-quality-first` branch (Turn 40). Pushing `main` deploys it to production on Vercel.
 
+## 42. Turn 42: Suggested Improvements
+
+**User Instruction:**
+> "suggest what other improvements or useful information for both desktop and mobile users.  Let me check before merging into main."
+
+### Done:
+- Suggested 14 improvements: for all users, for phones and for desktop. Recommended starting with: a link for each view, flagging out-of-date data, installing the app with offline support, and "Near me". Nothing was built.
+
+## 43. Turn 43: Links, Out-of-Date Warnings, Install & Offline, Near Me
+
+**User Instruction:**
+> "build 1, 3, 6 and 7 on a preview branch."
+
+### Done (preview branch `preview/deeplinks-pwa-nearme`):
+- **Links for every view:** the address now holds the page, tab and enlarged camera, for example `?page=radar&tab=weather` and `?page=cameras&tab=woodlands&cam=2701`. Links can be bookmarked or shared, and Back/Forward move between tabs. A Share button (the share sheet on phones, otherwise copy link) is on the radar and camera pages and on each enlarged camera. Esc closes an enlarged camera. Query parameters need no Vercel rewrites, so `/api` is untouched.
+- **Out-of-date data warning:** a notice names each feed that is behind and since when:
+  - LTA speeds: failed, or older than 15 minutes
+  - LTA travel times and incidents: failed
+  - NEA rain forecast: past its valid period
+  - NEA PSI: older than 3 hours
+  - LTA cameras: failed
+
+  When the device is offline, the notice says it is showing the last data received.
+- **Install and offline:** added a web app manifest, app icons (Antwarp Blue with a pulse line) and a service worker (`public/sw.js`).
+  - Pages and `/api` data are fetched from the network first and fall back to the last response saved on the device. Build assets and Google Fonts are served from that saved copy first.
+  - Never saved on the device: camera photos, the vehicle-count model and its runtime, and `/api/health`.
+  - An "Install app" button appears where the browser supports it; on iPhone, the menu shows how to add the app to the home screen.
+  - The service worker is registered only in production builds, and `vite preview` now serves `/api` too, so the production build can be tested locally.
+- **Near me:**
+  - Location is asked for only when the visitor taps Near me. It stays in memory: it is never stored, sent to the server or put in the address.
+  - Radar page: a "Near you" card shows the nearest expressway with distance, speed and incidents (tap it to select that road on the map), the nearest area's 2-hour rain forecast, and the region's PSI. If LTA speeds are down, it uses the nearest forecast area that an expressway passes through.
+  - Camera page: opens the tab with the nearest camera and shows how far away it is. A shared link's tab still takes priority unless Near me is tapped.
+  - Later visits locate again without asking if the browser still allows it.
+
+### Verified locally:
+- Links: opening `?page=radar&tab=weather` lands on the Weather tab. Back/Forward step through tabs and pages. A shared camera link opens that camera, and closing it doesn't leave the site.
+- Near me, with a simulated location in Bishan: the radar page showed CTE about 2.0 km away, 1 incident, Partly Cloudy, and PSI 133 Unhealthy (Central). The camera page switched to Sentosa (Telok Blangah / Keppel Bay, 10.4 km).
+- The out-of-date notice correctly flagged LTA speed bands, which were returning 500 from LTA at the time.
+- Production build: the service worker activated. After stopping the server, a reload still opened the app with the last air quality, rain and 24-hour data.
+- The phone layout fits at 375 px.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*
