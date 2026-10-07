@@ -871,6 +871,14 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - The header logo pointed to an expired Google-hosted image (HTTP 403); it now uses the app's own icon, `/icons/icon.svg`, so it also works offline.
 - The header profile picture used the same kind of expired link; it is now a plain person icon.
 
+## 49. Turn 49: Copyright Year & Logo Go Live
+
+**User Instruction:**
+> "merge to main"
+
+### Done:
+- Fast-forwarded `main` to `preview/copyright-logo` (Turn 48): © 2026 in the footer, the header logo from `/icons/icon.svg`, and a person icon for the profile picture.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*
