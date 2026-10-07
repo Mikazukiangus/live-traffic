@@ -842,6 +842,25 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
   - Link text is lighter in dark mode.
   - A feed's first rate-limited load no longer shows as "not responding".
 
+## 46. Turn 46: LTA Key for Previews
+
+**User Instructions:**
+> "add LTA_ACCOUNT_key to vercel preview environment but ensure this is not leaked into public"
+> "where is the preview link"
+
+### Done:
+- The user added Preview to the existing sensitive `LTA_ACCOUNT_KEY` variable in Vercel; the value was never copied or shown.
+- Checked it stays private: previews need a Vercel team login, the key is read only by server code in `api/`, the browser bundle does not contain it, and `/api/health` reports only `ltaKeyConfigured: true`.
+- Rebuilt the preview with an empty commit; 12 of 14 feeds were up (LTA speed bands returned 500 from LTA itself).
+
+## 47. Turn 47: The Remaining Improvements Go Live
+
+**User Instruction:**
+> "merge to main"
+
+### Done:
+- Fast-forwarded `main` to `preview/commute-weather-desktop` (Turn 45): My commute with alerts, lightning and heat stress, road works, faulty traffic lights, car parks, the phone tab bar, pull to refresh, wall display, the side-by-side map, keyboard shortcuts and dark mode.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*
