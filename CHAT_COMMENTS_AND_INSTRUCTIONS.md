@@ -794,6 +794,54 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 ### Done:
 - Fast-forwarded `main` to the `preview/deeplinks-pwa-nearme` branch (Turn 43): links for every view, out-of-date data warnings, install and offline support, and Near me. Pushing `main` deploys it to production on Vercel.
 
+## 45. Turn 45: The Remaining Improvements
+
+**User Instruction:**
+> "Build the other improvements that you suggested."
+
+### Done (preview branch `preview/commute-weather-desktop`):
+- **My commute (2):** save up to 3 commutes in this browser.
+  - Each commute is one or more expressways, each with a direction and a From/To pair taken from LTA's travel-time points.
+  - The card shows: LTA's minutes for exactly those stretches (KPE/MCE are estimated end to end), speed and status, incidents, road works, rain, and lightning. Tap a road to see it on the map.
+  - Edit or delete from the card.
+- **Lightning & heat stress (4):** new NEA panel on the Weather tab.
+  - Lightning: strikes within 5 km of the forecast areas along each expressway. Expressway cards also show "Lightning nearby".
+  - Heat stress: WBGT and Low/Moderate/High for every NEA station.
+- **LTA road works, faulty traffic lights and car parks (5):**
+  - Road works in progress today are matched to expressways by road name; LTA gives no exact location. They appear as a count on each card and as a per-expressway list on the Incidents tab.
+  - Faulty traffic lights are listed on the Incidents tab.
+  - Courier Hub has "Free Lots Nearest the Pickup" (or nearest you, with Near me) for cars, heavy vehicles and motorcycles. All car parks are sent to the browser, so the visitor's location never reaches the server.
+- **Phones (8, 9):**
+  - A bottom tab bar (Traffic, Cameras, SOS, Courier) with an incident badge.
+  - Pull down from the top to refresh the page's data.
+  - Swipe or use the arrow buttons to move between cameras in the enlarged view.
+- **Desktop (10, 11, 12):**
+  - Wall display (`?display=wall`, the TV button or W): no menus, full screen where allowed, and tabs change every 30 seconds without adding to Back history.
+  - On wide screens the expressway cards scroll beside a pinned map.
+  - Keyboard shortcuts:
+    - T / C / S / H: pages
+    - 1–4: tabs
+    - R: refresh
+    - N: Near me
+    - ← →: expressways or cameras
+    - Esc: close
+    - W: wall display
+    - ?: shortcut list
+- **Dark mode (13):** a night version of the Wada Sanzo palette. It follows the device, or can be set with a theme button in the header (device → light → dark), and is applied before first paint. The speed map, road signs and camera frames keep their dark design; dialog backdrops use a fixed "scrim" colour.
+- **Commute alerts (14):** the bell on a commute card asks for notification permission. While TrafficPulse is open (including in a background tab or as the installed app), a new LTA incident on that commute's expressways triggers one notification. Tapping it opens the Incidents tab. Push alerts while the app is closed would need a push server and are not built.
+- **Server:** the three new feeds share one function, `/api/live?feed=roadconditions|carparks|weatheralerts`, which keeps the project at 12 serverless functions (the Hobby plan limit). Health now probes 14 endpoints. The service worker cache version is v2.
+
+### Verified locally:
+- Commute: AYE Tuas Checkpoint → Jurong Town Hall Rd 13 min, plus KPE ≈11 min, ≈24 min in total, with incidents, road works and rain shown.
+- Alerts: an injected AYE accident produced one notification, "Accident on AYE · Tuas to town", and none on the next refresh.
+- Keyboard shortcuts, wall display cycling (Expressways → Weather after 30 s), camera arrows and swipe, pull to refresh (reloaded all five feeds), car parks for cars and heavy vehicles, the theme switch, and dark mode on desktop and phone.
+- Fixes found while testing:
+  - LTA's traffic light fault type code contradicts its message, so the label is now read from the message.
+  - LTA place names are title-cased.
+  - Full car parks show "Full".
+  - Link text is lighter in dark mode.
+  - A feed's first rate-limited load no longer shows as "not responding".
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*

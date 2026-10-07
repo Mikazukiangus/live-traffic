@@ -194,3 +194,70 @@ export async function handleLtaRequest(
     });
   }
 }
+
+/** JSON response for both Node-style (req, res) and Web Request -> Response handlers. */
+export function sendJson(res: any, status: number, body: unknown, cache: Record<string, string> = NO_STORE) {
+  if (res && typeof res.status === 'function') {
+    setCorsHeaders(res);
+    res.setHeader('Content-Type', 'application/json');
+    setHeaders(res, cache);
+    return res.status(status).json(body);
+  }
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', ...cache },
+  });
+}
+
+/** Answers a CORS preflight; returns undefined for any other request. */
+export function handlePreflight(req: any, res?: any) {
+  if (!req || req.method !== 'OPTIONS') return undefined;
+  if (res && typeof res.status === 'function') {
+    setCorsHeaders(res);
+    return res.status(204).end();
+  }
+  return new Response(null, { status: 204 });
+}
+
+const LTA_PAGE_SIZE = 500;
+
+/**
+ * Every record of a paged LTA DataMall dataset (500 per page). LTA doesn't say how many pages
+ * there are, so pages are fetched in parallel waves until a short page comes back.
+ */
+export async function fetchLtaAll(url: string, accountKey: string, { wave = 6, maxPages = 40 } = {}): Promise<any[]> {
+  const page = async (skip: number): Promise<any[]> => {
+    for (let attempt = 1; ; attempt++) {
+      const response = await fetch(`${url}?$skip=${skip}`, {
+        headers: { AccountKey: accountKey, accept: 'application/json' },
+        signal: AbortSignal.timeout(15_000),
+      });
+      if (response.ok) return (await response.json()).value || [];
+      // LTA throttles bursts; back off and try twice more.
+      if (attempt >= 3) throw new Error(`LTA responded ${response.status} at $skip=${skip}`);
+      await new Promise((r) => setTimeout(r, 400 * attempt));
+    }
+  };
+  const records: any[] = [];
+  for (let start = 0; start < maxPages; start += wave) {
+    const pages = await Promise.all(Array.from({ length: wave }, (_, i) => page((start + i) * LTA_PAGE_SIZE)));
+    for (const p of pages) records.push(...p);
+    if (pages.some((p) => p.length < LTA_PAGE_SIZE)) break;
+  }
+  return records;
+}
+
+/** Fetches a data.gov.sg v2 real-time feed (wrapped { code, errorMsg, data }), retrying once on 429. */
+export async function fetchDataGovV2(url: string): Promise<any> {
+  const get = () => fetch(url, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(10_000) });
+  let response = await get();
+  // data.gov.sg rate-limits keyless calls in short bursts; one retry usually gets through.
+  if (response.status === 429) {
+    await new Promise((r) => setTimeout(r, 1500));
+    response = await get();
+  }
+  if (!response.ok) throw new Error(`Upstream responded ${response.status}`);
+  const json = await response.json();
+  if (json?.code !== 0 || !json?.data) throw new Error(json?.errorMsg || 'Unexpected payload');
+  return json.data;
+}

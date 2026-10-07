@@ -13,6 +13,7 @@ import expresswaySpeedsHandler from './api/expresswayspeeds.ts';
 import rainForecastHandler from './api/rainforecast.ts';
 import forecast24hHandler from './api/forecast24h.ts';
 import airQualityHandler from './api/airquality.ts';
+import liveFeedsHandler from './api/live.ts';
 
 function apiDevServerPlugin(): Plugin {
   return {
@@ -83,6 +84,9 @@ async function apiMiddleware(req: any, res: any, next: () => void) {
         return;
       case '/api/airquality':
         await airQualityHandler(req, res);
+        return;
+      case '/api/live':
+        await liveFeedsHandler(req, res);
         return;
       default:
         return next();

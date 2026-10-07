@@ -26,6 +26,13 @@ import { LiveRadarView } from './views/LiveRadarView';
 import { HighwayCamerasView } from './views/HighwayCamerasView';
 import { CourierHubView } from './views/CourierHubView';
 import { useUrlParam, writeParams } from './utils/urlState';
+import { useCommuteAlerts } from './utils/commutes';
+import { requestRefresh, useShortcuts } from './utils/appEvents';
+import { locate } from './utils/nearMe';
+import { enterWallDisplay, exitWallDisplay, useWallDisplay } from './utils/wallDisplay';
+import { BottomNav } from './components/BottomNav';
+import { PullToRefresh } from './components/PullToRefresh';
+import { ShortcutsHelp } from './components/ShortcutsHelp';
 
 // Short page names for the address bar, e.g. ?page=radar
 const PAGE_SLUGS: Record<TabType, string> = {
@@ -46,6 +53,24 @@ export default function App() {
     if (tab !== activeTab) writeParams({ page: PAGE_SLUGS[tab], tab: null, cam: null }, true);
     window.scrollTo({ top: 0 });
   };
+  // Wall display: no menus, tabs cycle (?display=wall)
+  const wall = useWallDisplay();
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  useShortcuts({
+    t: () => setActiveTab('live-traffic-radar'),
+    c: () => setActiveTab('highway-cameras-emas'),
+    s: () => setActiveTab('roadside-sos-workshops'),
+    h: () => setActiveTab('route-alerts-courier-hub'),
+    r: requestRefresh,
+    n: locate,
+    w: () => (wall ? exitWallDisplay() : enterWallDisplay()),
+    '?': () => setShortcutsOpen((o) => !o),
+    Escape: () => {
+      if (shortcutsOpen) setShortcutsOpen(false);
+      else if (wall && !document.querySelector('[role="dialog"]')) exitWallDisplay();
+    },
+  });
+
   // Show the page in the address from the first load, so it can be copied straight away.
   useEffect(() => {
     if (pageSlug !== PAGE_SLUGS[activeTab]) writeParams({ page: PAGE_SLUGS[activeTab] });
@@ -58,6 +83,8 @@ export default function App() {
   const incidentFeed = useLtaIncidents();
   const expresswaySpeeds = useExpresswaySpeeds();
   const rainForecast = useRainForecast();
+  // Notifications for new incidents on saved commutes, on every page
+  useCommuteAlerts(incidentFeed.incidents, incidentFeed.status);
 
   // Live readings for the pickup expressway (the pickup location itself is a demo pin)
   const pickupCode = currentMarker.corridor;
@@ -167,24 +194,43 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
       {/* Top Fixed Header */}
-      <Header
+      {!wall && <Header
         activeTab={activeTab}
         onSelectTab={setActiveTab}
         onSearchCorridor={handleSearchCorridor}
         searchQuery={searchQuery}
         onOpenNotifications={() => setNotificationsOpen(true)}
         notificationCount={incidentFeed.incidents.length}
-      />
+      />}
+      {!wall && <PullToRefresh />}
+      {wall && (
+        <div className="fixed top-3 right-3 z-50 flex items-center gap-2">
+          <button
+            onClick={() => document.documentElement.requestFullscreen?.().catch(() => {})}
+            aria-label="Full screen"
+            title="Full screen"
+            className="w-9 h-9 rounded-full bg-white/90 border border-slate-200 text-slate-600 hover:bg-white flex items-center justify-center shadow-sm cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-lg">fullscreen</span>
+          </button>
+          <button
+            onClick={exitWallDisplay}
+            className="h-9 px-3 rounded-full bg-white/90 border border-slate-200 text-slate-700 hover:bg-white text-xs font-bold flex items-center gap-1.5 shadow-sm cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-base">close_fullscreen</span>Exit wall display
+          </button>
+        </div>
+      )}
 
       {/* Main Container with 64px top padding for fixed navbar */}
-      <main className="w-full pt-16 flex-1 flex flex-col">
+      <main className={`w-full flex-1 flex flex-col ${wall ? 'pt-2' : 'pt-16'}`}>
         {/* Telemetry & GNSS fix status bar */}
-        <TelemetryBar
+        {!wall && <TelemetryBar
           currentMarker={currentMarker}
           onSelectMarker={setCurrentMarker}
           incidentFeed={incidentFeed}
           pickupSpeedText={pickupSpeedText}
-        />
+        />}
 
         {/* Tab Views */}
         {activeTab === 'roadside-sos-workshops' && (
@@ -218,15 +264,17 @@ export default function App() {
             }}
             onCallHotline={handleOpenCallModal}
             incidentFeed={incidentFeed}
+            wall={wall}
           />
         )}
 
         {activeTab === 'highway-cameras-emas' && (
-          <HighwayCamerasView onCallHotline={handleOpenCallModal} />
+          <HighwayCamerasView onCallHotline={handleOpenCallModal} wall={wall} />
         )}
 
         {activeTab === 'route-alerts-courier-hub' && (
           <CourierHubView
+            pickup={currentMarker}
             onOpenSlaModal={() => setSlaModalOpen(true)}
             onCallHotline={handleOpenCallModal}
           />
@@ -234,7 +282,15 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <Footer onOpenApiHealth={() => setApiHealthModalOpen(true)} />
+      {!wall && (
+        <div className="pb-16 lg:pb-0">
+          <Footer onOpenApiHealth={() => setApiHealthModalOpen(true)} />
+        </div>
+      )}
+      {!wall && (
+        <BottomNav activeTab={activeTab} onSelectTab={setActiveTab} incidentCount={incidentFeed.incidents.length} />
+      )}
+      {shortcutsOpen && <ShortcutsHelp onClose={() => setShortcutsOpen(false)} />}
 
       {/* Modals & Drawers */}
       <BookingModal

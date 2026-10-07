@@ -24,7 +24,7 @@ export const CallModal: React.FC<CallModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-50 bg-scrim/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
       <div className="bg-white border border-slate-200 rounded-xl w-full max-w-md p-5 sm:p-6 flex flex-col gap-4 shadow-2xl relative">
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2 text-sky-600">

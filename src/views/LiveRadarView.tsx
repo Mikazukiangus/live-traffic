@@ -20,11 +20,18 @@ import { StaleFeed, parseSgt, sgtClock, useNow, useOnline } from '../utils/fresh
 import { formatKm, kmBetween, locate, nearestExpressway, useNearMe } from '../utils/nearMe';
 import { StaleDataNotice } from '../components/StaleDataNotice';
 import { ShareButton } from '../components/ShareButton';
+import { MyCommute } from '../components/MyCommute';
+import { useRefreshRequests, useShortcuts } from '../utils/appEvents';
+import { enterWallDisplay, useWallCycle } from '../utils/wallDisplay';
+import { roadWorksByCode, shortDate, useRoadConditions, worksBy } from '../utils/roadConditions';
+import { HEAT_STYLE, LIGHTNING_NEAR_KM, lightningByExpressway, useWeatherAlerts } from '../utils/weatherAlerts';
 
 interface LiveRadarViewProps {
   onSwitchToSos: (corridorCode: string) => void;
   onCallHotline: (phone: string, title: string) => void;
   incidentFeed: IncidentFeed;
+  // Wall display: tabs cycle and the page's own controls are hidden
+  wall?: boolean;
 }
 
 interface ExpresswaySpeedSummary {
@@ -67,6 +74,8 @@ const isRadarTab = (t: string | null): t is RadarTab => t === 'expressways' || t
 const SPEEDS_STALE_MS = 15 * 60_000;
 // NEA publishes PSI hourly.
 const AIR_STALE_MS = 3 * 60 * 60_000;
+// NEA lightning observations come every few minutes.
+const LIGHTNING_STALE_MS = 30 * 60_000;
 
 const TAB_STORAGE_KEY = 'trafficpulse.radarTab';
 
@@ -89,6 +98,7 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
   onSwitchToSos,
   onCallHotline,
   incidentFeed,
+  wall = false,
 }) => {
   const corridors = EXPRESSWAY_CORRIDORS;
   const [selectedCorridorCode, setSelectedCorridorCode] = useState<string>('KPE');
@@ -130,6 +140,17 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
 
   // NEA 24-hour PSI and 1-hour PM2.5 for the five regions
   const airQuality = useAirQuality();
+
+  // LTA road works on each expressway and faulty traffic lights
+  const roadConditions = useRoadConditions();
+  const worksByCode = useMemo(() => roadWorksByCode(roadConditions.data?.roadWorks), [roadConditions.data]);
+
+  // NEA lightning near each expressway, and heat stress by station
+  const weatherAlerts = useWeatherAlerts();
+  const lightningByCode = useMemo(
+    () => lightningByExpressway(weatherAlerts.data?.strikes, rainForecast?.areas),
+    [weatherAlerts.data, rainForecast]
+  );
   const rainByCode = useMemo(
     () => (rainForecast ? rainByExpressway(rainForecast.areas) : {}),
     [rainForecast]
@@ -166,9 +187,35 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
   const [refreshing, setRefreshing] = useState(false);
   const refreshAll = async () => {
     setRefreshing(true);
-    await Promise.all([loadSpeedBands(), travelTimes.refresh(), incidentFeed.refresh()]);
+    await Promise.all([
+      loadSpeedBands(),
+      travelTimes.refresh(),
+      incidentFeed.refresh(),
+      roadConditions.refresh(),
+      weatherAlerts.refresh(),
+    ]);
     setRefreshing(false);
   };
+
+  useRefreshRequests(refreshAll);
+
+  // Keyboard: 1–3 switch tabs, ← → step through the expressways
+  const RADAR_TABS: RadarTab[] = ['expressways', 'weather', 'incidents'];
+  const stepCorridor = (by: number) => {
+    const i = corridors.findIndex((c) => c.code === selectedCorridorCode);
+    setSelectedCorridorCode(corridors[(i + by + corridors.length) % corridors.length].code);
+    if (activeTab !== 'expressways') selectTab('expressways');
+  };
+  useShortcuts({
+    '1': () => selectTab('expressways'),
+    '2': () => selectTab('weather'),
+    '3': () => selectTab('incidents'),
+    ArrowLeft: () => stepCorridor(-1),
+    ArrowRight: () => stepCorridor(1),
+  });
+
+  // Wall display moves to the next tab every 30 seconds, without adding to Back history
+  useWallCycle(wall, () => setTabParam(RADAR_TABS[(RADAR_TABS.indexOf(activeTab) + 1) % RADAR_TABS.length], false));
 
   // LTA travel time text, or an estimate (clearly labelled) where LTA publishes none
   const travelTimeText = (code: string): string => {
@@ -179,6 +226,13 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
     if (km && speed) return `≈${Math.max(1, Math.round((km / speed) * 60))} min end to end (estimated; not published by LTA)`;
     if (travelTimes.status === 'loading') return 'Loading…';
     return 'Not available';
+  };
+
+  // KPE and MCE: end to end from length and LTA average speed
+  const estimateMinutes = (code: string) => {
+    const km = UNPUBLISHED_TRAVEL_TIME_KM[code];
+    const speed = speedDetails?.[code]?.avgSpeedKmH;
+    return km && speed ? Math.max(1, Math.round((km / speed) * 60)) : null;
   };
 
   const speedUnavailableText = speedStatus === 'loading' ? 'Loading LTA speeds…' : 'LTA speeds unavailable';
@@ -207,6 +261,12 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
     staleFeeds.push({ label: 'NEA rain forecast', detail: `expired at ${sgtClock(rainEnds)} SGT; no newer forecast received` });
   }
   const psiAt = parseSgt(airQuality?.psiTimestamp);
+  if (roadConditions.status === 'error') staleFeeds.push({ label: 'LTA road works & traffic lights', detail: 'not responding' });
+  if (weatherAlerts.status === 'error') staleFeeds.push({ label: 'NEA lightning & heat stress', detail: 'not responding' });
+  const lightningAt = parseSgt(weatherAlerts.data?.lightningAt);
+  if (lightningAt && now - lightningAt > LIGHTNING_STALE_MS) {
+    staleFeeds.push({ label: 'NEA lightning', detail: `last observation ${sgtClock(lightningAt)} SGT` });
+  }
   if (psiAt && now - psiAt > AIR_STALE_MS) staleFeeds.push({ label: 'NEA air quality', detail: `readings from ${sgtClock(psiAt)} SGT` });
 
   // Near me: nearest expressway, rain area and air region (location stays on the device)
@@ -269,7 +329,15 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className={`items-center gap-2 shrink-0 ${wall ? 'hidden' : 'flex'}`}>
+          <button
+            onClick={enterWallDisplay}
+            aria-label="Wall display"
+            title="Wall display: full screen, no menus, tabs change every 30 seconds (W)"
+            className="hidden lg:flex w-10 h-10 rounded-full bg-white border border-slate-200 hover:bg-slate-100 text-slate-600 items-center justify-center cursor-pointer shadow-xs"
+          >
+            <span className="material-symbols-outlined text-xl">tv</span>
+          </button>
           <button
             onClick={locate}
             disabled={nearMe.status === 'locating'}
@@ -307,6 +375,17 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
       </div>
 
       <StaleDataNotice feeds={staleFeeds} online={online} />
+
+      {!wall && <MyCommute
+        routes={travelTimes.routes}
+        speeds={speedDetails}
+        incidents={incidents}
+        roadWorks={worksByCode}
+        rain={rainByCode}
+        lightning={lightningByCode}
+        estimateMinutes={estimateMinutes}
+        onShowOnMap={showOnMap}
+      />}
 
       {(nearMe.status === 'denied' || nearMe.status === 'unavailable') && (
         <p className="text-sm text-slate-600 flex items-center gap-2">
@@ -393,9 +472,16 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
       </nav>
 
       {/* Every tab stays mounted (hidden when inactive) so switching is instant */}
-      <section className={activeTab === 'expressways' ? 'flex flex-col gap-6' : 'hidden'}>
+      {/* On wide screens the cards scroll beside a pinned map */}
+      <section
+        className={
+          activeTab === 'expressways'
+            ? 'flex flex-col gap-6 xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] xl:items-start'
+            : 'hidden'
+        }
+      >
         {/* Main Grid: Expressway Corridors Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-2 gap-4">
           {corridors.map((corridor) => {
             const isSelected = selectedCorridor.code === corridor.code;
             const liveSpeed = speedDetails?.[corridor.code];
@@ -473,6 +559,16 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
                     </div>
                   )}
 
+                  {lightningByCode[corridor.code] > 0 && (
+                    <div
+                      className="text-[11px] flex items-center gap-1 text-violet-800 font-semibold"
+                      title={`NEA lightning observation: ${lightningByCode[corridor.code]} strikes within ${LIGHTNING_NEAR_KM} km of areas along the ${corridor.code}`}
+                    >
+                      <span className="material-symbols-outlined text-sm">bolt</span>
+                      Lightning nearby ({lightningByCode[corridor.code]})
+                    </div>
+                  )}
+
                   <div className="text-[11px] text-slate-500 pt-1 flex items-start gap-1" title={travelTimeText(corridor.code)}>
                     <span className="material-symbols-outlined text-sm text-slate-400">schedule</span>
                     <span className="line-clamp-2">Travel time: {travelTimeText(corridor.code)}</span>
@@ -484,6 +580,7 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
                     {incidentStatus === 'loading'
                       ? 'Loading incidents…'
                       : `${incidentCounts[corridor.code] || 0} active LTA ${incidentCounts[corridor.code] === 1 ? 'incident' : 'incidents'}`}
+                    {worksByCode[corridor.code]?.length ? ` · ${worksByCode[corridor.code].length} road works` : ''}
                   </span>
                   <button
                     onClick={(e) => {
@@ -502,7 +599,7 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
         </div>
 
         {/* Selected expressway map and live readings */}
-        <div id="speed-map" className="scroll-mt-32 bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col gap-4">
+        <div id="speed-map" className="scroll-mt-32 xl:sticky xl:top-32 bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col gap-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div>
               <span className="text-[11px] text-sky-600 font-bold uppercase tracking-wider">
@@ -520,7 +617,7 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
           </div>
 
           {/* Speed band map */}
-          <div className={`w-full ${speedSegments.length ? 'h-[26rem]' : 'h-72'} bg-slate-950 rounded-xl relative overflow-hidden flex flex-col justify-between p-4 border border-slate-800 shadow-inner`}>
+          <div className={`w-full ${speedSegments.length ? 'h-[26rem]' : 'h-72'} fixed-palette bg-slate-950 rounded-xl relative overflow-hidden flex flex-col justify-between p-4 border border-slate-800 shadow-inner`}>
             <div
               className="absolute inset-0 opacity-25 pointer-events-none"
               style={{
@@ -714,11 +811,81 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
           )}
         </div>
 
+        {/* NEA lightning and heat stress */}
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col gap-4">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <span className="text-[11px] text-sky-600 font-bold uppercase tracking-wider">NEA Observations</span>
+              <h3 className="text-lg font-bold text-slate-900">Lightning &amp; Heat Stress</h3>
+            </div>
+            {weatherAlerts.data?.heatAt && (
+              <span className="text-xs text-slate-500 font-mono">
+                {sgtHour(weatherAlerts.data.lightningAt)} / {sgtHour(weatherAlerts.data.heatAt)} SGT
+              </span>
+            )}
+          </div>
+          {!weatherAlerts.data ? (
+            <div className="text-xs text-slate-400">Loading NEA lightning and heat stress…</div>
+          ) : (
+            <>
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-slate-50 border border-slate-100 text-sm">
+                <span className={`material-symbols-outlined text-xl ${Object.keys(lightningByCode).length ? 'text-violet-800' : 'text-slate-400'}`}>
+                  bolt
+                </span>
+                {weatherAlerts.data.strikes == null ? (
+                  <span className="text-slate-500">Lightning data unavailable.</span>
+                ) : Object.keys(lightningByCode).length ? (
+                  <span className="text-violet-800">
+                    <span className="font-semibold">Lightning near </span>
+                    {Object.entries(lightningByCode)
+                      .map(([code, n]) => `${code} (${n})`)
+                      .join(', ')}
+                    . Take extra care if you have to stop on the shoulder.
+                  </span>
+                ) : (
+                  <span className="text-slate-600">
+                    No lightning near the expressways in NEA's latest observation
+                    {weatherAlerts.data.strikes.length ? ` (${weatherAlerts.data.strikes.length} strikes elsewhere)` : ''}.
+                  </span>
+                )}
+              </div>
+
+              {weatherAlerts.data.heatStations?.length ? (
+                <div className="flex flex-col gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 text-xs">
+                    {[...weatherAlerts.data.heatStations]
+                      .sort((a, b) => b.wbgt - a.wbgt)
+                      .map((st) => {
+                        const style = HEAT_STYLE[st.heatStress] || HEAT_STYLE.Low;
+                        return (
+                          <div key={st.id} className="p-2.5 rounded-lg bg-slate-50 border border-slate-100 flex flex-col gap-0.5">
+                            <span className="text-slate-500 truncate" title={st.name}>{st.name}</span>
+                            <span className="font-mono font-bold text-slate-900">{st.wbgt.toFixed(1)}°C</span>
+                            <span className={`flex items-center gap-1 font-semibold ${style.text}`}>
+                              <span className={`w-2 h-2 rounded-full ${style.dot}`}></span>
+                              {st.heatStress || '—'}
+                            </span>
+                          </div>
+                        );
+                      })}
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    Heat stress is NEA's Wet Bulb Globe Temperature (WBGT): Low below 31°C, Moderate 31–33°C, High 33°C and above.
+                    Worth knowing for roadside work, breakdowns and deliveries.
+                  </p>
+                </div>
+              ) : (
+                <div className="text-xs text-slate-500">Heat stress data unavailable.</div>
+              )}
+            </>
+          )}
+        </div>
+
         {/* NEA 24-hour weather outlook */}
         <WeatherOutlook24h />
       </section>
 
-      <section className={activeTab === 'incidents' ? '' : 'hidden'}>
+      <section className={activeTab === 'incidents' ? 'flex flex-col gap-6' : 'hidden'}>
         {/* Active expressway incidents, live from LTA */}
         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col gap-3">
           <div className="flex items-center justify-between border-b border-slate-100 pb-2">
@@ -844,6 +1011,82 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
                   </div>
                 );
               })
+            )}
+          </div>
+        </div>
+        {/* LTA road works on the expressways, and faulty traffic lights */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col gap-3">
+            <div className="border-b border-slate-100 pb-2">
+              <h3 className="font-bold text-slate-900 text-base flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-lg text-amber-600">construction</span>
+                Road Works on the Expressways
+              </h3>
+              <span className="text-[11px] font-mono text-slate-400">
+                LTA road works in progress today • LTA gives the road, not the exact spot
+              </span>
+            </div>
+            {!roadConditions.data ? (
+              <div className="text-xs text-slate-400">{roadConditions.status === 'error' ? 'LTA road works unavailable.' : 'Loading LTA road works…'}</div>
+            ) : (
+              <div className="flex flex-col divide-y divide-slate-100">
+                {corridors
+                  .filter((c) => worksByCode[c.code]?.length)
+                  .map((c) => (
+                    <details key={c.code} className="py-2 group">
+                      <summary className="flex items-center justify-between gap-2 cursor-pointer text-sm list-none">
+                        <span>
+                          <span className="font-mono font-bold text-slate-900">{c.code}</span>{' '}
+                          <span className="text-slate-600">{worksByCode[c.code].length} road works</span>
+                        </span>
+                        <span className="text-xs text-slate-500 flex items-center gap-1">
+                          next ends {shortDate(worksByCode[c.code][0].end)}
+                          <span className="material-symbols-outlined text-base group-open:rotate-180 transition-transform">expand_more</span>
+                        </span>
+                      </summary>
+                      <ul className="mt-2 flex flex-col gap-1 text-xs text-slate-600">
+                        {worksByCode[c.code].map((w) => (
+                          <li key={w.id} className="flex justify-between gap-3">
+                            <span className="truncate">{worksBy(w.by)}{/TUNNEL/i.test(w.road) ? ' · tunnel' : ''}</span>
+                            <span className="font-mono shrink-0">
+                              {shortDate(w.start)} – {shortDate(w.end)}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  ))}
+                {Object.keys(worksByCode).length === 0 && <div className="text-xs text-slate-500 py-2">No expressway road works listed for today.</div>}
+              </div>
+            )}
+          </div>
+
+          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col gap-3">
+            <div className="border-b border-slate-100 pb-2">
+              <h3 className="font-bold text-slate-900 text-base flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-lg text-red-600">traffic</span>
+                Faulty Traffic Lights
+              </h3>
+              <span className="text-[11px] font-mono text-slate-400">LTA, on roads across Singapore</span>
+            </div>
+            {!roadConditions.data ? (
+              <div className="text-xs text-slate-400">{roadConditions.status === 'error' ? 'LTA traffic light faults unavailable.' : 'Loading…'}</div>
+            ) : roadConditions.data.faultyLights == null ? (
+              <div className="text-xs text-slate-500">LTA traffic light faults unavailable.</div>
+            ) : roadConditions.data.faultyLights.length === 0 ? (
+              <div className="text-xs text-slate-500">No faulty traffic lights reported.</div>
+            ) : (
+              <ul className="flex flex-col gap-2 text-sm">
+                {roadConditions.data.faultyLights.map((l) => (
+                  <li key={l.id} className="flex items-start justify-between gap-3">
+                    <span className="text-slate-800">
+                      <span className="mr-1.5 px-1.5 py-0.5 rounded bg-red-100 text-red-700 text-[10px] font-bold uppercase">{l.kind}</span>
+                      {l.message.replace(/^(Black Out|Flashing Yellow) at /i, '')}
+                    </span>
+                    {l.since && <span className="text-xs font-mono text-slate-500 shrink-0">since {l.since.slice(11)}</span>}
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
         </div>

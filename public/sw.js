@@ -3,7 +3,7 @@
  * live data it received. Pages and /api data are network-first (always fresh when online);
  * hashed build assets are cache-first. The app flags old data itself from each feed's timestamp.
  */
-const VERSION = 'v1';
+const VERSION = 'v2';
 const SHELL = `shell-${VERSION}`;
 const ASSETS = `assets-${VERSION}`;
 const DATA = `data-${VERSION}`;
@@ -82,4 +82,17 @@ self.addEventListener('fetch', (event) => {
   } else if (url.pathname.startsWith('/api/')) {
     event.respondWith(networkFirst(request, DATA));
   }
+});
+
+// Commute alerts: tapping one opens (or focuses) the app on the Incidents tab.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url || '/';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((wins) => {
+      const win = wins.find((w) => new URL(w.url).origin === self.location.origin);
+      if (win) return win.focus().then((w) => w.navigate(url));
+      return self.clients.openWindow(url);
+    })
+  );
 });

@@ -1,14 +1,18 @@
 import React from 'react';
 import { ErpRatesTable } from '../components/ErpRatesTable';
+import { CarParkAvailability } from '../components/CarParkAvailability';
+import { GnssMarker } from '../types/traffic';
 
 interface CourierHubViewProps {
   onOpenSlaModal: () => void;
   onCallHotline: (phone: string, title: string) => void;
+  pickup: GnssMarker;
 }
 
 export const CourierHubView: React.FC<CourierHubViewProps> = ({
   onOpenSlaModal,
   onCallHotline,
+  pickup,
 }) => {
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-6 flex flex-col gap-6">
@@ -39,6 +43,8 @@ export const CourierHubView: React.FC<CourierHubViewProps> = ({
           </button>
         </div>
       </div>
+
+      <CarParkAvailability lat={pickup.lat} lon={pickup.lng} placeLabel={pickup.marker} />
 
       {/* 3 Action Pillars */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

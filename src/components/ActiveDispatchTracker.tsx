@@ -111,7 +111,7 @@ export const ActiveDispatchTracker: React.FC<ActiveDispatchTrackerProps> = ({
           <button
             onClick={onCancel}
             type="button"
-            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-md text-xs font-semibold transition-colors cursor-pointer"
+            className="fixed-palette px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-md text-xs font-semibold transition-colors cursor-pointer"
           >
             Cancel Dispatch
           </button>

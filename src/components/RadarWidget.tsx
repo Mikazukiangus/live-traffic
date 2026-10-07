@@ -55,7 +55,7 @@ export const RadarWidget: React.FC<RadarWidgetProps> = ({
         </div>
 
         {/* Top unit selector hint */}
-        <div className="self-end bg-slate-900/80 backdrop-blur-md px-2 py-0.5 rounded text-[10px] text-white font-mono flex items-center gap-1">
+        <div className="self-end bg-scrim/80 backdrop-blur-md px-2 py-0.5 rounded text-[10px] text-white font-mono flex items-center gap-1">
           <span>Sample {selectedUnitIndex + 1}/{TOW_FLEET_UNITS.length}</span>
           <span className="material-symbols-outlined text-[12px]">cycle</span>
         </div>

@@ -104,7 +104,7 @@ export const ApiHealthModal: React.FC<ApiHealthModalProps> = ({ isOpen, onClose 
   const statusLabel = (code: number) => (code === 0 ? 'NO RESPONSE' : `${code} ${code < 400 ? 'OK' : 'ERROR'}`);
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 animate-in fade-in duration-150 overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-scrim/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 animate-in fade-in duration-150 overflow-y-auto">
       <div className="bg-white rounded-2xl max-w-4xl w-full shadow-2xl border border-slate-200 overflow-hidden flex flex-col my-auto max-h-[92vh]">
         {/* Modal Header */}
         <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
@@ -336,7 +336,7 @@ export const ApiHealthModal: React.FC<ApiHealthModalProps> = ({ isOpen, onClose 
             </button>
 
             {showRawJson && (
-              <div className="p-3 bg-slate-900 border-t border-slate-200 text-slate-100 font-mono text-[11px] overflow-x-auto max-h-48">
+              <div className="fixed-palette p-3 bg-slate-900 border-t border-slate-200 text-slate-100 font-mono text-[11px] overflow-x-auto max-h-48">
                 <pre>{JSON.stringify(healthData, null, 2)}</pre>
               </div>
             )}
@@ -357,7 +357,7 @@ export const ApiHealthModal: React.FC<ApiHealthModalProps> = ({ isOpen, onClose 
 
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-lg transition-colors cursor-pointer"
+            className="fixed-palette px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-lg transition-colors cursor-pointer"
           >
             Done
           </button>

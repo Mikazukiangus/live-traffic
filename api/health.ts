@@ -10,6 +10,8 @@ const NEA_TWO_HR_FORECAST = 'https://api-open.data.gov.sg/v2/real-time/api/two-h
 const NEA_24_HR_FORECAST = 'https://api-open.data.gov.sg/v2/real-time/api/twenty-four-hr-forecast';
 const NEA_PSI = 'https://api-open.data.gov.sg/v2/real-time/api/psi';
 const NEA_PM25 = 'https://api-open.data.gov.sg/v2/real-time/api/pm25';
+const NEA_LIGHTNING = 'https://api-open.data.gov.sg/v2/real-time/api/weather?api=lightning';
+const NEA_WBGT = 'https://api-open.data.gov.sg/v2/real-time/api/weather?api=wbgt';
 const PROBE_TIMEOUT_MS = 8000;
 
 interface ProbeResult {
@@ -63,7 +65,10 @@ export default async function handler(req: any, res?: any) {
   const ltaProbe = (path: string) => (accountKey ? probe(`${LTA_BASE}/${path}`, ltaHeaders) : Promise.resolve(missingKey()));
 
   const startTime = Date.now();
-  const [incidents, images, speedBands, vms, travelTimes, rainForecast, forecast24h, psi, pm25] = await Promise.all([
+  const [
+    incidents, images, speedBands, vms, travelTimes, rainForecast, forecast24h, psi, pm25,
+    roadWorks, faultyLights, carParks, lightning, wbgt,
+  ] = await Promise.all([
     ltaProbe('TrafficIncidents'),
     accountKey ? probe(`${LTA_BASE}/Traffic-Imagesv2`, ltaHeaders) : probe(DATA_GOV_TRAFFIC_IMAGES),
     ltaProbe('v4/TrafficSpeedBands'),
@@ -74,12 +79,23 @@ export default async function handler(req: any, res?: any) {
     probe(NEA_24_HR_FORECAST),
     probe(NEA_PSI),
     probe(NEA_PM25),
+    ltaProbe('RoadWorks'),
+    ltaProbe('FaultyTrafficLights'),
+    ltaProbe('CarParkAvailabilityv2'),
+    probe(NEA_LIGHTNING),
+    probe(NEA_WBGT),
   ]);
 
   // /api/airquality serves whichever of PSI and PM2.5 answers, so it is UP if either is.
   const airQuality: ProbeResult = psi.status === 'UP' || pm25.status === 'UP'
     ? { status: 'UP', httpCode: 200, latencyMs: Math.max(psi.latencyMs, pm25.latencyMs) }
     : { ...psi, error: `PSI: ${psi.error}; PM2.5: ${pm25.error}` };
+
+  // Endpoints that combine two feeds serve whichever answers, so they are UP if either is.
+  const either = (a: ProbeResult, b: ProbeResult, names: [string, string]): ProbeResult =>
+    a.status === 'UP' || b.status === 'UP'
+      ? { status: 'UP', httpCode: 200, latencyMs: Math.max(a.latencyMs, b.latencyMs) }
+      : { ...a, error: `${names[0]}: ${a.error}; ${names[1]}: ${b.error}` };
 
   const endpoints = [
     {
@@ -164,6 +180,30 @@ export default async function handler(req: any, res?: any) {
       purpose: '24-hour PSI and 1-hour PM2.5 for the five regions',
       upstream: 'data.gov.sg v2 psi + pm25',
       ...airQuality,
+    },
+    {
+      path: '/api/live?feed=roadconditions',
+      name: 'Road Works & Faulty Traffic Lights',
+      method: 'GET',
+      purpose: 'Road works in progress on each expressway, and traffic light faults',
+      upstream: 'LTA DataMall RoadWorks + FaultyTrafficLights',
+      ...either(roadWorks, faultyLights, ['RoadWorks', 'FaultyTrafficLights']),
+    },
+    {
+      path: '/api/live?feed=carparks',
+      name: 'Car Park Availability',
+      method: 'GET',
+      purpose: 'Available car, motorcycle and heavy vehicle lots at LTA, HDB and URA car parks',
+      upstream: 'LTA DataMall CarParkAvailabilityv2',
+      ...carParks,
+    },
+    {
+      path: '/api/live?feed=weatheralerts',
+      name: 'NEA Lightning & Heat Stress',
+      method: 'GET',
+      purpose: 'Recent lightning strikes and WBGT heat stress by station',
+      upstream: 'data.gov.sg v2 weather lightning + wbgt',
+      ...either(lightning, wbgt, ['Lightning', 'WBGT']),
     },
     {
       // The proxy only relays camera image links, so it is as healthy as the images feed.

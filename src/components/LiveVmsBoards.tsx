@@ -234,7 +234,7 @@ export const LiveVmsBoards: React.FC<{ areas?: ForecastArea[] }> = ({ areas = NO
           return (
             <div
               key={sign.id}
-              className="bg-slate-950 p-4 rounded-xl border border-slate-800 shadow-lg flex flex-col gap-3 relative overflow-hidden"
+              className="fixed-palette bg-slate-950 p-4 rounded-xl border border-slate-800 shadow-lg flex flex-col gap-3 relative overflow-hidden"
             >
               {/* Header of signboard */}
               <div className="flex items-center justify-between gap-2 text-[11px] text-slate-400 border-b border-slate-800/80 pb-2">

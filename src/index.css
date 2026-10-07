@@ -84,6 +84,193 @@
 
   --color-blue-800: #1e3f66;
   --color-violet-800: #4e3a63;
+
+  /* Dimmed backdrop behind dialogs, the same in both themes */
+  --color-scrim: #1f221c;
+}
+
+/*
+ * Night palette: the same Wada Sanzo hues on a deep slate-olive ground. Surfaces and ink swap
+ * (slate is redefined end to end), tints become dark washes and dark text becomes light; the
+ * mid tones (400–600) used for buttons, bars and dots stay as they are.
+ * Follows the device unless a theme is picked (html[data-theme]).
+ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+  --color-white: #262922;
+  --color-slate-50: #1b1d18;
+  --color-slate-100: #2c2f28;
+  --color-slate-200: #3b3e35;
+  --color-slate-300: #4f5247;
+  --color-slate-400: #8f8a7d;
+  --color-slate-500: #aaa597;
+  --color-slate-600: #c2bcad;
+  --color-slate-700: #d6d0c0;
+  --color-slate-800: #e6e0d0;
+  --color-slate-900: #f3eee2;
+  --color-slate-950: #fbf8f1;
+  --color-sky-50: #1c2728;
+  --color-sky-100: #1c2d31;
+  --color-sky-200: #1d3741;
+  --color-sky-300: #2f5668;
+  --color-sky-700: #8fb5c5;
+  --color-sky-800: #bcd3dc;
+  --color-sky-900: #dce8ec;
+  --color-sky-950: #eef4f6;
+  --color-emerald-50: #212c20;
+  --color-emerald-100: #243625;
+  --color-emerald-200: #2a452d;
+  --color-emerald-300: #3c6441;
+  --color-emerald-700: #9cc29a;
+  --color-emerald-800: #c6dcc4;
+  --color-emerald-900: #e2ede1;
+  --color-emerald-950: #eef4ec;
+  --color-amber-50: #2e2a18;
+  --color-amber-100: #3a3219;
+  --color-amber-200: #4e3e19;
+  --color-amber-300: #8b6c26;
+  --color-amber-700: #ddbc6e;
+  --color-amber-800: #e9d39c;
+  --color-amber-900: #f3e6c4;
+  --color-amber-950: #faf3e0;
+  --color-red-50: #34221a;
+  --color-red-100: #44251b;
+  --color-red-200: #5d291c;
+  --color-red-300: #853a28;
+  --color-red-700: #d79483;
+  --color-red-800: #e6bfb5;
+  --color-red-900: #f4ddd6;
+  --color-red-950: #fbeeea;
+  --color-yellow-100: #393d24;
+  --color-yellow-200: #51572e;
+  --color-yellow-800: #d3dcb8;
+  --color-orange-700: #e3a27c;
+  --color-rose-50: #34221a;
+  --color-blue-800: #9fbad9;
+  --color-violet-800: #c4b3da;
+    color-scheme: dark;
+  }
+  :root:not([data-theme="light"]) .text-white { color: #fffdf8; }
+  /* 600s are kept for buttons and bars; as text on the dark ground they need the lighter tone. */
+  :root:not([data-theme="light"]) .text-sky-600 { color: #8fb5c5; }
+  :root:not([data-theme="light"]) .text-emerald-600 { color: #9cc29a; }
+  :root:not([data-theme="light"]) .text-amber-600 { color: #ddbc6e; }
+  :root:not([data-theme="light"]) .text-red-600 { color: #d79483; }
+}
+:root[data-theme="dark"] {
+  --color-white: #262922;
+  --color-slate-50: #1b1d18;
+  --color-slate-100: #2c2f28;
+  --color-slate-200: #3b3e35;
+  --color-slate-300: #4f5247;
+  --color-slate-400: #8f8a7d;
+  --color-slate-500: #aaa597;
+  --color-slate-600: #c2bcad;
+  --color-slate-700: #d6d0c0;
+  --color-slate-800: #e6e0d0;
+  --color-slate-900: #f3eee2;
+  --color-slate-950: #fbf8f1;
+  --color-sky-50: #1c2728;
+  --color-sky-100: #1c2d31;
+  --color-sky-200: #1d3741;
+  --color-sky-300: #2f5668;
+  --color-sky-700: #8fb5c5;
+  --color-sky-800: #bcd3dc;
+  --color-sky-900: #dce8ec;
+  --color-sky-950: #eef4f6;
+  --color-emerald-50: #212c20;
+  --color-emerald-100: #243625;
+  --color-emerald-200: #2a452d;
+  --color-emerald-300: #3c6441;
+  --color-emerald-700: #9cc29a;
+  --color-emerald-800: #c6dcc4;
+  --color-emerald-900: #e2ede1;
+  --color-emerald-950: #eef4ec;
+  --color-amber-50: #2e2a18;
+  --color-amber-100: #3a3219;
+  --color-amber-200: #4e3e19;
+  --color-amber-300: #8b6c26;
+  --color-amber-700: #ddbc6e;
+  --color-amber-800: #e9d39c;
+  --color-amber-900: #f3e6c4;
+  --color-amber-950: #faf3e0;
+  --color-red-50: #34221a;
+  --color-red-100: #44251b;
+  --color-red-200: #5d291c;
+  --color-red-300: #853a28;
+  --color-red-700: #d79483;
+  --color-red-800: #e6bfb5;
+  --color-red-900: #f4ddd6;
+  --color-red-950: #fbeeea;
+  --color-yellow-100: #393d24;
+  --color-yellow-200: #51572e;
+  --color-yellow-800: #d3dcb8;
+  --color-orange-700: #e3a27c;
+  --color-rose-50: #34221a;
+  --color-blue-800: #9fbad9;
+  --color-violet-800: #c4b3da;
+  color-scheme: dark;
+}
+:root[data-theme="dark"] .text-white { color: #fffdf8; }
+:root[data-theme="dark"] .text-sky-600 { color: #8fb5c5; }
+:root[data-theme="dark"] .text-emerald-600 { color: #9cc29a; }
+:root[data-theme="dark"] .text-amber-600 { color: #ddbc6e; }
+:root[data-theme="dark"] .text-red-600 { color: #d79483; }
+
+/* Panels designed dark in both themes (speed map, road signs, camera frames) keep the day palette. */
+.fixed-palette {
+  --color-white: #fffdf8;
+  --color-slate-50: #f7f2e7;
+  --color-slate-100: #efe8d8;
+  --color-slate-200: #e3d9c2;
+  --color-slate-300: #cfc4a9;
+  --color-slate-400: #8c877c;
+  --color-slate-500: #6b675e;
+  --color-slate-600: #55524a;
+  --color-slate-700: #45433c;
+  --color-slate-800: #35372f;
+  --color-slate-900: #2e3229;
+  --color-slate-950: #1f221c;
+  --color-sky-50: #eef4f6;
+  --color-sky-100: #dce8ec;
+  --color-sky-200: #bcd3dc;
+  --color-sky-300: #8fb5c5;
+  --color-sky-700: #194b66;
+  --color-sky-800: #163f56;
+  --color-sky-900: #133447;
+  --color-sky-950: #0c2230;
+  --color-emerald-50: #eef4ec;
+  --color-emerald-100: #e2ede1;
+  --color-emerald-200: #c6dcc4;
+  --color-emerald-300: #9cc29a;
+  --color-emerald-700: #2f6239;
+  --color-emerald-800: #264f2f;
+  --color-emerald-900: #1f4127;
+  --color-emerald-950: #10241a;
+  --color-amber-50: #faf3e0;
+  --color-amber-100: #f3e6c4;
+  --color-amber-200: #e9d39c;
+  --color-amber-300: #ddbc6e;
+  --color-amber-700: #8a6416;
+  --color-amber-800: #6e4f12;
+  --color-amber-900: #5a410f;
+  --color-amber-950: #33240a;
+  --color-red-50: #fbeeea;
+  --color-red-100: #f4ddd6;
+  --color-red-200: #e6bfb5;
+  --color-red-300: #d79483;
+  --color-red-700: #9e1b32;
+  --color-red-800: #7c2617;
+  --color-red-900: #661f14;
+  --color-red-950: #3a0f09;
+  --color-yellow-100: #e9eedd;
+  --color-yellow-200: #d3dcb8;
+  --color-yellow-800: #4f5e1e;
+  --color-orange-700: #a84e1e;
+  --color-rose-50: #fbeeea;
+  --color-blue-800: #1e3f66;
+  --color-violet-800: #4e3a63;
+  color-scheme: light;
 }
 
 @layer base {

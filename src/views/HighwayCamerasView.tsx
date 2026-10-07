@@ -11,9 +11,13 @@ import { StaleFeed, parseSgt, sgtClock, useOnline } from '../utils/freshness';
 import { formatKm, kmBetween, locate, useNearMe } from '../utils/nearMe';
 import { StaleDataNotice } from '../components/StaleDataNotice';
 import { ShareButton } from '../components/ShareButton';
+import { useRefreshRequests, useShortcuts } from '../utils/appEvents';
+import { useWallCycle } from '../utils/wallDisplay';
 
 interface HighwayCamerasViewProps {
   onCallHotline: (phone: string, title: string) => void;
+  // Wall display: place tabs cycle and the page's own controls are hidden
+  wall?: boolean;
 }
 
 // data.gov.sg serves images as octet-stream with nosniff, and LTA DataMall's S3 links send no
@@ -181,7 +185,7 @@ const captureAge = (iso: string, now: number) => {
   return mins < 1 ? 'just now' : `${mins} min ago`;
 };
 
-export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHotline }) => {
+export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHotline, wall = false }) => {
   const [cameras, setCameras] = useState<CameraCard[]>([]);
   const [speeds, setSpeeds] = useState<Record<string, ExpresswaySpeed>>({});
   const [segments, setSegments] = useState<SpeedSegment[]>([]);
@@ -398,12 +402,40 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
       writeParams({ cam: null });
     }
   };
-  useEffect(() => {
+  // Previous / next camera in the open camera's place (keys and swipes)
+  const stepCam = (by: number) => {
     if (!selectedCam) return;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && closeCam();
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [selectedCam]);
+    const list = camerasByPlace[selectedCam.place] || [];
+    const i = list.findIndex((c) => c.id === selectedCam.id);
+    const next = list[(i + by + list.length) % list.length];
+    if (next && next.id !== selectedCam.id) writeParams({ cam: next.id.replace('lta-live-', '') });
+  };
+  const swipeStart = useRef<{ x: number; y: number } | null>(null);
+  const onSwipeStart = (e: React.TouchEvent) => (swipeStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY });
+  const onSwipeEnd = (e: React.TouchEvent) => {
+    const start = swipeStart.current;
+    swipeStart.current = null;
+    if (!start) return;
+    const dx = e.changedTouches[0].clientX - start.x;
+    const dy = e.changedTouches[0].clientY - start.y;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) stepCam(dx < 0 ? 1 : -1);
+  };
+
+  // Keyboard: 1–4 switch tabs; with a camera open, ← → step through and Esc closes
+  useShortcuts({
+    '1': () => selectTab('woodlands'),
+    '2': () => selectTab('tuas'),
+    '3': () => selectTab('sentosa'),
+    '4': () => selectTab('signs'),
+    ArrowLeft: () => stepCam(-1),
+    ArrowRight: () => stepCam(1),
+    ...(selectedCam ? { Escape: closeCam } : {}),
+  });
+  useRefreshRequests(fetchLiveLtaCameras);
+
+  // Wall display shows each checkpoint and Sentosa in turn
+  const WALL_TABS: TabId[] = ['woodlands', 'tuas', 'sentosa'];
+  useWallCycle(wall, () => selectTab(WALL_TABS[(WALL_TABS.indexOf(activeTab) + 1) % WALL_TABS.length], false));
 
   // Near me: the closest camera, and its tab opened (unless a shared link chose the tab)
   const nearestCam = useMemo(() => {
@@ -463,7 +495,7 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
             </span>
           </p>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className={`items-center gap-2 shrink-0 ${wall ? 'hidden' : 'flex'}`}>
         <button
           onClick={() => {
             nearMeTapped.current = true;
@@ -617,7 +649,7 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
                     onClick={() => openCam(cam)}
                     className="text-left bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs hover:shadow-md transition-shadow cursor-pointer group"
                   >
-                    <div className="aspect-video relative bg-slate-900 overflow-hidden">
+                    <div className="fixed-palette aspect-video relative bg-slate-900 overflow-hidden">
                       <img
                         src={getResolvedCameraUrl(cam.imageUrl)}
                         alt={cam.short}
@@ -672,10 +704,14 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
       {selectedCam && (
         <div
           onClick={closeCam}
-          className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150"
+          className="fixed inset-0 z-50 bg-scrim/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150"
         >
           <div
             onClick={(e) => e.stopPropagation()}
+            onTouchStart={onSwipeStart}
+            onTouchEnd={onSwipeEnd}
+            role="dialog"
+            aria-label={selectedCam.short}
             className="bg-white rounded-2xl max-w-4xl w-full p-5 flex flex-col gap-4 shadow-2xl"
           >
             <div className="flex items-start justify-between gap-3">
@@ -695,7 +731,25 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
               </div>
             </div>
 
-            <div className="w-full aspect-video rounded-xl overflow-hidden bg-slate-900">
+            <div className="fixed-palette relative w-full aspect-video rounded-xl overflow-hidden bg-slate-900">
+              {(camerasByPlace[selectedCam.place]?.length || 0) > 1 && (
+                <>
+                  <button
+                    onClick={() => stepCam(-1)}
+                    aria-label="Previous camera"
+                    className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-scrim/60 text-white flex items-center justify-center cursor-pointer hover:bg-scrim/80"
+                  >
+                    <span className="material-symbols-outlined">chevron_left</span>
+                  </button>
+                  <button
+                    onClick={() => stepCam(1)}
+                    aria-label="Next camera"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-scrim/60 text-white flex items-center justify-center cursor-pointer hover:bg-scrim/80"
+                  >
+                    <span className="material-symbols-outlined">chevron_right</span>
+                  </button>
+                </>
+              )}
               <img
                 src={getResolvedCameraUrl(selectedCam.imageUrl)}
                 alt={selectedCam.short}

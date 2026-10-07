@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { TabType } from '../types/traffic';
 import { useInstallPrompt } from '../utils/installPrompt';
+import { THEME_LABEL, THEME_ORDER, setTheme, useTheme } from '../utils/theme';
 
 interface HeaderProps {
   activeTab: TabType;
@@ -21,6 +22,8 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const installer = useInstallPrompt();
+  const theme = useTheme();
+  const nextTheme = THEME_ORDER[(THEME_ORDER.indexOf(theme) + 1) % THEME_ORDER.length];
 
   const navItems: { id: TabType; label: string }[] = [
     { id: 'live-traffic-radar', label: 'Live Traffic Radar' },
@@ -112,6 +115,14 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="hidden sm:inline">Install app</span>
             </button>
           )}
+          <button
+            onClick={() => setTheme(nextTheme)}
+            aria-label={`${THEME_LABEL[theme].label}. Switch to ${nextTheme === 'auto' ? 'device setting' : nextTheme}`}
+            title={`${THEME_LABEL[theme].label} (click for ${nextTheme === 'auto' ? 'device setting' : nextTheme})`}
+            className="p-2 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900 transition-colors"
+          >
+            <span className="material-symbols-outlined text-xl">{THEME_LABEL[theme].icon}</span>
+          </button>
           <button
             onClick={onOpenNotifications}
             aria-label="Notifications"

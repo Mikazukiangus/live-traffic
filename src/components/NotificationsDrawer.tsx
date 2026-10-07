@@ -18,7 +18,7 @@ export const NotificationsDrawer: React.FC<NotificationsDrawerProps> = ({
   const { incidents, status, fetchedAt } = incidentFeed;
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex justify-end animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-50 bg-scrim/40 backdrop-blur-xs flex justify-end animate-in fade-in duration-150">
       <div className="bg-white w-full max-w-md h-full shadow-2xl flex flex-col border-l border-slate-200">
         {/* Header */}
         <div className="p-4 border-b border-slate-200 flex items-center justify-between">
