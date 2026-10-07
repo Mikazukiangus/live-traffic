@@ -42,9 +42,9 @@ export const Header: React.FC<HeaderProps> = ({
             className="flex items-center gap-2 text-left group"
           >
             <img
-              alt="TrafficPulse LTA"
-              className="h-8 w-auto object-contain transition-transform group-hover:scale-105"
-              src="https://lh3.googleusercontent.com/aida/AEtjO1Xo74j4HdhU9fo3r9PDBNVSZPAUTvtU8zMNm27IkQFzPDkigw9wLD76nvPe4HjSH4zros0xkeurfNkplRPaeiEcPEMpLtHxQTanpsNZdSWWfYJ_WRUM-EJGCnLTRBdIrHOLF9vW8wklrCiVVhS10b-k5kp5FPU6UCsRS5Exixwahj7N9YxstOsNGNcu1szRNnkXgcuL-kZM0gFFRanEdX8lA1OY6I-QSdUcqAAeeYJ7hmolxZhjDsBmyCw"
+              alt="TrafficPulse"
+              className="h-8 w-8 rounded-lg object-contain transition-transform group-hover:scale-105"
+              src="/icons/icon.svg"
             />
             <span className="text-lg font-bold tracking-tight text-sky-600 hidden sm:inline font-sans">
               TrafficPulse
@@ -135,11 +135,12 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
 
           <div className="flex items-center gap-2 pl-1">
-            <img
-              alt="Profile"
-              className="w-8 h-8 rounded-full object-cover ring-2 ring-slate-200 shadow-xs"
-              src="https://lh3.googleusercontent.com/aida/AEtjO1X5khh8J8ywUw1U3WpGJrcZq-CwYCB-y-4ODpBMkp0cRIL4ESPhIXK_3HM93YU6jo06-vLKDFto7tfwOc6x1dblML1g6Ptq0pC84QfA2XNO-4-c1WBI_uMIroDAAr3LjodoOcyGyvGjKq85zaS_0BSYlWsHvt0dhxSY8A6AN4JRz1aW6Jp4OwcJpm_-n3lRQv9pveg7fNFjq67_afFxkJhv-LhWIgUo0Xz0kou7nDKTtkgDv1sE2pkJRUI"
-            />
+            <span
+              aria-label="Profile"
+              className="w-8 h-8 rounded-full flex items-center justify-center bg-slate-100 text-slate-500 ring-2 ring-slate-200 shadow-xs"
+            >
+              <span className="material-symbols-outlined text-lg">person</span>
+            </span>
           </div>
 
           <button

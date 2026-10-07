@@ -34,7 +34,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenApiHealth }) => {
             TrafficPulse
           </span>
           <span className="text-xs text-slate-500">
-            © 2025 Smart Mobility Authority. All rights reserved.
+            © 2026 Smart Mobility Authority. All rights reserved.
           </span>
         </div>
 

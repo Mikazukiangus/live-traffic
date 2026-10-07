@@ -861,6 +861,16 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 ### Done:
 - Fast-forwarded `main` to `preview/commute-weather-desktop` (Turn 45): My commute with alerts, lightning and heat stress, road works, faulty traffic lights, car parks, the phone tab bar, pull to refresh, wall display, the side-by-side map, keyboard shortcuts and dark mode.
 
+## 48. Turn 48: Copyright Year & Logo
+
+**User Instruction:**
+> "update the copyright to be 2026 instead of 2025. also fix the website logo which is missing."
+
+### Done (preview branch `preview/copyright-logo`):
+- Footer now reads "© 2026 Smart Mobility Authority".
+- The header logo pointed to an expired Google-hosted image (HTTP 403); it now uses the app's own icon, `/icons/icon.svg`, so it also works offline.
+- The header profile picture used the same kind of expired link; it is now a plain person icon.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*
