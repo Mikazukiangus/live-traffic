@@ -371,7 +371,7 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
               className="absolute inset-0 opacity-25 pointer-events-none"
               style={{
                 backgroundImage:
-                  'radial-gradient(circle at center, rgba(14, 165, 233, 0.4) 1px, transparent 1px), linear-gradient(to right, rgba(14, 165, 233, 0.1) 1px, transparent 1px), linear-gradient(to bottom, rgba(14, 165, 233, 0.1) 1px, transparent 1px)',
+                  'radial-gradient(circle at center, rgba(94, 147, 171, 0.4) 1px, transparent 1px), linear-gradient(to right, rgba(94, 147, 171, 0.1) 1px, transparent 1px), linear-gradient(to bottom, rgba(94, 147, 171, 0.1) 1px, transparent 1px)',
                 backgroundSize: '30px 30px, 30px 30px, 30px 30px',
               }}
             ></div>

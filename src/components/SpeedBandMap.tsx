@@ -4,15 +4,16 @@ import React, { useMemo } from 'react';
 export type SpeedSegment = [string, number, number, number, number, number];
 
 // LTA speed bands: 1-7 are 10 km/h ranges, 8 is 70 km/h and above.
+// Carmine through Vermilion, Orange Rufous, Yellow Ochre to Cossack Green, brightened for the dark map.
 export const SPEED_BAND_COLOURS: Record<number, { colour: string; label: string }> = {
-  1: { colour: '#b91c1c', label: '0–9' },
-  2: { colour: '#ef4444', label: '10–19' },
-  3: { colour: '#f97316', label: '20–29' },
-  4: { colour: '#fb923c', label: '30–39' },
-  5: { colour: '#f59e0b', label: '40–49' },
-  6: { colour: '#facc15', label: '50–59' },
-  7: { colour: '#84cc16', label: '60–69' },
-  8: { colour: '#22c55e', label: '70+' },
+  1: { colour: '#c0303f', label: '0–9' },
+  2: { colour: '#d4502f', label: '10–19' },
+  3: { colour: '#d9703a', label: '20–29' },
+  4: { colour: '#de8d4a', label: '30–39' },
+  5: { colour: '#d8a53c', label: '40–49' },
+  6: { colour: '#dcc35e', label: '50–59' },
+  7: { colour: '#a3ae4e', label: '60–69' },
+  8: { colour: '#6aab6c', label: '70+' },
 };
 
 // Projected units per degree; Singapore sits ~1.35°N, so lon/lat distortion is negligible.
@@ -73,7 +74,7 @@ export const SpeedBandMap: React.FC<SpeedBandMapProps> = ({ segments, selectedCo
             key={`${p.code}-${p.band}`}
             d={p.d}
             fill="none"
-            stroke={SPEED_BAND_COLOURS[p.band]?.colour || '#64748b'}
+            stroke={SPEED_BAND_COLOURS[p.band]?.colour || '#8c877c'}
             strokeWidth={isSelected ? 3.5 : 1.6}
             strokeOpacity={isSelected ? 1 : 0.35}
             strokeLinecap="round"

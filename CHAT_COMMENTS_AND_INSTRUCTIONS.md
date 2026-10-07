@@ -675,6 +675,27 @@ With the speeds request deliberately held, the Weather tab listed all 10 express
 ### Done:
 - Fast-forwarded `main` to the `checkpoint-queue-note` branch (Turn 34). Pushing `main` deploys it to production on Vercel.
 
+## 36. Turn 36: Wada Sanzo Colour Palette (Light Base)
+
+**User Instructions:**
+> "Update the colour scheme based on the "Taisho/Showa Colour Notes base" / "Dictionary of Colour Combinations Wada Sanzo Colour Scheme Dictionary", and keep a light colour base."
+> "apply the palette on a preview branch"
+
+### Design:
+A design canvas (private Claude artifact "TrafficPulse Wada Sanzo Colours") showed the palette and app roles plus the camera page, radar page and phone view recoloured. Hex values approximate the printed swatches.
+
+### Implemented (preview branch `wada-palette`):
+1. **`src/index.css` `@theme`:** the Tailwind colour scales the app uses are redefined, so every existing class takes the new palette without renaming classes:
+   - slate = warm paper and ink (lightened Ivory Buff page, pale Olive Buff borders, Neutral Gray secondary text, Deep Slate Olive text); white = paper white #FFFDF8.
+   - sky = Antwarp Blue (active tabs, buttons, links).
+   - emerald = Cossack Green (Smooth), amber = Yellow Ochre (Busy, warnings), yellow = olive (Moderate, so it differs from Heavy), orange = Orange Rufous (Jam).
+   - red = Hermosa Pink tints, Vermilion (600, emergency buttons) and Carmine (700, Massive jam).
+2. **Speed band map:** the 8-band ramp now runs Carmine, Vermilion, Orange Rufous, Yellow Ochre, olive, Cossack Green, brightened for the dark map; the radar grid uses a muted Antwarp Blue.
+3. The LED-style road signs keep their amber glow.
+
+### Verified locally:
+Live Cameras, Live Traffic (Expressways, map, Incidents), Roadside SOS and Courier Hub all render in the new palette with live data; no console errors.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*
