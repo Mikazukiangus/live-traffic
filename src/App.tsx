@@ -26,10 +26,10 @@ import { LiveRadarView } from './views/LiveRadarView';
 import { HighwayCamerasView } from './views/HighwayCamerasView';
 import { CourierHubView } from './views/CourierHubView';
 import { useUrlParam, writeParams } from './utils/urlState';
-import { useCommuteAlerts } from './utils/commutes';
+import { commuteCodes, useCommuteAlerts, useCommutes } from './utils/commutes';
 import { requestRefresh, useShortcuts } from './utils/appEvents';
 import { locate } from './utils/nearMe';
-import { enterWallDisplay, exitWallDisplay, useWallDisplay } from './utils/wallDisplay';
+import { enterWallDisplay, exitWallDisplay, useWakeLock, useWallDisplay } from './utils/wallDisplay';
 import { BottomNav } from './components/BottomNav';
 import { PullToRefresh } from './components/PullToRefresh';
 import { ShortcutsHelp } from './components/ShortcutsHelp';
@@ -71,6 +71,25 @@ export default function App() {
     },
   });
 
+  // The wall display keeps the screen on unless switched off
+  const [keepAwake, setKeepAwake] = useState(true);
+  const awake = useWakeLock(wall && keepAwake);
+
+  // Home-screen shortcuts: ?near=1 finds the visitor straight away; #commute scrolls to My commute.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('near') === '1') {
+      writeParams({ near: null });
+      locate();
+    }
+    if (window.location.hash === '#commute') {
+      setTimeout(() => document.getElementById('commute')?.scrollIntoView({ block: 'start' }), 300);
+    }
+  }, []);
+  const goToCommutes = () => {
+    writeParams({ page: PAGE_SLUGS['live-traffic-radar'], tab: 'expressways', cam: null }, true);
+    setTimeout(() => document.getElementById('commute')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
+  };
+
   // Show the page in the address from the first load, so it can be copied straight away.
   useEffect(() => {
     if (pageSlug !== PAGE_SLUGS[activeTab]) writeParams({ page: PAGE_SLUGS[activeTab] });
@@ -85,6 +104,10 @@ export default function App() {
   const rainForecast = useRainForecast();
   // Notifications for new incidents on saved commutes, on every page
   useCommuteAlerts(incidentFeed.incidents, incidentFeed.status);
+  const commutes = useCommutes();
+  const commuteIncidentCount = incidentFeed.incidents.filter(
+    (i) => i.corridorCode && commutes.some((c) => commuteCodes(c).includes(i.corridorCode!))
+  ).length;
 
   // Live readings for the pickup expressway (the pickup location itself is a demo pin)
   const pickupCode = currentMarker.corridor;
@@ -201,10 +224,24 @@ export default function App() {
         searchQuery={searchQuery}
         onOpenNotifications={() => setNotificationsOpen(true)}
         notificationCount={incidentFeed.incidents.length}
+        commuteIncidentCount={commuteIncidentCount}
       />}
       {!wall && <PullToRefresh />}
       {wall && (
         <div className="fixed top-3 right-3 z-50 flex items-center gap-2">
+          {awake !== null && (
+            <button
+              onClick={() => setKeepAwake((k) => !k)}
+              aria-pressed={keepAwake}
+              title={keepAwake ? (awake ? 'Screen kept on (click to allow sleep)' : 'Keeping the screen on was refused by the browser') : 'Keep the screen on'}
+              className={`h-9 px-3 rounded-full border text-xs font-bold flex items-center gap-1.5 shadow-sm cursor-pointer ${
+                keepAwake && awake ? 'bg-sky-50/95 border-sky-200 text-sky-700' : 'bg-white/90 border-slate-200 text-slate-600'
+              }`}
+            >
+              <span className="material-symbols-outlined text-base">{keepAwake ? 'light_mode' : 'bedtime'}</span>
+              {keepAwake ? (awake ? 'Screen on' : 'Screen may sleep') : 'Keep screen on'}
+            </button>
+          )}
           <button
             onClick={() => document.documentElement.requestFullscreen?.().catch(() => {})}
             aria-label="Full screen"
@@ -320,6 +357,8 @@ export default function App() {
         onClose={() => setNotificationsOpen(false)}
         onSelectIncident={() => setActiveTab('live-traffic-radar')}
         incidentFeed={incidentFeed}
+        commutes={commutes}
+        onAddCommute={goToCommutes}
       />
 
       <ApiHealthModal

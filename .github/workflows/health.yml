@@ -1,0 +1,43 @@
+# Daily health check of the production site. A failed run means a feed is down; GitHub emails
+# the repository owner about failed scheduled runs (Settings → Notifications → Actions).
+#
+# Production is behind Vercel Authentication, so the check needs Vercel's "Protection Bypass for
+# Automation" secret, stored in this repository as the Actions secret VERCEL_AUTOMATION_BYPASS_SECRET.
+# Until that secret exists the check is skipped with a notice rather than failing.
+name: Production health
+
+on:
+  schedule:
+    # 07:30 Singapore time, before the morning peak
+    - cron: '30 23 * * *'
+  workflow_dispatch:
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check /api/health
+        env:
+          BYPASS: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+          URL: https://live-traffic-carbon-bc04.vercel.app/api/health
+        run: |
+          if [ -z "$BYPASS" ]; then
+            echo "::notice::Skipped: add the VERCEL_AUTOMATION_BYPASS_SECRET repository secret to enable the daily health check."
+            exit 0
+          fi
+          code=$(curl -s -o health.json -w '%{http_code}' -m 60 -H "x-vercel-protection-bypass: $BYPASS" "$URL")
+          if [ "$code" != "200" ]; then
+            echo "::error::$URL answered HTTP $code"
+            exit 1
+          fi
+          up=$(jq -r '.upCount' health.json); total=$(jq -r '.totalCount' health.json)
+          echo "### TrafficPulse health: $up of $total feeds up" >> "$GITHUB_STEP_SUMMARY"
+          jq -r '.endpoints[] | "| \(.status) | \(.name) | \(.path) | \(.error // "") |"' health.json \
+            | (echo "| Status | Feed | Path | Error |"; echo "|---|---|---|---|"; cat) >> "$GITHUB_STEP_SUMMARY"
+          down=$(jq -r '.endpoints[] | select(.status != "UP") | "\(.name) (\(.path)): \(.error // "down")"' health.json)
+          if [ -n "$down" ]; then
+            echo "$down" | while read -r line; do echo "::error::$line"; done
+            exit 1
+          fi
+          echo "All $total feeds are up."

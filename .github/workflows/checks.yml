@@ -1,0 +1,25 @@
+# Type check, parser tests and a production build on every push and pull request,
+# so a broken change (or a change in LTA/NEA/PUB data formats the tests cover) shows before merging.
+name: Checks
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      # No lockfile is committed, so install the same way Vercel does.
+      - run: npm install --legacy-peer-deps --no-audit --no-fund
+      - name: Type check
+        run: npm run lint
+      - name: Parser tests
+        run: npm test
+      - name: Build
+        run: npm run build

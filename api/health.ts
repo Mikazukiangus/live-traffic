@@ -12,6 +12,7 @@ const NEA_PSI = 'https://api-open.data.gov.sg/v2/real-time/api/psi';
 const NEA_PM25 = 'https://api-open.data.gov.sg/v2/real-time/api/pm25';
 const NEA_LIGHTNING = 'https://api-open.data.gov.sg/v2/real-time/api/weather?api=lightning';
 const NEA_WBGT = 'https://api-open.data.gov.sg/v2/real-time/api/weather?api=wbgt';
+const PUB_FLOOD_ALERTS = 'https://api-open.data.gov.sg/v2/real-time/api/weather/flood-alerts';
 const PROBE_TIMEOUT_MS = 8000;
 
 interface ProbeResult {
@@ -67,7 +68,7 @@ export default async function handler(req: any, res?: any) {
   const startTime = Date.now();
   const [
     incidents, images, speedBands, vms, travelTimes, rainForecast, forecast24h, psi, pm25,
-    roadWorks, faultyLights, carParks, lightning, wbgt,
+    roadWorks, faultyLights, carParks, lightning, wbgt, floods,
   ] = await Promise.all([
     ltaProbe('TrafficIncidents'),
     accountKey ? probe(`${LTA_BASE}/Traffic-Imagesv2`, ltaHeaders) : probe(DATA_GOV_TRAFFIC_IMAGES),
@@ -84,6 +85,7 @@ export default async function handler(req: any, res?: any) {
     ltaProbe('CarParkAvailabilityv2'),
     probe(NEA_LIGHTNING),
     probe(NEA_WBGT),
+    probe(PUB_FLOOD_ALERTS),
   ]);
 
   // /api/airquality serves whichever of PSI and PM2.5 answers, so it is UP if either is.
@@ -204,6 +206,14 @@ export default async function handler(req: any, res?: any) {
       purpose: 'Recent lightning strikes and WBGT heat stress by station',
       upstream: 'data.gov.sg v2 weather lightning + wbgt',
       ...either(lightning, wbgt, ['Lightning', 'WBGT']),
+    },
+    {
+      path: '/api/live?feed=floods',
+      name: 'PUB Flood Alerts',
+      method: 'GET',
+      purpose: 'Active flood alerts and the area each one covers',
+      upstream: 'data.gov.sg v2 weather flood-alerts',
+      ...floods,
     },
     {
       // The proxy only relays camera image links, so it is as healthy as the images feed.

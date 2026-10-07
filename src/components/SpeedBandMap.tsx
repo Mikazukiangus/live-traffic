@@ -19,35 +19,53 @@ export const SPEED_BAND_COLOURS: Record<number, { colour: string; label: string 
 // Projected units per degree; Singapore sits ~1.35°N, so lon/lat distortion is negligible.
 const SCALE = 1000;
 const PAD = 8;
+// A fixed frame around the expressways (Tuas to Changi, Sentosa to Woodlands), so markers can be
+// placed the same way whether or not LTA's speed bands have loaded.
+export const MAP_BOUNDS = { minLon: 103.615, maxLon: 104.0, minLat: 1.25, maxLat: 1.465 };
+
+export type MapMarkerKind = 'incident' | 'critical' | 'flood' | 'lightning';
+
+export interface MapMarker {
+  id: string;
+  kind: MapMarkerKind;
+  lat: number;
+  lon: number;
+  label: string;
+  // Flood alerts: the area PUB says the alert covers
+  radiusKm?: number;
+  code?: string;
+}
+
+const MARKER_STYLE: Record<MapMarkerKind, { fill: string; r: number }> = {
+  critical: { fill: '#e2414f', r: 5 },
+  incident: { fill: '#f0a73a', r: 4 },
+  flood: { fill: '#4fa3d9', r: 4.5 },
+  lightning: { fill: '#c9a7ff', r: 2 },
+};
 
 interface SpeedBandMapProps {
   segments: SpeedSegment[];
   selectedCode: string;
   onSelect?: (code: string) => void;
+  markers?: MapMarker[];
 }
 
-export const SpeedBandMap: React.FC<SpeedBandMapProps> = ({ segments, selectedCode, onSelect }) => {
-  const { viewBox, paths } = useMemo(() => {
-    let minLon = Infinity, maxLon = -Infinity, minLat = Infinity, maxLat = -Infinity;
-    for (const [, , sLon, sLat, eLon, eLat] of segments) {
-      minLon = Math.min(minLon, sLon, eLon);
-      maxLon = Math.max(maxLon, sLon, eLon);
-      minLat = Math.min(minLat, sLat, eLat);
-      maxLat = Math.max(maxLat, sLat, eLat);
-    }
-    const x = (lon: number) => ((lon - minLon) * SCALE).toFixed(1);
-    const y = (lat: number) => ((maxLat - lat) * SCALE).toFixed(1);
+const x = (lon: number) => (lon - MAP_BOUNDS.minLon) * SCALE;
+const y = (lat: number) => (MAP_BOUNDS.maxLat - lat) * SCALE;
+const KM_PER_UNIT = 111.32 / SCALE;
 
+export const SpeedBandMap: React.FC<SpeedBandMapProps> = ({ segments, selectedCode, onSelect, markers = [] }) => {
+  const { viewBox, paths } = useMemo(() => {
     // One <path> per expressway + band keeps the DOM small (~80 paths for ~4k links).
     const grouped = new Map<string, { code: string; band: number; d: string[] }>();
     for (const [code, band, sLon, sLat, eLon, eLat] of segments) {
       const key = `${code}-${band}`;
       if (!grouped.has(key)) grouped.set(key, { code, band, d: [] });
-      grouped.get(key)!.d.push(`M${x(sLon)} ${y(sLat)}L${x(eLon)} ${y(eLat)}`);
+      grouped.get(key)!.d.push(`M${x(sLon).toFixed(1)} ${y(sLat).toFixed(1)}L${x(eLon).toFixed(1)} ${y(eLat).toFixed(1)}`);
     }
 
-    const width = (maxLon - minLon) * SCALE;
-    const height = (maxLat - minLat) * SCALE;
+    const width = (MAP_BOUNDS.maxLon - MAP_BOUNDS.minLon) * SCALE;
+    const height = (MAP_BOUNDS.maxLat - MAP_BOUNDS.minLat) * SCALE;
     return {
       viewBox: `${-PAD} ${-PAD} ${width + PAD * 2} ${height + PAD * 2}`,
       paths: [...grouped.values()].map((g) => ({ ...g, d: g.d.join('') })),
@@ -58,6 +76,11 @@ export const SpeedBandMap: React.FC<SpeedBandMapProps> = ({ segments, selectedCo
   const ordered = [...paths].sort(
     (a, b) => Number(a.code === selectedCode) - Number(b.code === selectedCode) || a.band - b.band
   );
+  // Lightning underneath, then floods, then incidents (most severe on top).
+  const RANK: Record<MapMarkerKind, number> = { lightning: 0, flood: 1, incident: 2, critical: 3 };
+  const shown = markers
+    .filter((m) => m.lon >= MAP_BOUNDS.minLon && m.lon <= MAP_BOUNDS.maxLon && m.lat >= MAP_BOUNDS.minLat && m.lat <= MAP_BOUNDS.maxLat)
+    .sort((a, b) => RANK[a.kind] - RANK[b.kind]);
 
   return (
     <svg
@@ -65,7 +88,7 @@ export const SpeedBandMap: React.FC<SpeedBandMapProps> = ({ segments, selectedCo
       preserveAspectRatio="xMidYMid meet"
       className="absolute inset-0 w-full h-full"
       role="img"
-      aria-label={`Singapore expressways coloured by LTA speed band, ${selectedCode} highlighted`}
+      aria-label={`Singapore expressways coloured by LTA speed band, ${selectedCode} highlighted${shown.length ? `, with ${shown.length} markers` : ''}`}
     >
       {ordered.map((p) => {
         const isSelected = p.code === selectedCode;
@@ -86,7 +109,58 @@ export const SpeedBandMap: React.FC<SpeedBandMapProps> = ({ segments, selectedCo
           </path>
         );
       })}
+      {shown.map((m) => {
+        const style = MARKER_STYLE[m.kind];
+        const cx = x(m.lon), cy = y(m.lat);
+        return (
+          <g key={m.id} className={onSelect && m.code ? 'cursor-pointer' : undefined} onClick={onSelect && m.code ? () => onSelect(m.code!) : undefined}>
+            <title>{m.label}</title>
+            {m.kind === 'flood' && m.radiusKm ? (
+              <circle cx={cx} cy={cy} r={m.radiusKm / KM_PER_UNIT} fill={style.fill} fillOpacity={0.18} stroke={style.fill} strokeDasharray="3 3" vectorEffect="non-scaling-stroke" />
+            ) : null}
+            <circle
+              cx={cx}
+              cy={cy}
+              r={style.r}
+              fill={style.fill}
+              stroke={m.kind === 'lightning' ? 'none' : '#0f172a'}
+              strokeWidth={1.2}
+              vectorEffect="non-scaling-stroke"
+            />
+          </g>
+        );
+      })}
     </svg>
+  );
+};
+
+/** Toggles for the map's marker layers. */
+export const MapLayerToggles: React.FC<{
+  layers: Record<'incidents' | 'floods' | 'lightning', boolean>;
+  counts: Record<'incidents' | 'floods' | 'lightning', number>;
+  onToggle: (layer: 'incidents' | 'floods' | 'lightning') => void;
+}> = ({ layers, counts, onToggle }) => {
+  const items = [
+    { id: 'incidents' as const, label: 'Incidents', colour: MARKER_STYLE.incident.fill },
+    { id: 'floods' as const, label: 'Flood alerts', colour: MARKER_STYLE.flood.fill },
+    { id: 'lightning' as const, label: 'Lightning', colour: MARKER_STYLE.lightning.fill },
+  ];
+  return (
+    <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Map layers">
+      {items.map((it) => (
+        <button
+          key={it.id}
+          onClick={() => onToggle(it.id)}
+          aria-pressed={layers[it.id]}
+          className={`h-7 px-2.5 rounded-full border text-[11px] font-semibold flex items-center gap-1.5 cursor-pointer ${
+            layers[it.id] ? 'bg-white border-slate-300 text-slate-800' : 'bg-transparent border-slate-200 text-slate-400'
+          }`}
+        >
+          <span className="w-2.5 h-2.5 rounded-full border border-slate-900/40" style={{ backgroundColor: layers[it.id] ? it.colour : 'transparent' }}></span>
+          {it.label} ({counts[it.id]})
+        </button>
+      ))}
+    </div>
   );
 };
 

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { EXPRESSWAY_CORRIDORS } from '../data/mockData';
 import { CongestionStatus, IncidentAlert } from '../types/traffic';
 import { TravelRoute, minutesBetween } from '../utils/ltaTravelTimes';
@@ -15,6 +15,10 @@ import {
   saveCommute,
   useCommutes,
 } from '../utils/commutes';
+import { Sample, forgetCommute, recordSample, trendOf } from '../utils/commuteHistory';
+import { erpOn, formatSgd } from '../utils/erp';
+import { FloodAlert, floodLabel } from '../utils/floodAlerts';
+import { sgtClock, useNow } from '../utils/freshness';
 
 interface SpeedSummary {
   avgSpeedKmH: number;
@@ -28,6 +32,7 @@ interface MyCommuteProps {
   roadWorks: Record<string, RoadWork[]>;
   rain: Record<string, CorridorRain>;
   lightning: Record<string, number>;
+  floods: Record<string, FloodAlert[]>;
   // Whole-expressway estimate for KPE/MCE, which LTA doesn't publish travel times for
   estimateMinutes: (code: string) => number | null;
   onShowOnMap: (code: string) => void;
@@ -47,7 +52,7 @@ export const MyCommute: React.FC<MyCommuteProps> = (props) => {
   const [editing, setEditing] = useState<Commute | null>(null);
 
   return (
-    <section aria-label="My commute" className="flex flex-col gap-3">
+    <section id="commute" aria-label="My commute" className="flex flex-col gap-3 scroll-mt-24">
       {commutes.map((c) => (
         <CommuteCard key={c.id} commute={c} {...props} onEdit={() => setEditing(c)} />
       ))}
@@ -75,6 +80,7 @@ const CommuteCard: React.FC<MyCommuteProps & { commute: Commute; onEdit: () => v
   roadWorks,
   rain,
   lightning,
+  floods,
   estimateMinutes,
   onShowOnMap,
   onEdit,
@@ -95,6 +101,16 @@ const CommuteCard: React.FC<MyCommuteProps & { commute: Commute; onEdit: () => v
     .filter(Boolean)
     .sort((a, b) => RAIN_RANK[b.level] - RAIN_RANK[a.level])[0];
   const strikes = codes.reduce((n, c) => n + (lightning[c] || 0), 0);
+  const floodAlerts = [...new Map(codes.flatMap((c) => floods[c] || []).map((f) => [f.id, f])).values()];
+  const now = useNow();
+  const erp = useMemo(() => erpOn(codes, new Date(now)), [codes.join(), now]);
+
+  // Travel time history for the trend; only LTA times count (estimates move with speed, not time).
+  const [samples, setSamples] = useState<Sample[]>([]);
+  useEffect(() => {
+    if (total != null && !anyEstimated) setSamples(recordSample(commute.id, total));
+  }, [commute.id, total, anyEstimated]);
+  const trend = trendOf(samples, now);
 
   const toggleAlerts = async () => {
     if (!commute.alerts && !(await enableNotifications())) {
@@ -162,6 +178,45 @@ const CommuteCard: React.FC<MyCommuteProps & { commute: Commute; onEdit: () => v
         })}
       </ol>
 
+      {(trend || samples.length > 1) && (
+        <div className="flex items-center gap-3 text-xs">
+          {samples.length > 1 && <Sparkline samples={samples} />}
+          {trend ? (
+            <span className={`font-semibold ${TREND_STYLE[trend.direction].className}`} title={`Compared with ${sgtClock(trend.since)} SGT, from LTA travel times seen while TrafficPulse was open`}>
+              <span className="material-symbols-outlined text-sm align-[-3px] mr-0.5">{TREND_STYLE[trend.direction].icon}</span>
+              {trend.direction === 'steady'
+                ? `Steady since ${sgtClock(trend.since)}`
+                : `${trend.change > 0 ? '+' : '−'}${Math.abs(trend.change)} min since ${sgtClock(trend.since)}`}
+              <span className="font-normal text-slate-500"> · {TREND_STYLE[trend.direction].advice}</span>
+            </span>
+          ) : (
+            <span className="text-slate-500">Trend appears after about 15 minutes of travel times</span>
+          )}
+        </div>
+      )}
+
+      {(erp.charging.length > 0 || erp.next) && (
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-600" title="LTA ERP rates for cars on these expressways. Which gantries you pass depends on your direction and exits.">
+          <span className="material-symbols-outlined text-sm text-amber-700">toll</span>
+          {erp.charging.length > 0 ? (
+            <>
+              <span className="font-semibold text-amber-800">
+                ERP now: {erp.charging.map((c) => `${formatSgd(c.rate)} ${c.gantry.code}`).join(', ')}
+              </span>
+              <span className="text-slate-500">
+                ({erp.charging[0].gantry.location}, {erp.charging[0].note})
+              </span>
+            </>
+          ) : (
+            erp.next && (
+              <span>
+                ERP free now · {erp.next.gantry.code} from {erp.next.start} at {formatSgd(erp.next.rate)}
+              </span>
+            )
+          )}
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600 pt-2 border-t border-slate-100">
         <span className={onRoute.length ? 'text-red-700 font-semibold' : ''} title={onRoute.map((i) => `${i.corridorCode}: ${i.type}, ${i.location}`).join('\n')}>
           {onRoute.length ? `${onRoute.length} incident${onRoute.length === 1 ? '' : 's'}: ${onRoute[0].type} on ${onRoute[0].corridorCode}` : 'No incidents'}
@@ -173,6 +228,12 @@ const CommuteCard: React.FC<MyCommuteProps & { commute: Commute; onEdit: () => v
             {worstRain.wetAreas.length ? worstRain.wetAreas[0].forecast : 'No rain in the next 2h'}
           </span>
         )}
+        {floodAlerts.length > 0 && (
+          <span className="flex items-center gap-1 text-sky-800 font-semibold" title={floodAlerts.map((f) => `${floodLabel(f)}: ${f.description}`).join('\n')}>
+            <span className="material-symbols-outlined text-sm">flood</span>
+            {floodLabel(floodAlerts[0])}
+          </span>
+        )}
         {strikes > 0 && (
           <span className="flex items-center gap-1 text-violet-800 font-semibold">
             <span className="material-symbols-outlined text-sm">bolt</span>
@@ -181,6 +242,27 @@ const CommuteCard: React.FC<MyCommuteProps & { commute: Commute; onEdit: () => v
         )}
       </div>
     </div>
+  );
+};
+
+const TREND_STYLE = {
+  building: { icon: 'trending_up', className: 'text-red-700', advice: 'traffic is building, leaving sooner is likely quicker' },
+  easing: { icon: 'trending_down', className: 'text-emerald-700', advice: 'traffic is easing, waiting a little may save time' },
+  steady: { icon: 'trending_flat', className: 'text-slate-700', advice: 'little difference between now and later' },
+} as const;
+
+/** Travel time over the last few hours, as a small line. */
+const Sparkline: React.FC<{ samples: Sample[] }> = ({ samples }) => {
+  const W = 72, H = 20;
+  const t0 = samples[0][0], t1 = samples[samples.length - 1][0] || t0 + 1;
+  const vals = samples.map(([, m]) => m);
+  const lo = Math.min(...vals), hi = Math.max(...vals);
+  const x = (t: number) => ((t - t0) / Math.max(1, t1 - t0)) * W;
+  const y = (m: number) => (hi === lo ? H / 2 : H - 2 - ((m - lo) / (hi - lo)) * (H - 4));
+  return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="shrink-0 text-sky-600" role="img" aria-label={`Travel time from ${lo} to ${hi} minutes`}>
+      <polyline points={samples.map(([t, m]) => `${x(t).toFixed(1)},${y(m).toFixed(1)}`).join(' ')} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+    </svg>
   );
 };
 
@@ -260,6 +342,7 @@ const CommuteEditor: React.FC<{ initial: Commute; routes: TravelRoute[]; onClose
             <button
               onClick={() => {
                 deleteCommute(initial.id);
+                forgetCommute(initial.id);
                 onClose();
               }}
               className="text-sm font-semibold text-red-700 hover:underline cursor-pointer"

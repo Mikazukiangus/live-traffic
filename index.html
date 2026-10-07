@@ -10,6 +10,7 @@
       try {
         var t = localStorage.getItem('trafficpulse.theme');
         if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+        if (localStorage.getItem('trafficpulse.textSize') === 'large') document.documentElement.dataset.text = 'large';
       } catch (e) {}
     </script>
     <link rel="manifest" href="/manifest.webmanifest" />
@@ -20,12 +21,19 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="TrafficPulse" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <title>TrafficPulse - Expressway Incident Dispatch & Accredited Workshop Network</title>
-    <meta name="description" content="Smart Mobility roadside emergency dispatch, expressway incident triage, live tow fleet radar, and LTA accredited workshop directory." />
-    <meta property="og:title" content="TrafficPulse - Expressway Incident Dispatch & Accredited Workshop Network" />
-    <meta property="og:description" content="Smart Mobility roadside emergency dispatch, expressway incident triage, live tow fleet radar, and LTA accredited workshop directory." />
+    <title>TrafficPulse – Live Singapore Expressway Traffic</title>
+    <meta name="description" content="Live Singapore expressway traffic: LTA speeds, travel times, incidents and checkpoint cameras, with rain, flood alerts, lightning, air quality and ERP rates." />
+    <meta property="og:title" content="TrafficPulse – Live Singapore Expressway Traffic" />
+    <meta property="og:description" content="Live Singapore expressway traffic: LTA speeds, travel times, incidents and checkpoint cameras, with rain, flood alerts, lightning, air quality and ERP rates." />
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="TrafficPulse" />
+    <meta property="og:url" content="https://live-traffic-carbon-bc04.vercel.app/" />
+    <meta property="og:image" content="https://live-traffic-carbon-bc04.vercel.app/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="TrafficPulse: live Singapore expressway traffic" />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://live-traffic-carbon-bc04.vercel.app/og-image.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />

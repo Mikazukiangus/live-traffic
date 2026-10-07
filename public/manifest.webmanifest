@@ -1,21 +1,89 @@
 {
   "name": "TrafficPulse – Live Traffic SG",
   "short_name": "TrafficPulse",
-  "description": "Live Singapore expressway speeds, checkpoint cameras, incidents, rain and air quality.",
+  "description": "Live Singapore expressway traffic: speeds, travel times, incidents, checkpoint cameras, rain, flood alerts and ERP.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#f7f2e7",
   "theme_color": "#1f5a7a",
   "icons": [
-    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
-    { "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
   ],
   "shortcuts": [
-    { "name": "Live Traffic", "url": "/?page=radar&tab=expressways", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
-    { "name": "Checkpoint cameras", "url": "/?page=cameras", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
-    { "name": "Rain & air quality", "url": "/?page=radar&tab=weather", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
+    {
+      "name": "My commute",
+      "short_name": "Commute",
+      "description": "Travel time, trend and ERP for your saved commutes",
+      "url": "/?page=radar&tab=expressways#commute",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Checkpoint cameras",
+      "short_name": "Cameras",
+      "description": "Woodlands, Tuas and Sentosa cameras",
+      "url": "/?page=cameras",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Near me",
+      "short_name": "Near me",
+      "description": "Traffic, rain and air quality where you are",
+      "url": "/?page=radar&tab=expressways&near=1",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Incidents",
+      "short_name": "Incidents",
+      "description": "Live LTA incidents",
+      "url": "/?page=radar&tab=incidents",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
   ]
 }

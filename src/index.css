@@ -273,6 +273,11 @@
   color-scheme: light;
 }
 
+/* Larger text: sizes are in rem, so this scales text, spacing and buttons together. */
+html[data-text="large"] {
+  font-size: 118.75%;
+}
+
 @layer base {
   html, body {
     margin: 0;

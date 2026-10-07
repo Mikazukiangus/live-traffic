@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { TabType } from '../types/traffic';
 import { useInstallPrompt } from '../utils/installPrompt';
 import { THEME_LABEL, THEME_ORDER, setTheme, useTheme } from '../utils/theme';
+import { setLargeText, useLargeText } from '../utils/textSize';
 
 interface HeaderProps {
   activeTab: TabType;
@@ -10,6 +11,8 @@ interface HeaderProps {
   searchQuery: string;
   onOpenNotifications: () => void;
   notificationCount: number;
+  // Incidents on the visitor's saved commutes
+  commuteIncidentCount: number;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -19,17 +22,20 @@ export const Header: React.FC<HeaderProps> = ({
   searchQuery,
   onOpenNotifications,
   notificationCount,
+  commuteIncidentCount,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const installer = useInstallPrompt();
   const theme = useTheme();
   const nextTheme = THEME_ORDER[(THEME_ORDER.indexOf(theme) + 1) % THEME_ORDER.length];
+  const largeText = useLargeText();
 
-  const navItems: { id: TabType; label: string }[] = [
-    { id: 'live-traffic-radar', label: 'Live Traffic Radar' },
-    { id: 'highway-cameras-emas', label: 'Highway Cameras & EMAS' },
-    { id: 'roadside-sos-workshops', label: 'Roadside SOS & Workshops' },
-    { id: 'route-alerts-courier-hub', label: 'Route Alerts & Courier Hub' },
+  // Short labels until the screen is wide enough for the full ones
+  const navItems: { id: TabType; label: string; short: string }[] = [
+    { id: 'live-traffic-radar', label: 'Live Traffic Radar', short: 'Live Traffic' },
+    { id: 'highway-cameras-emas', label: 'Highway Cameras & EMAS', short: 'Cameras' },
+    { id: 'roadside-sos-workshops', label: 'Roadside SOS & Workshops', short: 'Roadside SOS' },
+    { id: 'route-alerts-courier-hub', label: 'Route Alerts & Courier Hub', short: 'Courier Hub' },
   ];
 
   return (
@@ -51,7 +57,7 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
           </button>
 
-          <div className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200">
+          <div className="hidden 2xl:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             <span className="text-[11px] text-emerald-700 uppercase tracking-wider font-bold">
               LTA DataMall Live
@@ -97,7 +103,8 @@ export const Header: React.FC<HeaderProps> = ({
                     : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-transparent'
                 }`}
               >
-                {item.label}
+                <span className="xl:hidden">{item.short}</span>
+                <span className="hidden xl:inline">{item.label}</span>
               </button>
             );
           })}
@@ -116,6 +123,17 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           )}
           <button
+            onClick={() => setLargeText(!largeText)}
+            aria-pressed={largeText}
+            aria-label={largeText ? 'Normal text size' : 'Larger text'}
+            title={largeText ? 'Normal text size' : 'Larger text and buttons'}
+            className={`hidden sm:block p-2 rounded-lg transition-colors ${
+              largeText ? 'bg-sky-100 text-sky-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
+            }`}
+          >
+            <span className="material-symbols-outlined text-xl">format_size</span>
+          </button>
+          <button
             onClick={() => setTheme(nextTheme)}
             aria-label={`${THEME_LABEL[theme].label}. Switch to ${nextTheme === 'auto' ? 'device setting' : nextTheme}`}
             title={`${THEME_LABEL[theme].label} (click for ${nextTheme === 'auto' ? 'device setting' : nextTheme})`}
@@ -125,23 +143,19 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
           <button
             onClick={onOpenNotifications}
-            aria-label="Notifications"
+            aria-label={`Alerts: ${notificationCount} LTA incidents${commuteIncidentCount ? `, ${commuteIncidentCount} on your commutes` : ''}`}
+            title={commuteIncidentCount ? `${commuteIncidentCount} incident${commuteIncidentCount === 1 ? '' : 's'} on your commutes` : 'Live incidents and commute alerts'}
             className="relative p-2 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900 transition-colors"
           >
             <span className="material-symbols-outlined text-xl">notifications</span>
-            {notificationCount > 0 && (
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-amber-500 ring-2 ring-white"></span>
+            {commuteIncidentCount > 0 ? (
+              <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-red-600 text-white text-[10px] font-bold leading-4 text-center ring-2 ring-white">
+                {commuteIncidentCount}
+              </span>
+            ) : (
+              notificationCount > 0 && <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-amber-500 ring-2 ring-white"></span>
             )}
           </button>
-
-          <div className="flex items-center gap-2 pl-1">
-            <span
-              aria-label="Profile"
-              className="w-8 h-8 rounded-full flex items-center justify-center bg-slate-100 text-slate-500 ring-2 ring-slate-200 shadow-xs"
-            >
-              <span className="material-symbols-outlined text-lg">person</span>
-            </span>
-          </div>
 
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -186,6 +200,16 @@ export const Header: React.FC<HeaderProps> = ({
               )}
             </button>
           ))}
+          <button
+            onClick={() => setLargeText(!largeText)}
+            aria-pressed={largeText}
+            className="sm:hidden text-left px-3 py-2.5 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-100 flex items-center justify-between"
+          >
+            <span className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-lg">format_size</span>Larger text
+            </span>
+            <span className={`text-xs font-bold ${largeText ? 'text-sky-700' : 'text-slate-400'}`}>{largeText ? 'On' : 'Off'}</span>
+          </button>
           {installer.mode === 'ios' && (
             <div className="px-3 py-2.5 rounded-lg bg-sky-50 border border-sky-100 text-xs text-sky-900 flex items-start gap-2">
               <span className="material-symbols-outlined text-base text-sky-600">ios_share</span>

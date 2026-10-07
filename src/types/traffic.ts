@@ -89,6 +89,9 @@ export interface IncidentAlert {
   id: string;
   corridor: string;
   corridorCode?: string; // expressway code (e.g. 'KJE'); absent for non-expressway incidents
+  // Position from LTA, for the map
+  lat?: number;
+  lon?: number;
   location: string;
   type:
     | 'Accident'

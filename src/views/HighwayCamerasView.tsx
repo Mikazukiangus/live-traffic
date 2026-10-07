@@ -7,6 +7,8 @@ import { JAM_STYLE, JamLevel, NearbyTraffic, jamLevel, trafficNear } from '../ut
 import type { SpeedSegment } from '../components/SpeedBandMap';
 import { useVehicleCounts } from '../utils/vehicleDetection';
 import { readParam, useUrlParam, writeParams } from '../utils/urlState';
+import { loadSpeedSnapshot, saveSpeedSnapshot } from '../utils/speedSnapshot';
+import { minutesBetween, useLtaTravelTimes } from '../utils/ltaTravelTimes';
 import { StaleFeed, parseSgt, sgtClock, useOnline } from '../utils/freshness';
 import { formatKm, kmBetween, locate, useNearMe } from '../utils/nearMe';
 import { StaleDataNotice } from '../components/StaleDataNotice';
@@ -111,7 +113,7 @@ const REAL_LTA_CAMERA_DIRECTORY: Record<
   },
 };
 
-type TabId = CameraPlace | 'other' | 'signs';
+type TabId = CameraPlace | 'other' | 'all' | 'signs';
 
 const PLACE_TABS: { id: CameraPlace | 'other'; label: string; icon: string }[] = [
   { id: 'woodlands', label: 'Woodlands', icon: 'directions_car' },
@@ -121,7 +123,7 @@ const PLACE_TABS: { id: CameraPlace | 'other'; label: string; icon: string }[] =
 ];
 
 const TAB_STORAGE_KEY = 'trafficpulse.cameraTab';
-const CAMERA_TABS: TabId[] = ['woodlands', 'tuas', 'sentosa', 'other', 'signs'];
+const CAMERA_TABS: TabId[] = ['woodlands', 'tuas', 'sentosa', 'other', 'all', 'signs'];
 const isCameraTab = (t: string | null): t is TabId => !!t && (CAMERA_TABS as string[]).includes(t);
 
 const readSavedTab = (): TabId => {
@@ -133,6 +135,31 @@ const readSavedTab = (): TabId => {
   }
   return 'woodlands';
 };
+
+// Checkpoint summary at the top of the page. When LTA speeds are down, the drive comes from LTA's
+// travel times for the stretch leading to the checkpoint instead.
+const CHECKPOINT_SUMMARY: {
+  id: 'woodlands' | 'tuas';
+  name: string;
+  bridgeCam: string;
+  bridge: string;
+  travel: { code: string; direction: number; from: string; to: string; label: string };
+}[] = [
+  {
+    id: 'woodlands',
+    name: 'Woodlands',
+    bridgeCam: '2701',
+    bridge: 'Causeway',
+    travel: { code: 'BKE', direction: 1, from: 'BKE/PIE Interchange', to: 'Woodlands Centre', label: 'BKE from PIE' },
+  },
+  {
+    id: 'tuas',
+    name: 'Tuas',
+    bridgeCam: '4703',
+    bridge: 'Second Link',
+    travel: { code: 'AYE', direction: 1, from: 'Jurong Town Hall Rd', to: 'Tuas Checkpoint', label: 'AYE from Jurong Town Hall' },
+  },
+];
 
 // LTA retired every other expressway camera feed on this date (ERP 2.0 transition).
 const LTA_CAMERAS_RETIRED_ON = '30 Jun 2026';
@@ -193,6 +220,11 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
   const speedsFetchedAt = useRef(0);
   const [now, setNow] = useState(() => Date.now());
   const [speedsUpdated, setSpeedsUpdated] = useState<string | null>(null);
+  const speedsUpdatedRef = useRef<string | null>(null);
+  speedsUpdatedRef.current = speedsUpdated;
+  const travelTimes = useLtaTravelTimes();
+  // All cameras grid: which cameras to show (?cams=2701,4703); all of them when not set
+  const [camsParam, setCamsParam] = useUrlParam('cams');
   const [speedsFailed, setSpeedsFailed] = useState(false);
   const rainForecast = useRainForecast();
   const airQuality = useAirQuality();
@@ -241,9 +273,19 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
         setCheckpoints(Object.fromEntries(json.checkpoints.map((c: CheckpointApproach) => [c.id, c])));
       }
       speedsFetchedAt.current = Date.now();
+      saveSpeedSnapshot(json);
     } catch {
-      // Cards keep the last speeds (flagged as old below), or show none.
+      // Cards keep the last speeds (flagged as old below), or the last copy this browser saved.
       setSpeedsFailed(true);
+      if (!speedsUpdatedRef.current) {
+        const json = loadSpeedSnapshot()?.json;
+        if (json?.lastUpdatedTime) {
+          setSpeedsUpdated(json.lastUpdatedTime);
+          if (Array.isArray(json.expressways)) setSpeeds(Object.fromEntries(json.expressways.map((e: ExpresswaySpeed) => [e.code, e])));
+          if (Array.isArray(json.segments)) setSegments(json.segments);
+          if (Array.isArray(json.checkpoints)) setCheckpoints(Object.fromEntries(json.checkpoints.map((c: CheckpointApproach) => [c.id, c])));
+        }
+      }
     }
   };
 
@@ -426,16 +468,17 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
     '1': () => selectTab('woodlands'),
     '2': () => selectTab('tuas'),
     '3': () => selectTab('sentosa'),
-    '4': () => selectTab('signs'),
+    '4': () => selectTab('all'),
+    '5': () => selectTab('signs'),
     ArrowLeft: () => stepCam(-1),
     ArrowRight: () => stepCam(1),
     ...(selectedCam ? { Escape: closeCam } : {}),
   });
   useRefreshRequests(fetchLiveLtaCameras);
 
-  // Wall display shows each checkpoint and Sentosa in turn
+  // Wall display shows each checkpoint and Sentosa in turn (the all-cameras grid stays put)
   const WALL_TABS: TabId[] = ['woodlands', 'tuas', 'sentosa'];
-  useWallCycle(wall, () => selectTab(WALL_TABS[(WALL_TABS.indexOf(activeTab) + 1) % WALL_TABS.length], false));
+  useWallCycle(wall && activeTab !== 'all', () => selectTab(WALL_TABS[(WALL_TABS.indexOf(activeTab) + 1) % WALL_TABS.length], false));
 
   // Near me: the closest camera, and its tab opened (unless a shared link chose the tab)
   const nearestCam = useMemo(() => {
@@ -475,6 +518,27 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
     }`;
 
   const latestAge = latestCapture ? captureAge(latestCapture, now) : null;
+
+  // Checkpoint summary: bridge camera reading, drive to the checkpoint, queue near it
+  const checkpointSummary = CHECKPOINT_SUMMARY.map((c) => {
+    const cam = cameras.find((x) => x.id === `lta-live-${c.bridgeCam}`);
+    const reading = cam ? cameraLevel(cam) : null;
+    const count = cam ? vehicleCounts[cam.id]?.count ?? null : null;
+    const approach = checkpoints[c.id];
+    const route = travelTimes.routes.find((r) => r.code === c.travel.code && r.direction === c.travel.direction);
+    const ltaMinutes = route ? minutesBetween(route, c.travel.from, c.travel.to) : null;
+    const queue = approach?.queueSpeedKmH != null ? jamLevel(approach.queueSpeedKmH) : null;
+    return { ...c, reading, count, approach, ltaMinutes, queue };
+  });
+
+  // All cameras grid
+  const gridIds = camsParam ? camsParam.split(',').filter(Boolean) : cameras.map((c) => c.id.replace('lta-live-', ''));
+  const gridCams = cameras.filter((c) => gridIds.includes(c.id.replace('lta-live-', '')));
+  const toggleGridCam = (id: string) => {
+    const next = gridIds.includes(id) ? gridIds.filter((x) => x !== id) : [...gridIds, id];
+    const all = cameras.map((c) => c.id.replace('lta-live-', ''));
+    setCamsParam(next.length === all.length && all.every((x) => next.includes(x)) ? null : next.join(',') || 'none', false);
+  };
 
   return (
     <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 py-8 flex flex-col gap-6">
@@ -543,6 +607,56 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
         </p>
       )}
 
+      {/* Checkpoints at a glance */}
+      {cameras.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {checkpointSummary.map((c) => (
+            <button
+              key={c.id}
+              onClick={() => selectTab(c.id)}
+              className="text-left rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-xs hover:border-sky-300 cursor-pointer flex flex-col gap-1.5"
+            >
+              <span className="flex items-center gap-2 text-sm font-bold text-slate-900">
+                <span className="material-symbols-outlined text-base text-sky-600">directions_car</span>
+                {c.name} Checkpoint
+                <span className="text-xs font-normal text-slate-500">towards Johor</span>
+              </span>
+              <span className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-700">
+                {c.reading ? (
+                  <span className={`flex items-center gap-1.5 font-semibold ${JAM_STYLE[c.reading.level].text}`} title={`${c.bridge} camera: ${c.reading.detail}. ${c.reading.source}`}>
+                    <span className={`w-2 h-2 rounded-full ${JAM_STYLE[c.reading.level].dot}`}></span>
+                    {c.bridge}: {c.reading.level}
+                  </span>
+                ) : (
+                  c.count != null && (
+                    <span title={COUNT_NOTE}>
+                      {c.bridge}: ~{c.count} vehicles in view
+                    </span>
+                  )
+                )}
+                {c.approach ? (
+                  <span title={`Estimated from LTA speed bands over ${c.approach.km} km (${c.approach.via}). Excludes the checkpoint queue and immigration.`}>
+                    ~{c.approach.minutes} min to checkpoint
+                  </span>
+                ) : (
+                  c.ltaMinutes != null && (
+                    <span title={`LTA estimated travel time, ${c.travel.from} to ${c.travel.to}. Excludes the checkpoint queue and immigration.`}>
+                      {c.travel.label}: {c.ltaMinutes} min
+                    </span>
+                  )
+                )}
+                {c.queue && (
+                  <span className={`flex items-center gap-1.5 ${JAM_STYLE[c.queue].text}`}>
+                    <span className={`w-2 h-2 rounded-full ${JAM_STYLE[c.queue].dot}`}></span>
+                    {c.queue} near checkpoint
+                  </span>
+                )}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Tabs stay pinned under the fixed site header while scrolling */}
       <nav className="sticky top-16 z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 py-2 bg-slate-50/95 backdrop-blur-sm">
         <div className="flex gap-1 p-1 bg-white border border-slate-200 rounded-xl shadow-xs w-full sm:w-fit">
@@ -554,8 +668,13 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
               </span>
             </button>
           ))}
+          <button onClick={() => selectTab('all')} className={tabClass(shownTab === 'all')}>
+            <span className="sm:hidden">All</span>
+            <span className="hidden sm:inline">All cameras</span>
+          </button>
           <button onClick={() => selectTab('signs')} className={tabClass(shownTab === 'signs')}>
-            Road Signs
+            <span className="sm:hidden">Signs</span>
+            <span className="hidden sm:inline">Road Signs</span>
           </button>
         </div>
       </nav>
@@ -695,6 +814,68 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
           </section>
         );
       })}
+
+      {/* All cameras at once, for a big screen; the choice is kept in the link (?cams=) */}
+      <section className={shownTab === 'all' && cameras.length > 0 ? 'flex flex-col gap-4' : 'hidden'}>
+        <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Cameras to show">
+          {cameras.map((cam) => {
+            const id = cam.id.replace('lta-live-', '');
+            const on = gridIds.includes(id);
+            return (
+              <button
+                key={cam.id}
+                onClick={() => toggleGridCam(id)}
+                aria-pressed={on}
+                className={`h-8 px-3 rounded-full border text-xs font-semibold cursor-pointer flex items-center gap-1 ${
+                  on ? 'bg-sky-50 border-sky-200 text-sky-800' : 'bg-white border-slate-200 text-slate-400'
+                }`}
+              >
+                <span className="material-symbols-outlined text-sm">{on ? 'check' : 'add'}</span>
+                {cam.short}
+              </button>
+            );
+          })}
+        </div>
+        {gridCams.length === 0 ? (
+          <p className="text-sm text-slate-500">Pick cameras above to show them here.</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-3">
+            {gridCams.map((cam) => {
+              const isStale = now - new Date(cam.capturedAt).getTime() > STALE_CAPTURE_MS;
+              const reading = cameraLevel(cam);
+              return (
+                <button
+                  key={cam.id}
+                  onClick={() => openCam(cam)}
+                  className="fixed-palette relative aspect-video rounded-xl overflow-hidden bg-slate-900 cursor-pointer text-left"
+                >
+                  <img
+                    src={getResolvedCameraUrl(cam.imageUrl)}
+                    alt={cam.short}
+                    crossOrigin="anonymous"
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover"
+                    onError={hideBrokenImage}
+                  />
+                  <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-black/70 text-white text-xs font-semibold">
+                    {cam.short}
+                  </span>
+                  <span className={`absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/70 text-xs ${isStale ? 'text-amber-300' : 'text-white'}`}>
+                    {isStale ? 'Delayed • ' : ''}
+                    {captureAge(cam.capturedAt, now)}
+                  </span>
+                  {reading && (
+                    <span className="absolute bottom-2 left-2 px-2 py-0.5 rounded-full bg-white/95 text-xs font-semibold flex items-center gap-1.5" title={reading.source}>
+                      <span className={`w-2 h-2 rounded-full ${JAM_STYLE[reading.level].dot}`}></span>
+                      <span className={JAM_STYLE[reading.level].text}>{reading.level}</span>
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </section>
 
       <section className={shownTab === 'signs' ? '' : 'hidden'}>
         <LiveVmsBoards areas={rainForecast?.areas} />

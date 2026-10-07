@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { EXPRESSWAY_CORRIDORS } from '../data/mockData';
 import { CongestionStatus } from '../types/traffic';
-import { SpeedBandMap, SpeedBandLegend, SpeedSegment } from '../components/SpeedBandMap';
+import { MapLayerToggles, MapMarker, SpeedBandMap, SpeedBandLegend, SpeedSegment } from '../components/SpeedBandMap';
 import { IncidentFeed, countByCorridor } from '../utils/ltaIncidents';
 import { WeatherOutlook24h } from '../components/WeatherOutlook24h';
 import {
@@ -25,6 +25,9 @@ import { useRefreshRequests, useShortcuts } from '../utils/appEvents';
 import { enterWallDisplay, useWallCycle } from '../utils/wallDisplay';
 import { roadWorksByCode, shortDate, useRoadConditions, worksBy } from '../utils/roadConditions';
 import { HEAT_STYLE, LIGHTNING_NEAR_KM, lightningByExpressway, useWeatherAlerts } from '../utils/weatherAlerts';
+import { floodLabel, floodsByExpressway, useFloodAlerts } from '../utils/floodAlerts';
+import { loadSpeedSnapshot, saveSpeedSnapshot } from '../utils/speedSnapshot';
+import { erpOn, formatSgd } from '../utils/erp';
 
 interface LiveRadarViewProps {
   onSwitchToSos: (corridorCode: string) => void;
@@ -78,6 +81,16 @@ const AIR_STALE_MS = 3 * 60 * 60_000;
 const LIGHTNING_STALE_MS = 30 * 60_000;
 
 const TAB_STORAGE_KEY = 'trafficpulse.radarTab';
+const LAYERS_STORAGE_KEY = 'trafficpulse.mapLayers';
+type MapLayer = 'incidents' | 'floods' | 'lightning';
+const readLayers = (): Record<MapLayer, boolean> => {
+  const all = { incidents: true, floods: true, lightning: true };
+  try {
+    return { ...all, ...JSON.parse(localStorage.getItem(LAYERS_STORAGE_KEY) || '{}') };
+  } catch {
+    return all;
+  }
+};
 
 const readSavedTab = (): RadarTab => {
   try {
@@ -147,10 +160,14 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
 
   // NEA lightning near each expressway, and heat stress by station
   const weatherAlerts = useWeatherAlerts();
+  // PUB flood alerts
+  const floodFeed = useFloodAlerts();
+  const floodAlerts = floodFeed.data?.alerts || [];
   const lightningByCode = useMemo(
     () => lightningByExpressway(weatherAlerts.data?.strikes, rainForecast?.areas),
     [weatherAlerts.data, rainForecast]
   );
+  const floodsByCode = useMemo(() => floodsByExpressway(floodAlerts, rainForecast?.areas), [floodFeed.data, rainForecast]);
   const rainByCode = useMemo(
     () => (rainForecast ? rainByExpressway(rainForecast.areas) : {}),
     [rainForecast]
@@ -159,24 +176,39 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
   const selectedCorridor = corridors.find((c) => c.code === selectedCorridorCode) || corridors[0];
   const selectedSpeed = speedDetails?.[selectedCorridor.code];
 
+  // Applies an /api/expresswayspeeds answer; false if it has no speeds.
+  const haveSpeeds = useRef(false);
+  const applySpeeds = useCallback((json: any) => {
+    const byCode: Record<string, ExpresswaySpeedSummary> = {};
+    for (const e of json?.expressways || []) byCode[e.code] = e;
+    if (Object.keys(byCode).length === 0) return false;
+    haveSpeeds.current = true;
+    setSpeedDetails(byCode);
+    setSpeedBandsUpdated(json.lastUpdatedTime || null);
+    if (Array.isArray(json.segments)) setSpeedSegments(json.segments);
+    return true;
+  }, []);
+
+  // While LTA's feed is down, the last speeds this browser saw are shown, marked with their time.
+  const [speedsFromSnapshot, setSpeedsFromSnapshot] = useState(false);
   const loadSpeedBands = useCallback(async () => {
     try {
       const res = await fetch('/api/expresswayspeeds?include=segments');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
-      const byCode: Record<string, ExpresswaySpeedSummary> = {};
-      for (const e of json.expressways || []) byCode[e.code] = e;
-      if (Object.keys(byCode).length === 0) throw new Error('No expressway speeds');
-
-      setSpeedDetails(byCode);
-      setSpeedBandsUpdated(json.lastUpdatedTime || null);
-      if (Array.isArray(json.segments)) setSpeedSegments(json.segments);
+      if (!applySpeeds(json)) throw new Error('No expressway speeds');
+      saveSpeedSnapshot(json);
+      setSpeedsFromSnapshot(false);
       setSpeedStatus('live');
     } catch {
-      // Keep the last live speeds, if any
+      // Keep the last live speeds, or fall back to the saved copy
       setSpeedStatus('error');
+      if (!haveSpeeds.current) {
+        const snap = loadSpeedSnapshot();
+        if (snap && applySpeeds(snap.json)) setSpeedsFromSnapshot(true);
+      }
     }
-  }, []);
+  }, [applySpeeds]);
 
   useEffect(() => {
     loadSpeedBands();
@@ -193,6 +225,7 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
       incidentFeed.refresh(),
       roadConditions.refresh(),
       weatherAlerts.refresh(),
+      floodFeed.refresh(),
     ]);
     setRefreshing(false);
   };
@@ -263,6 +296,7 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
   const psiAt = parseSgt(airQuality?.psiTimestamp);
   if (roadConditions.status === 'error') staleFeeds.push({ label: 'LTA road works & traffic lights', detail: 'not responding' });
   if (weatherAlerts.status === 'error') staleFeeds.push({ label: 'NEA lightning & heat stress', detail: 'not responding' });
+  if (floodFeed.status === 'error') staleFeeds.push({ label: 'PUB flood alerts', detail: 'not responding; alerts may be missing' });
   const lightningAt = parseSgt(weatherAlerts.data?.lightningAt);
   if (lightningAt && now - lightningAt > LIGHTNING_STALE_MS) {
     staleFeeds.push({ label: 'NEA lightning', detail: `last observation ${sgtClock(lightningAt)} SGT` });
@@ -286,8 +320,43 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
       if (via && code) road = { code, km: kmBetween(lat, lon, via.lat, via.lon), approx: true };
     }
     const region = airQuality ? nearestRegion(lat, lon, airQuality) : null;
-    return { area, road, region };
+    const erp = road ? erpOn([road.code], new Date()) : null;
+    return { area, road, region, erp };
   }, [nearMe, rainForecast, speedSegments, airQuality]);
+
+  // Map layers: incidents, flood alerts and lightning, each switchable
+  const [layers, setLayers] = useState(readLayers);
+  const toggleLayer = (layer: MapLayer) =>
+    setLayers((l) => {
+      const next = { ...l, [layer]: !l[layer] };
+      try {
+        localStorage.setItem(LAYERS_STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        // Storage blocked; the choice lasts until the page closes
+      }
+      return next;
+    });
+  const strikes = weatherAlerts.data?.strikes || [];
+  const mappedIncidents = incidents.filter((i) => i.lat != null && i.lon != null);
+  const mapMarkers = useMemo(() => {
+    const list: MapMarker[] = [];
+    if (layers.lightning)
+      strikes.forEach((st, i) => list.push({ id: `lightning-${i}`, kind: 'lightning', lat: st.lat, lon: st.lon, label: 'Lightning strike (NEA)' }));
+    if (layers.floods)
+      floodAlerts.forEach((f) => list.push({ id: f.id, kind: 'flood', lat: f.lat, lon: f.lon, radiusKm: f.radiusKm, label: `${floodLabel(f)} (PUB)` }));
+    if (layers.incidents)
+      mappedIncidents.forEach((i) =>
+        list.push({
+          id: i.id,
+          kind: i.severity === 'Critical' ? 'critical' : 'incident',
+          lat: i.lat!,
+          lon: i.lon!,
+          code: i.corridorCode,
+          label: `${i.type}${i.corridorCode ? ` on ${i.corridorCode}` : ''}: ${i.location}`,
+        })
+      );
+    return list;
+  }, [layers, strikes, floodAlerts, mappedIncidents]);
 
   const showOnMap = (code: string) => {
     setSelectedCorridorCode(code);
@@ -383,6 +452,7 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
         roadWorks={worksByCode}
         rain={rainByCode}
         lightning={lightningByCode}
+        floods={floodsByCode}
         estimateMinutes={estimateMinutes}
         onShowOnMap={showOnMap}
       />}
@@ -434,6 +504,14 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
               {nearYou.area.forecast}
             </span>
           )}
+          {nearYou.erp && (nearYou.erp.charging.length > 0 || nearYou.erp.next) && (
+            <span className="flex items-center gap-1.5 text-slate-700" title="LTA ERP for cars on this expressway">
+              <span className="material-symbols-outlined text-base text-amber-700">toll</span>
+              {nearYou.erp.charging.length
+                ? `ERP ${formatSgd(nearYou.erp.charging[0].rate)} now (${nearYou.erp.charging[0].note})`
+                : `ERP free now, ${formatSgd(nearYou.erp.next!.rate)} from ${nearYou.erp.next!.start}`}
+            </span>
+          )}
           {nearYou.region?.psi24h != null && (
             <span className={`flex items-center gap-1.5 ${psiBand(nearYou.region.psi24h).text}`}>
               <span className={`w-2 h-2 rounded-full ${psiBand(nearYou.region.psi24h).dot}`}></span>
@@ -480,6 +558,18 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
             : 'hidden'
         }
       >
+        {(speedsFromSnapshot || (speedStatus === 'error' && !speedDetails)) && (
+          <div className="xl:col-span-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 flex items-start gap-2">
+            <span className="material-symbols-outlined text-base text-amber-700 mt-0.5">speed</span>
+            <span>
+              {speedsFromSnapshot
+                ? `LTA's speed feed isn't responding, so speeds and the map are from ${speedsUpdatedSgt ?? 'earlier'} SGT. `
+                : "LTA's speed feed isn't responding, so live speeds and the coloured map are missing. "}
+              Travel times, incidents and weather below are current. Speeds come back on their own once LTA's feed recovers.
+            </span>
+          </div>
+        )}
+
         {/* Main Grid: Expressway Corridors Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-2 gap-4">
           {corridors.map((corridor) => {
@@ -512,6 +602,13 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
                       <span className={`px-2 py-0.5 rounded text-[11px] font-bold border ${STATUS_BADGE[liveSpeed.status]}`}>
                         {liveSpeed.status}
                       </span>
+                    ) : travelTimes.byCode[corridor.code]?.length ? (
+                      <span
+                        className="px-2 py-0.5 rounded text-[11px] font-bold border bg-slate-50 text-slate-600 border-slate-200 font-mono"
+                        title="LTA end-to-end travel time each way (speeds unavailable)"
+                      >
+                        {travelTimes.byCode[corridor.code].map((t) => t.minutes).join(' / ')} min
+                      </span>
                     ) : (
                       <span className="px-2 py-0.5 rounded text-[11px] font-bold border bg-slate-50 text-slate-400 border-slate-200">
                         —
@@ -534,7 +631,7 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
                     </span>
                   </div>
 
-                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                  <div className={`w-full h-2 bg-slate-100 rounded-full overflow-hidden ${liveSpeed ? '' : 'hidden'}`}>
                     {liveSpeed && (
                       <div
                         className={`h-full rounded-full transition-all duration-500 ${STATUS_BAR[liveSpeed.status]}`}
@@ -556,6 +653,16 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
                     >
                       <span className="material-symbols-outlined text-sm">{RAIN_LEVEL_STYLE[rain.level].icon}</span>
                       <span className="line-clamp-1">Next 2h: {describeCorridorRain(rain)}</span>
+                    </div>
+                  )}
+
+                  {floodsByCode[corridor.code]?.length > 0 && (
+                    <div
+                      className="text-[11px] flex items-center gap-1 text-sky-800 font-semibold"
+                      title={floodsByCode[corridor.code].map((f) => `${floodLabel(f)}: ${f.description}`).join('\n')}
+                    >
+                      <span className="material-symbols-outlined text-sm">flood</span>
+                      <span className="line-clamp-1">PUB flood alert: {floodsByCode[corridor.code][0].area || floodsByCode[corridor.code][0].headline}</span>
                     </div>
                   )}
 
@@ -617,7 +724,7 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
           </div>
 
           {/* Speed band map */}
-          <div className={`w-full ${speedSegments.length ? 'h-[26rem]' : 'h-72'} fixed-palette bg-slate-950 rounded-xl relative overflow-hidden flex flex-col justify-between p-4 border border-slate-800 shadow-inner`}>
+          <div className={`w-full h-[26rem] fixed-palette bg-slate-950 rounded-xl relative overflow-hidden flex flex-col justify-between p-4 border border-slate-800 shadow-inner`}>
             <div
               className="absolute inset-0 opacity-25 pointer-events-none"
               style={{
@@ -627,16 +734,15 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
               }}
             ></div>
 
-            {speedSegments.length > 0 && (
-              /* Live LTA speed band map, inset so the overlays don't cover the roads */
-              <div className="absolute left-3 right-3 top-3 bottom-36">
-                <SpeedBandMap
-                  segments={speedSegments}
-                  selectedCode={selectedCorridor.code}
-                  onSelect={setSelectedCorridorCode}
-                />
-              </div>
-            )}
+            {/* Live LTA speed band map and markers, inset so the overlays don't cover the roads */}
+            <div className="absolute left-3 right-3 top-3 bottom-36">
+              <SpeedBandMap
+                segments={speedSegments}
+                selectedCode={selectedCorridor.code}
+                onSelect={setSelectedCorridorCode}
+                markers={mapMarkers}
+              />
+            </div>
 
             {speedSegments.length > 0 ? (
               /* Selected expressway readout, below the map */
@@ -659,8 +765,10 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
                 </div>
               </div>
             ) : (
-              <div className="relative z-10 my-auto text-center text-slate-300 text-xs font-mono">
-                {speedStatus === 'loading' ? 'Loading LTA speed band map…' : 'LTA speed band map unavailable. Retrying every minute.'}
+              <div className="relative z-10 mx-auto mb-auto px-3 py-1.5 rounded bg-black/70 text-center text-slate-200 text-[11px] font-mono">
+                {speedStatus === 'loading'
+                  ? 'Loading LTA speed band map…'
+                  : 'LTA speeds unavailable: roads are not drawn. Markers show incidents, flood alerts and lightning.'}
               </div>
             )}
 
@@ -686,10 +794,18 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
 
           {speedSegments.length > 0 && (
             <div className="-mt-2 flex flex-wrap items-center justify-between gap-2 text-[10px] font-mono text-slate-500">
-              <span>LTA speed bands{speedsUpdatedSgt ? ` • ${speedsUpdatedSgt} SGT` : ''} • click a road to select</span>
+              <span className={speedsFromSnapshot ? 'text-amber-700 font-semibold' : ''}>
+                LTA speed bands{speedsUpdatedSgt ? ` • ${speedsUpdatedSgt} SGT` : ''}
+                {speedsFromSnapshot ? ' (saved copy, feed down)' : ''} • click a road to select
+              </span>
               <SpeedBandLegend />
             </div>
           )}
+          <MapLayerToggles
+            layers={layers}
+            onToggle={toggleLayer}
+            counts={{ incidents: mappedIncidents.length, floods: floodAlerts.length, lightning: strikes.length }}
+          />
 
           {/* Live readings for the selected expressway */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
@@ -809,6 +925,53 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
               })}
             </div>
           )}
+        </div>
+
+        {/* PUB flood alerts */}
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col gap-3">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <span className="text-[11px] text-sky-600 font-bold uppercase tracking-wider">PUB Flood Alerts</span>
+              <h3 className="text-lg font-bold text-slate-900">Flash Floods</h3>
+            </div>
+            {floodFeed.data?.checkedAt && (
+              <span className="text-xs text-slate-500 font-mono">checked {sgtHour(floodFeed.data.checkedAt)} SGT</span>
+            )}
+          </div>
+          {!floodFeed.data ? (
+            <div className="text-xs text-slate-400">
+              {floodFeed.status === 'error' ? 'PUB flood alerts unavailable. Retrying.' : 'Loading PUB flood alerts…'}
+            </div>
+          ) : floodAlerts.length === 0 ? (
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 border border-slate-100 text-sm text-slate-600">
+              <span className="material-symbols-outlined text-xl text-slate-400">water_drop</span>
+              No flood alerts from PUB right now.
+            </div>
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {floodAlerts.map((f) => {
+                const codes = Object.keys(floodsByCode).filter((c) => floodsByCode[c].some((x) => x.id === f.id));
+                return (
+                  <li key={f.id} className="p-3 rounded-lg bg-sky-50 border border-sky-200 text-sm flex items-start gap-3">
+                    <span className="material-symbols-outlined text-xl text-sky-700">flood</span>
+                    <div className="flex flex-col gap-0.5 min-w-0">
+                      <span className="font-semibold text-slate-900">
+                        {floodLabel(f)}
+                        {f.severity ? <span className="ml-2 text-[11px] font-bold uppercase text-sky-800">{f.severity}</span> : null}
+                      </span>
+                      {f.description && <span className="text-xs text-slate-600">{f.description}</span>}
+                      <span className="text-[11px] text-slate-500 font-mono">
+                        from {sgtClock(Date.parse(f.startsAt))} SGT{codes.length ? ` • near ${codes.join(', ')}` : ''}
+                      </span>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          <p className="text-[11px] text-slate-500">
+            PUB alerts when water rises at a sensor. Avoid the area and never drive through flood water.
+          </p>
         </div>
 
         {/* NEA lightning and heat stress */}

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useUrlParam, writeParams } from './urlState';
 
 /**
@@ -34,4 +34,42 @@ export function useWallCycle(wall: boolean, next: () => void) {
     const interval = setInterval(() => nextRef.current(), WALL_CYCLE_MS);
     return () => clearInterval(interval);
   }, [wall]);
+}
+
+/**
+ * Keeps the screen on while `enabled` (Screen Wake Lock API). The browser drops the lock when the
+ * tab is hidden, so it is taken again on return. Returns whether a lock is held right now, or null
+ * where the browser has no wake lock.
+ */
+export function useWakeLock(enabled: boolean) {
+  const [held, setHeld] = useState<boolean | null>(() => ('wakeLock' in navigator ? false : null));
+  useEffect(() => {
+    if (!enabled || !('wakeLock' in navigator)) return;
+    let lock: WakeLockSentinel | null = null;
+    let cancelled = false;
+    const take = async () => {
+      if (document.visibilityState !== 'visible' || (lock && !lock.released)) return;
+      try {
+        lock = await navigator.wakeLock.request('screen');
+        if (cancelled) {
+          lock.release().catch(() => {});
+          return;
+        }
+        setHeld(true);
+        lock.addEventListener('release', () => setHeld(false));
+      } catch {
+        // Refused (e.g. battery saver); the screen may sleep
+        setHeld(false);
+      }
+    };
+    take();
+    document.addEventListener('visibilitychange', take);
+    return () => {
+      cancelled = true;
+      document.removeEventListener('visibilitychange', take);
+      lock?.release().catch(() => {});
+      setHeld(false);
+    };
+  }, [enabled]);
+  return held;
 }

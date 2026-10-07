@@ -13,7 +13,7 @@ const GROUPS: { title: string; keys: [string, string][] }[] = [
   {
     title: 'On a page',
     keys: [
-      ['1 – 4', 'Switch tab'],
+      ['1 – 5', 'Switch tab'],
       ['R', 'Refresh live data'],
       ['N', 'Near me'],
       ['← →', 'Previous / next expressway or camera'],

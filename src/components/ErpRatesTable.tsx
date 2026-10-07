@@ -6,8 +6,7 @@ import {
   ERP_VEHICLE_FACTORS,
   ErpExpresswayGantry,
 } from '../data/erpRates';
-
-type GantryState = 'Charging' | 'Free now' | 'No charge';
+import { GantryState, describe, formatSgd, singaporeNow } from '../utils/erp';
 
 interface GantryRow {
   gantry: ErpExpresswayGantry;
@@ -15,26 +14,6 @@ interface GantryRow {
   carRate: number;
   note: string;
   windows: string;
-}
-
-const formatSgd = (amount: number) => `S$${amount.toFixed(2)}`;
-
-// Current weekday and HH:MM in Singapore, regardless of the viewer's time zone.
-export function singaporeNow(date: Date) {
-  const parts = new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'Asia/Singapore',
-    weekday: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-    hourCycle: 'h23',
-  }).formatToParts(date);
-  const get = (type: string) => parts.find((p) => p.type === type)?.value || '';
-  const weekday = get('weekday');
-  return {
-    weekday,
-    isWeekday: !['Sat', 'Sun'].includes(weekday),
-    hhmm: `${get('hour')}:${get('minute')}`,
-  };
 }
 
 // Join back-to-back slots into operating windows, e.g. "07:00–10:00, 17:30–18:30".
@@ -46,32 +25,6 @@ function operatingWindows(gantry: ErpExpresswayGantry): string {
     else windows.push([start, end]);
   }
   return windows.map(([s, e]) => `${s}–${e}`).join(', ');
-}
-
-export function describe(gantry: ErpExpresswayGantry, isWeekday: boolean, hhmm: string): Omit<GantryRow, 'gantry' | 'windows'> {
-  const schedule = gantry.weekdaySchedule;
-  if (schedule.length === 0) {
-    return { state: 'No charge', carRate: 0, note: 'S$0.00 at all times' };
-  }
-  if (!isWeekday) {
-    return { state: 'Free now', carRate: 0, note: `Weekends free • next Mon ${schedule[0][0]}` };
-  }
-
-  // Zero-padded HH:MM strings compare correctly as text.
-  const index = schedule.findIndex(([start, end]) => start <= hhmm && hhmm < end);
-  if (index >= 0) {
-    const [, end, amount] = schedule[index];
-    const next = schedule[index + 1];
-    const after = next && next[0] === end ? formatSgd(next[2]) : 'free';
-    return { state: 'Charging', carRate: amount, note: `until ${end}, then ${after}` };
-  }
-
-  const upcoming = schedule.find(([start]) => start > hhmm);
-  return {
-    state: 'Free now',
-    carRate: 0,
-    note: upcoming ? `from ${upcoming[0]} at ${formatSgd(upcoming[2])}` : 'no more charges today',
-  };
 }
 
 const STATE_ORDER: Record<GantryState, number> = { Charging: 0, 'Free now': 1, 'No charge': 2 };

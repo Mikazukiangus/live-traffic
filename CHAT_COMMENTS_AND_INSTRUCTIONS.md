@@ -879,6 +879,52 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 ### Done:
 - Fast-forwarded `main` to `preview/copyright-logo` (Turn 48): © 2026 in the footer, the header logo from `/icons/icon.svg`, and a person icon for the profile picture.
 
+## 50. Turn 50: Fourteen More Improvements
+
+**User Instructions:**
+> "suggest more improvements"
+> "build all 14."
+
+### Done (preview branch `preview/more-improvements`):
+- **1. Contacts and branding:** the footer now shows 999 (Police), 995 (Ambulance & Fire) and LTA's hotline 1800 2255 582 (that is the real "1800-CALL-LTA" number). "Smart Mobility Authority" is replaced by TrafficPulse, with the data sources and "Not an official LTA service".
+- **2. When LTA speeds are down:**
+  - The last good speeds are kept in the browser (up to 24 hours) and shown with their time.
+  - Expressway cards show LTA travel times in place of the missing speed.
+  - A notice explains what is missing.
+  - The map still draws markers without roads.
+  - The cameras page uses the saved copy for checkpoint drive times.
+- **3. Page title and link previews:** title "TrafficPulse – Live Singapore Expressway Traffic", a new description, and a 1200×630 share image (`public/og-image.png`). Production is behind Vercel login, so chat apps can't fetch previews until it is public.
+- **4. Header:** the profile icon is gone. The bell shows a red count of incidents on your saved commutes. The alerts drawer lists those first, with the commute names, and offers to add a commute when there are none. Nav labels are shortened below 1280 px so the header no longer overflows at 1024–1280 px.
+- **5. ERP now:** the commute cards and Near me show the current ERP charge for cars on those expressways, or when the next charge starts (`src/utils/erp.ts`, shared with the ERP table).
+- **6. Leave now or wait:** each commute records its LTA travel time while the app is open (kept for 3 hours in this browser). It shows a small chart and "+5 min since 16:24 · traffic is building" / easing / steady.
+- **7. Checkpoints:** a Woodlands and Tuas summary at the top of the cameras page. It shows the Causeway / Second Link reading (or vehicle count), the drive to the checkpoint, and the queue near it. When speeds are down, the drive comes from LTA travel times (BKE from PIE; AYE from Jurong Town Hall).
+- **8. Flood alerts:**
+  - New feed `/api/live?feed=floods` (PUB via data.gov.sg; alerts lapse after an hour or when cancelled).
+  - A Flash Floods panel on the Weather tab.
+  - Lines on the expressway and commute cards.
+  - Shown on the map.
+  - Added to health (now 15 endpoints).
+- **9. Home-screen shortcuts:** My commute (`#commute`), Checkpoint cameras, Near me (`?near=1`) and Incidents.
+- **10. Larger text and keep-awake:** a text-size button (header; phone menu) scales the whole page and is remembered. The wall display keeps the screen on, with a button to allow sleep.
+- **11. Map layers:** incidents (critical in red), flood alert areas and lightning strikes on the speed map, each switchable and remembered.
+- **12. All cameras:** a new camera tab shows every camera at once. A picker chooses which; the choice is kept in the link (`?cams=`) and the grid stays put on a wall display. Keyboard: 4 = All cameras, 5 = Road Signs.
+- **13. Automated checks:**
+  - `npm test` runs 11 parser tests (`tests/parsers.test.ts`, Node's built-in runner, no new packages).
+  - `.github/workflows/checks.yml` runs the type check, tests and build on every push.
+- **14. Daily health check:** `.github/workflows/health.yml` checks production `/api/health` at 07:30 SGT and fails (GitHub emails the owner) if any feed is down. It needs Vercel's Protection Bypass for Automation secret saved as the repository secret `VERCEL_AUTOMATION_BYPASS_SECRET`; until then it is skipped with a notice.
+- Service worker cache version v3.
+
+### Verified locally:
+- Speeds-down notice and travel-time badges (LTA speed bands returning 500 today).
+- The saved-copy fallback ("15:55 SGT (saved copy, feed down)").
+- Map markers without roads, and layer toggles.
+- Commute trend (+5 min), ERP line (free now, AYE from 17:00 at S$0.50), and incidents on commutes in the drawer and bell.
+- An injected flood alert on the PIE/AYE cards, commute, map and Weather panel.
+- Checkpoint summary with LTA travel times; the All cameras picker and link.
+- Larger text (16 → 19 px), the `#commute` and `?near=1` shortcuts, and the wall display screen-on button.
+- Phone width without sideways scroll.
+- Tests, type check and build pass. Test data was removed from the browser afterwards.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*

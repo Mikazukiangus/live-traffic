@@ -129,6 +129,8 @@ export const mapLtaIncident = (item: LtaIncidentRecord, idx: number, now: Date =
     id: `lta-inc-${idx}-${item.Latitude ?? 0}-${item.Longitude ?? 0}`,
     corridor: corridorName(parsed.corridorCode),
     corridorCode: parsed.corridorCode,
+    lat: typeof item.Latitude === 'number' ? item.Latitude : undefined,
+    lon: typeof item.Longitude === 'number' ? item.Longitude : undefined,
     location: parsed.location,
     type,
     lane: parsed.lane,
