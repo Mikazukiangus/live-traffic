@@ -927,7 +927,8 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
           )}
         </div>
 
-        {/* PUB flood alerts */}
+        {/* PUB flood alerts, only while there are any */}
+        {floodAlerts.length > 0 && (
         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col gap-3">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
@@ -938,16 +939,6 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
               <span className="text-xs text-slate-500 font-mono">checked {sgtHour(floodFeed.data.checkedAt)} SGT</span>
             )}
           </div>
-          {!floodFeed.data ? (
-            <div className="text-xs text-slate-400">
-              {floodFeed.status === 'error' ? 'PUB flood alerts unavailable. Retrying.' : 'Loading PUB flood alerts…'}
-            </div>
-          ) : floodAlerts.length === 0 ? (
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 border border-slate-100 text-sm text-slate-600">
-              <span className="material-symbols-outlined text-xl text-slate-400">water_drop</span>
-              No flood alerts from PUB right now.
-            </div>
-          ) : (
             <ul className="flex flex-col gap-2">
               {floodAlerts.map((f) => {
                 const codes = Object.keys(floodsByCode).filter((c) => floodsByCode[c].some((x) => x.id === f.id));
@@ -968,11 +959,11 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
                 );
               })}
             </ul>
-          )}
           <p className="text-[11px] text-slate-500">
             PUB alerts when water rises at a sensor. Avoid the area and never drive through flood water.
           </p>
         </div>
+        )}
 
         {/* NEA lightning and heat stress */}
         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col gap-4">

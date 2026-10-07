@@ -925,6 +925,17 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Phone width without sideways scroll.
 - Tests, type check and build pass. Test data was removed from the browser afterwards.
 
+## 51. Turn 51: Hide Flood Alerts When There Are None
+
+**User Instructions:**
+> "i don't see the flood alerts?"
+> "If there are no flood alerts, dont need to show."
+
+### Done:
+- PUB had no active flood alerts, so the feature only appeared as a "No flood alerts" panel on the Weather tab.
+- The Flash Floods panel on the Weather tab, and the "Flood alerts" map layer button, now appear only while PUB has an active alert. The lines on the cards and the circles on the map already showed only for real alerts.
+- Verified locally: with no alerts, the panel and the map button are hidden. With an injected test alert, both appear ("Flood alerts (1)", "Jalan Boon Lay").
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*

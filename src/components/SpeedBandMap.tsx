@@ -147,7 +147,7 @@ export const MapLayerToggles: React.FC<{
   ];
   return (
     <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Map layers">
-      {items.map((it) => (
+      {items.filter((it) => it.id !== 'floods' || counts.floods > 0).map((it) => (
         <button
           key={it.id}
           onClick={() => onToggle(it.id)}
