@@ -3,7 +3,7 @@
  * live data it received. Pages and /api data are network-first (always fresh when online);
  * hashed build assets are cache-first. The app flags old data itself from each feed's timestamp.
  */
-const VERSION = 'v3';
+const VERSION = 'v4';
 const SHELL = `shell-${VERSION}`;
 const ASSETS = `assets-${VERSION}`;
 const DATA = `data-${VERSION}`;

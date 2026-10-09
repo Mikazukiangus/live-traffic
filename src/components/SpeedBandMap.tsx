@@ -4,16 +4,16 @@ import React, { useMemo } from 'react';
 export type SpeedSegment = [string, number, number, number, number, number];
 
 // LTA speed bands: 1-7 are 10 km/h ranges, 8 is 70 km/h and above.
-// Carmine through Vermilion, Orange Rufous, Yellow Ochre to Cossack Green, brightened for the dark map.
+// Red through deepening Yellow Orange and Cream Yellow to Benzol Green (plate 267), brightened for the dark map.
 export const SPEED_BAND_COLOURS: Record<number, { colour: string; label: string }> = {
-  1: { colour: '#c0303f', label: '0–9' },
-  2: { colour: '#d4502f', label: '10–19' },
-  3: { colour: '#d9703a', label: '20–29' },
-  4: { colour: '#de8d4a', label: '30–39' },
-  5: { colour: '#d8a53c', label: '40–49' },
-  6: { colour: '#dcc35e', label: '50–59' },
-  7: { colour: '#a3ae4e', label: '60–69' },
-  8: { colour: '#6aab6c', label: '70+' },
+  1: { colour: '#d0394a', label: '0–9' },
+  2: { colour: '#d9531f', label: '10–19' },
+  3: { colour: '#e86a1c', label: '20–29' },
+  4: { colour: '#f2861c', label: '30–39' },
+  5: { colour: '#f99d1b', label: '40–49' },
+  6: { colour: '#fdbf68', label: '50–59' },
+  7: { colour: '#4fb8ad', label: '60–69' },
+  8: { colour: '#00a99d', label: '70+' },
 };
 
 // Projected units per degree; Singapore sits ~1.35°N, so lon/lat distortion is negligible.
@@ -38,8 +38,8 @@ export interface MapMarker {
 
 const MARKER_STYLE: Record<MapMarkerKind, { fill: string; r: number }> = {
   critical: { fill: '#e2414f', r: 5 },
-  incident: { fill: '#f0a73a', r: 4 },
-  flood: { fill: '#4fa3d9', r: 4.5 },
+  incident: { fill: '#f99d1b', r: 4 },
+  flood: { fill: '#4aa3e0', r: 4.5 },
   lightning: { fill: '#c9a7ff', r: 2 },
 };
 
@@ -97,7 +97,7 @@ export const SpeedBandMap: React.FC<SpeedBandMapProps> = ({ segments, selectedCo
             key={`${p.code}-${p.band}`}
             d={p.d}
             fill="none"
-            stroke={SPEED_BAND_COLOURS[p.band]?.colour || '#8c877c'}
+            stroke={SPEED_BAND_COLOURS[p.band]?.colour || '#868c90'}
             strokeWidth={isSelected ? 3.5 : 1.6}
             strokeOpacity={isSelected ? 1 : 0.35}
             strokeLinecap="round"

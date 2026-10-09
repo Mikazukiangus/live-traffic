@@ -1,274 +1,265 @@
 @import "tailwindcss";
 
 /*
- * Light palette after Wada Sanzo's Dictionary of Colour Combinations. Rather than renaming
- * classes across the app, the Tailwind colour scales it uses are redefined here:
- * slate = warm paper and ink (Ivory Buff, Olive Buff, Neutral Gray, Deep Slate Olive),
- * sky = Antwarp Blue, emerald = Cossack Green, amber = Yellow Ochre,
- * yellow = an olive between ochre and green ("Moderate"), orange = Orange Rufous,
- * red = Hermosa Pink (light) through Vermilion (600) to Carmine (700).
- * Hex values approximate the printed swatches.
+ * Light palette after Wada Sanzo's Dictionary of Colour Combinations, plate 267
+ * "Cream Yellow & Yellow Orange +2": Cream Yellow #fdbf68, Yellow Orange #f99d1b,
+ * Benzol Green #00978d and Blue #006eb8. Rather than renaming classes across the app, the
+ * Tailwind colour scales it uses are redefined here:
+ * slate = a pale wash of Cream Yellow and a blue-black ink, sky = Blue, emerald = Benzol Green,
+ * amber = Cream Yellow (300) to Yellow Orange (500), yellow = Cream Yellow ("Moderate"),
+ * orange = a deeper Yellow Orange for jams. Red stays outside the plate for accidents and
+ * emergencies. 600s used as text are darkened to keep 4.5:1 on the ground.
  */
 @theme {
   --color-white: #fffdf8;
-
-  --color-slate-50: #f7f2e7;
-  --color-slate-100: #efe8d8;
-  --color-slate-200: #e3d9c2;
-  --color-slate-300: #cfc4a9;
-  --color-slate-400: #8c877c;
-  --color-slate-500: #6b675e;
-  --color-slate-600: #55524a;
-  --color-slate-700: #45433c;
-  --color-slate-800: #35372f;
-  --color-slate-900: #2e3229;
-  --color-slate-950: #1f221c;
-
-  --color-sky-50: #eef4f6;
-  --color-sky-100: #dce8ec;
-  --color-sky-200: #bcd3dc;
-  --color-sky-300: #8fb5c5;
-  --color-sky-400: #5e93ab;
-  --color-sky-500: #3a7593;
-  --color-sky-600: #1f5a7a;
-  --color-sky-700: #194b66;
-  --color-sky-800: #163f56;
-  --color-sky-900: #133447;
-  --color-sky-950: #0c2230;
-
-  --color-emerald-50: #eef4ec;
-  --color-emerald-100: #e2ede1;
-  --color-emerald-200: #c6dcc4;
-  --color-emerald-300: #9cc29a;
-  --color-emerald-400: #6fa06f;
-  --color-emerald-500: #4e8a57;
-  --color-emerald-600: #3e7c4a;
-  --color-emerald-700: #2f6239;
-  --color-emerald-800: #264f2f;
-  --color-emerald-900: #1f4127;
-  --color-emerald-950: #10241a;
-
-  --color-amber-50: #faf3e0;
-  --color-amber-100: #f3e6c4;
-  --color-amber-200: #e9d39c;
-  --color-amber-300: #ddbc6e;
-  --color-amber-400: #d2a748;
-  --color-amber-500: #c8962e;
-  --color-amber-600: #946c1a;
-  --color-amber-700: #8a6416;
-  --color-amber-800: #6e4f12;
-  --color-amber-900: #5a410f;
-  --color-amber-950: #33240a;
-
-  --color-yellow-100: #e9eedd;
-  --color-yellow-200: #d3dcb8;
-  --color-yellow-400: #a3ae4e;
-  --color-yellow-800: #4f5e1e;
-
-  --color-orange-500: #c8622e;
-  --color-orange-700: #a84e1e;
-
-  --color-red-50: #fbeeea;
-  --color-red-100: #f4ddd6;
-  --color-red-200: #e6bfb5;
-  --color-red-300: #d79483;
-  --color-red-400: #c96650;
-  --color-red-500: #be4a30;
-  --color-red-600: #b83a22;
-  --color-red-700: #9e1b32;
-  --color-red-800: #7c2617;
-  --color-red-900: #661f14;
-  --color-red-950: #3a0f09;
-
-  --color-rose-50: #fbeeea;
-
-  --color-blue-800: #1e3f66;
+  --color-slate-50: #fff8ec;
+  --color-slate-100: #f8eedb;
+  --color-slate-200: #ecdfc6;
+  --color-slate-300: #d9c9a8;
+  --color-slate-400: #868c90;
+  --color-slate-500: #5b6670;
+  --color-slate-600: #4a545d;
+  --color-slate-700: #3a444d;
+  --color-slate-800: #2b363f;
+  --color-slate-900: #1d2a33;
+  --color-slate-950: #121c24;
+  --color-sky-50: #eaf3fa;
+  --color-sky-100: #d4e7f5;
+  --color-sky-200: #a9cfeb;
+  --color-sky-300: #6fb0de;
+  --color-sky-400: #3590cc;
+  --color-sky-500: #0a7cc4;
+  --color-sky-600: #006eb8;
+  --color-sky-700: #005a97;
+  --color-sky-800: #00487a;
+  --color-sky-900: #003a63;
+  --color-sky-950: #00243f;
+  --color-emerald-50: #e8f6f4;
+  --color-emerald-100: #d1eeea;
+  --color-emerald-200: #a3dcd5;
+  --color-emerald-300: #62c2b8;
+  --color-emerald-400: #22a99e;
+  --color-emerald-500: #00978d;
+  --color-emerald-600: #007f77;
+  --color-emerald-700: #00655f;
+  --color-emerald-800: #00514c;
+  --color-emerald-900: #00423e;
+  --color-emerald-950: #002826;
+  --color-amber-50: #fff6e6;
+  --color-amber-100: #feeacb;
+  --color-amber-200: #fed9a0;
+  --color-amber-300: #fdbf68;
+  --color-amber-400: #fbac3c;
+  --color-amber-500: #f99d1b;
+  --color-amber-600: #a86100;
+  --color-amber-700: #8f5200;
+  --color-amber-800: #6e3f00;
+  --color-amber-900: #573200;
+  --color-amber-950: #321d00;
+  --color-yellow-100: #fff1d6;
+  --color-yellow-200: #fde0a8;
+  --color-yellow-400: #fdbf68;
+  --color-yellow-800: #6e4a00;
+  --color-orange-500: #e07a1f;
+  --color-orange-700: #b4480f;
+  --color-red-50: #fcecec;
+  --color-red-100: #f8d9da;
+  --color-red-200: #efb3b6;
+  --color-red-300: #e0808a;
+  --color-red-400: #cf5362;
+  --color-red-500: #bd3343;
+  --color-red-600: #a3172b;
+  --color-red-700: #8e1f2b;
+  --color-red-800: #741a24;
+  --color-red-900: #5e161e;
+  --color-red-950: #360a10;
+  --color-rose-50: #fcecec;
+  --color-blue-800: #00487a;
   --color-violet-800: #4e3a63;
 
   /* Dimmed backdrop behind dialogs, the same in both themes */
-  --color-scrim: #1f221c;
+  --color-scrim: #121c24;
 }
 
 /*
- * Night palette: the same Wada Sanzo hues on a deep slate-olive ground. Surfaces and ink swap
+ * Night palette: the same plate 267 hues on a deep blue-black ground. Surfaces and ink swap
  * (slate is redefined end to end), tints become dark washes and dark text becomes light; the
  * mid tones (400–600) used for buttons, bars and dots stay as they are.
  * Follows the device unless a theme is picked (html[data-theme]).
  */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-  --color-white: #262922;
-  --color-slate-50: #1b1d18;
-  --color-slate-100: #2c2f28;
-  --color-slate-200: #3b3e35;
-  --color-slate-300: #4f5247;
-  --color-slate-400: #8f8a7d;
-  --color-slate-500: #aaa597;
-  --color-slate-600: #c2bcad;
-  --color-slate-700: #d6d0c0;
-  --color-slate-800: #e6e0d0;
-  --color-slate-900: #f3eee2;
+  --color-white: #18222b;
+  --color-slate-50: #10181f;
+  --color-slate-100: #1a242d;
+  --color-slate-200: #26323c;
+  --color-slate-300: #37444f;
+  --color-slate-400: #7d8890;
+  --color-slate-500: #9aa4ab;
+  --color-slate-600: #b7bfc4;
+  --color-slate-700: #cfd5d8;
+  --color-slate-800: #e3e6e6;
+  --color-slate-900: #f4f1ea;
   --color-slate-950: #fbf8f1;
-  --color-sky-50: #1c2728;
-  --color-sky-100: #1c2d31;
-  --color-sky-200: #1d3741;
-  --color-sky-300: #2f5668;
-  --color-sky-700: #8fb5c5;
-  --color-sky-800: #bcd3dc;
-  --color-sky-900: #dce8ec;
-  --color-sky-950: #eef4f6;
-  --color-emerald-50: #212c20;
-  --color-emerald-100: #243625;
-  --color-emerald-200: #2a452d;
-  --color-emerald-300: #3c6441;
-  --color-emerald-700: #9cc29a;
-  --color-emerald-800: #c6dcc4;
-  --color-emerald-900: #e2ede1;
-  --color-emerald-950: #eef4ec;
-  --color-amber-50: #2e2a18;
-  --color-amber-100: #3a3219;
-  --color-amber-200: #4e3e19;
-  --color-amber-300: #8b6c26;
-  --color-amber-700: #ddbc6e;
-  --color-amber-800: #e9d39c;
-  --color-amber-900: #f3e6c4;
-  --color-amber-950: #faf3e0;
-  --color-red-50: #34221a;
-  --color-red-100: #44251b;
-  --color-red-200: #5d291c;
-  --color-red-300: #853a28;
-  --color-red-700: #d79483;
-  --color-red-800: #e6bfb5;
-  --color-red-900: #f4ddd6;
-  --color-red-950: #fbeeea;
-  --color-yellow-100: #393d24;
-  --color-yellow-200: #51572e;
-  --color-yellow-800: #d3dcb8;
-  --color-orange-700: #e3a27c;
-  --color-rose-50: #34221a;
-  --color-blue-800: #9fbad9;
+  --color-sky-50: #0f2130;
+  --color-sky-100: #102a3e;
+  --color-sky-200: #12364f;
+  --color-sky-300: #1d5479;
+  --color-sky-700: #6fb0de;
+  --color-sky-800: #a9cfeb;
+  --color-sky-900: #d4e7f5;
+  --color-sky-950: #eaf3fa;
+  --color-emerald-50: #0d2423;
+  --color-emerald-100: #0f2f2d;
+  --color-emerald-200: #123d3a;
+  --color-emerald-300: #1a5c56;
+  --color-emerald-700: #62c2b8;
+  --color-emerald-800: #a3dcd5;
+  --color-emerald-900: #d1eeea;
+  --color-emerald-950: #e8f6f4;
+  --color-amber-50: #2a2010;
+  --color-amber-100: #352712;
+  --color-amber-200: #4a3412;
+  --color-amber-300: #8a5a12;
+  --color-amber-700: #fdbf68;
+  --color-amber-800: #fed9a0;
+  --color-amber-900: #feeacb;
+  --color-amber-950: #fff6e6;
+  --color-red-50: #2e171b;
+  --color-red-100: #3d1b21;
+  --color-red-200: #552128;
+  --color-red-300: #84303b;
+  --color-red-700: #e0808a;
+  --color-red-800: #efb3b6;
+  --color-red-900: #f8d9da;
+  --color-red-950: #fcecec;
+  --color-yellow-100: #352a12;
+  --color-yellow-200: #4a3a14;
+  --color-yellow-800: #fde0a8;
+  --color-orange-700: #f0a46a;
+  --color-rose-50: #2e171b;
+  --color-blue-800: #a9cfeb;
   --color-violet-800: #c4b3da;
     color-scheme: dark;
   }
   :root:not([data-theme="light"]) .text-white { color: #fffdf8; }
-  /* 600s are kept for buttons and bars; as text on the dark ground they need the lighter tone. */
-  :root:not([data-theme="light"]) .text-sky-600 { color: #8fb5c5; }
-  :root:not([data-theme="light"]) .text-emerald-600 { color: #9cc29a; }
-  :root:not([data-theme="light"]) .text-amber-600 { color: #ddbc6e; }
-  :root:not([data-theme="light"]) .text-red-600 { color: #d79483; }
+  :root:not([data-theme="light"]) .text-sky-600 { color: #6fb0de; }
+  :root:not([data-theme="light"]) .text-emerald-600 { color: #62c2b8; }
+  :root:not([data-theme="light"]) .text-amber-600 { color: #fdbf68; }
+  :root:not([data-theme="light"]) .text-red-600 { color: #e0808a; }
 }
 :root[data-theme="dark"] {
-  --color-white: #262922;
-  --color-slate-50: #1b1d18;
-  --color-slate-100: #2c2f28;
-  --color-slate-200: #3b3e35;
-  --color-slate-300: #4f5247;
-  --color-slate-400: #8f8a7d;
-  --color-slate-500: #aaa597;
-  --color-slate-600: #c2bcad;
-  --color-slate-700: #d6d0c0;
-  --color-slate-800: #e6e0d0;
-  --color-slate-900: #f3eee2;
+  --color-white: #18222b;
+  --color-slate-50: #10181f;
+  --color-slate-100: #1a242d;
+  --color-slate-200: #26323c;
+  --color-slate-300: #37444f;
+  --color-slate-400: #7d8890;
+  --color-slate-500: #9aa4ab;
+  --color-slate-600: #b7bfc4;
+  --color-slate-700: #cfd5d8;
+  --color-slate-800: #e3e6e6;
+  --color-slate-900: #f4f1ea;
   --color-slate-950: #fbf8f1;
-  --color-sky-50: #1c2728;
-  --color-sky-100: #1c2d31;
-  --color-sky-200: #1d3741;
-  --color-sky-300: #2f5668;
-  --color-sky-700: #8fb5c5;
-  --color-sky-800: #bcd3dc;
-  --color-sky-900: #dce8ec;
-  --color-sky-950: #eef4f6;
-  --color-emerald-50: #212c20;
-  --color-emerald-100: #243625;
-  --color-emerald-200: #2a452d;
-  --color-emerald-300: #3c6441;
-  --color-emerald-700: #9cc29a;
-  --color-emerald-800: #c6dcc4;
-  --color-emerald-900: #e2ede1;
-  --color-emerald-950: #eef4ec;
-  --color-amber-50: #2e2a18;
-  --color-amber-100: #3a3219;
-  --color-amber-200: #4e3e19;
-  --color-amber-300: #8b6c26;
-  --color-amber-700: #ddbc6e;
-  --color-amber-800: #e9d39c;
-  --color-amber-900: #f3e6c4;
-  --color-amber-950: #faf3e0;
-  --color-red-50: #34221a;
-  --color-red-100: #44251b;
-  --color-red-200: #5d291c;
-  --color-red-300: #853a28;
-  --color-red-700: #d79483;
-  --color-red-800: #e6bfb5;
-  --color-red-900: #f4ddd6;
-  --color-red-950: #fbeeea;
-  --color-yellow-100: #393d24;
-  --color-yellow-200: #51572e;
-  --color-yellow-800: #d3dcb8;
-  --color-orange-700: #e3a27c;
-  --color-rose-50: #34221a;
-  --color-blue-800: #9fbad9;
+  --color-sky-50: #0f2130;
+  --color-sky-100: #102a3e;
+  --color-sky-200: #12364f;
+  --color-sky-300: #1d5479;
+  --color-sky-700: #6fb0de;
+  --color-sky-800: #a9cfeb;
+  --color-sky-900: #d4e7f5;
+  --color-sky-950: #eaf3fa;
+  --color-emerald-50: #0d2423;
+  --color-emerald-100: #0f2f2d;
+  --color-emerald-200: #123d3a;
+  --color-emerald-300: #1a5c56;
+  --color-emerald-700: #62c2b8;
+  --color-emerald-800: #a3dcd5;
+  --color-emerald-900: #d1eeea;
+  --color-emerald-950: #e8f6f4;
+  --color-amber-50: #2a2010;
+  --color-amber-100: #352712;
+  --color-amber-200: #4a3412;
+  --color-amber-300: #8a5a12;
+  --color-amber-700: #fdbf68;
+  --color-amber-800: #fed9a0;
+  --color-amber-900: #feeacb;
+  --color-amber-950: #fff6e6;
+  --color-red-50: #2e171b;
+  --color-red-100: #3d1b21;
+  --color-red-200: #552128;
+  --color-red-300: #84303b;
+  --color-red-700: #e0808a;
+  --color-red-800: #efb3b6;
+  --color-red-900: #f8d9da;
+  --color-red-950: #fcecec;
+  --color-yellow-100: #352a12;
+  --color-yellow-200: #4a3a14;
+  --color-yellow-800: #fde0a8;
+  --color-orange-700: #f0a46a;
+  --color-rose-50: #2e171b;
+  --color-blue-800: #a9cfeb;
   --color-violet-800: #c4b3da;
   color-scheme: dark;
 }
 :root[data-theme="dark"] .text-white { color: #fffdf8; }
-:root[data-theme="dark"] .text-sky-600 { color: #8fb5c5; }
-:root[data-theme="dark"] .text-emerald-600 { color: #9cc29a; }
-:root[data-theme="dark"] .text-amber-600 { color: #ddbc6e; }
-:root[data-theme="dark"] .text-red-600 { color: #d79483; }
+:root[data-theme="dark"] .text-sky-600 { color: #6fb0de; }
+:root[data-theme="dark"] .text-emerald-600 { color: #62c2b8; }
+:root[data-theme="dark"] .text-amber-600 { color: #fdbf68; }
+:root[data-theme="dark"] .text-red-600 { color: #e0808a; }
 
 /* Panels designed dark in both themes (speed map, road signs, camera frames) keep the day palette. */
 .fixed-palette {
   --color-white: #fffdf8;
-  --color-slate-50: #f7f2e7;
-  --color-slate-100: #efe8d8;
-  --color-slate-200: #e3d9c2;
-  --color-slate-300: #cfc4a9;
-  --color-slate-400: #8c877c;
-  --color-slate-500: #6b675e;
-  --color-slate-600: #55524a;
-  --color-slate-700: #45433c;
-  --color-slate-800: #35372f;
-  --color-slate-900: #2e3229;
-  --color-slate-950: #1f221c;
-  --color-sky-50: #eef4f6;
-  --color-sky-100: #dce8ec;
-  --color-sky-200: #bcd3dc;
-  --color-sky-300: #8fb5c5;
-  --color-sky-700: #194b66;
-  --color-sky-800: #163f56;
-  --color-sky-900: #133447;
-  --color-sky-950: #0c2230;
-  --color-emerald-50: #eef4ec;
-  --color-emerald-100: #e2ede1;
-  --color-emerald-200: #c6dcc4;
-  --color-emerald-300: #9cc29a;
-  --color-emerald-700: #2f6239;
-  --color-emerald-800: #264f2f;
-  --color-emerald-900: #1f4127;
-  --color-emerald-950: #10241a;
-  --color-amber-50: #faf3e0;
-  --color-amber-100: #f3e6c4;
-  --color-amber-200: #e9d39c;
-  --color-amber-300: #ddbc6e;
-  --color-amber-700: #8a6416;
-  --color-amber-800: #6e4f12;
-  --color-amber-900: #5a410f;
-  --color-amber-950: #33240a;
-  --color-red-50: #fbeeea;
-  --color-red-100: #f4ddd6;
-  --color-red-200: #e6bfb5;
-  --color-red-300: #d79483;
-  --color-red-700: #9e1b32;
-  --color-red-800: #7c2617;
-  --color-red-900: #661f14;
-  --color-red-950: #3a0f09;
-  --color-yellow-100: #e9eedd;
-  --color-yellow-200: #d3dcb8;
-  --color-yellow-800: #4f5e1e;
-  --color-orange-700: #a84e1e;
-  --color-rose-50: #fbeeea;
-  --color-blue-800: #1e3f66;
+  --color-slate-50: #fff8ec;
+  --color-slate-100: #f8eedb;
+  --color-slate-200: #ecdfc6;
+  --color-slate-300: #d9c9a8;
+  --color-slate-400: #868c90;
+  --color-slate-500: #5b6670;
+  --color-slate-600: #4a545d;
+  --color-slate-700: #3a444d;
+  --color-slate-800: #2b363f;
+  --color-slate-900: #1d2a33;
+  --color-slate-950: #121c24;
+  --color-sky-50: #eaf3fa;
+  --color-sky-100: #d4e7f5;
+  --color-sky-200: #a9cfeb;
+  --color-sky-300: #6fb0de;
+  --color-sky-700: #005a97;
+  --color-sky-800: #00487a;
+  --color-sky-900: #003a63;
+  --color-sky-950: #00243f;
+  --color-emerald-50: #e8f6f4;
+  --color-emerald-100: #d1eeea;
+  --color-emerald-200: #a3dcd5;
+  --color-emerald-300: #62c2b8;
+  --color-emerald-700: #00655f;
+  --color-emerald-800: #00514c;
+  --color-emerald-900: #00423e;
+  --color-emerald-950: #002826;
+  --color-amber-50: #fff6e6;
+  --color-amber-100: #feeacb;
+  --color-amber-200: #fed9a0;
+  --color-amber-300: #fdbf68;
+  --color-amber-700: #8f5200;
+  --color-amber-800: #6e3f00;
+  --color-amber-900: #573200;
+  --color-amber-950: #321d00;
+  --color-yellow-100: #fff1d6;
+  --color-yellow-200: #fde0a8;
+  --color-yellow-800: #6e4a00;
+  --color-orange-700: #b4480f;
+  --color-red-50: #fcecec;
+  --color-red-100: #f8d9da;
+  --color-red-200: #efb3b6;
+  --color-red-300: #e0808a;
+  --color-red-700: #8e1f2b;
+  --color-red-800: #741a24;
+  --color-red-900: #5e161e;
+  --color-red-950: #360a10;
+  --color-rose-50: #fcecec;
+  --color-blue-800: #00487a;
   --color-violet-800: #4e3a63;
   color-scheme: light;
 }

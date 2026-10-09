@@ -944,6 +944,26 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 ### Done:
 - Fast-forward merged `preview/more-improvements` (Turns 50–51) into `main` and pushed. Vercel deploys it to production.
 
+## 53. Turn 53: Wada Sanzo Plate 267 Colours
+
+**User Instructions:**
+> "/design I want to change the colour scheme to "Cream Yellow & Yellow Orange +2", plate 267 from Sanzo Wada's 1933 dictionary of colour combinations - cream yellow, yellow orange, benzol green, blue."
+> "looks ok, apply to main"
+
+### Done:
+- Designed the palette first on a design canvas (palette sheet, Live Traffic desktop, phone My commute).
+- Hex values come from the Wada dataset (mattdesl/dictionary-of-colour-combinations), which lists all four in plate 267: Cream Yellow #FDBF68, Yellow Orange #F99D1B, Benzol Green #00978D, Blue #006EB8.
+- `src/index.css`: the Tailwind scales were redefined, with the light base kept:
+  - slate is a pale Cream Yellow ground (#FFF8EC) with blue-black ink (#1D2A33).
+  - sky is Blue, emerald is Benzol Green, amber runs from Cream Yellow to Yellow Orange, and yellow is Cream Yellow ("Moderate").
+  - Text tones are darkened to keep 4.5:1.
+  - Red stays outside the plate for accidents and emergencies.
+  - Dark mode uses the same hues on a blue-black ground.
+- Speed map bands go from red through orange and Cream Yellow to Benzol Green; markers were updated to match.
+- App icon, favicons, share image, `theme-color` and manifest colours are now Blue. Service worker cache is v4.
+- The alert badge on Yellow Orange now uses dark text.
+- Verified locally in light and dark mode; type check, tests and build pass.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*

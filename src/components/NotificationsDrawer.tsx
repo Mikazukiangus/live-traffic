@@ -50,7 +50,7 @@ export const NotificationsDrawer: React.FC<NotificationsDrawerProps> = ({
               isCritical
                 ? 'bg-red-600 text-white'
                 : isWarning
-                ? 'bg-amber-500 text-white'
+                ? 'bg-amber-500 text-slate-900'
                 : 'bg-slate-200 text-slate-700'
             }`}
           >
