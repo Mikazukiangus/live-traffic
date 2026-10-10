@@ -610,6 +610,17 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
             return (
               <div
                 key={corridor.code}
+                id={`road-${corridor.code}`}
+                tabIndex={0}
+                role="button"
+                aria-label={`${corridor.code} ${corridor.name}`}
+                aria-pressed={isSelected}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    setSelectedCorridorCode(corridor.code);
+                  }
+                }}
                 onClick={() => setSelectedCorridorCode(corridor.code)}
                 className={`p-4 rounded-xl border bg-white cursor-pointer transition-all shadow-xs flex flex-col justify-between gap-3 relative overflow-hidden ${
                   isSelected

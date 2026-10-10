@@ -13,6 +13,7 @@ import {
 import { countByCorridor, useLtaIncidents } from './utils/ltaIncidents';
 import { describeExpresswaySpeed, useExpresswaySpeeds } from './utils/expresswaySpeeds';
 import { nearestArea, useRainForecast } from './utils/rainForecast';
+import { RoadSearchResult, searchDestination } from './utils/roadSearch';
 import { Header } from './components/Header';
 import { TelemetryBar } from './components/TelemetryBar';
 import { Footer } from './components/Footer';
@@ -98,7 +99,6 @@ export default function App() {
   const [currentMarker, setCurrentMarker] = useState(INITIAL_GNSS);
   const [isBroadcasting, setIsBroadcasting] = useState(false);
   const [activeDispatch, setActiveDispatch] = useState<ActiveDispatch | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
   // Live LTA incidents, shared by the radar panel and the notifications drawer
   const incidentFeed = useLtaIncidents();
   const expresswaySpeeds = useExpresswaySpeeds();
@@ -202,17 +202,15 @@ export default function App() {
     setIsBroadcasting(true);
   };
 
-  const handleSearchCorridor = (query: string) => {
-    setSearchQuery(query);
-    if (query.trim()) {
-      // If matches any alternate corridor, auto update marker
-      const matched = ALTERNATE_MARKERS.find((m) =>
-        m.corridor.toLowerCase().includes(query.toLowerCase())
-      );
-      if (matched) {
-        setCurrentMarker(matched);
-      }
-    }
+  const handleSearchSelect = (result: RoadSearchResult) => {
+    writeParams(searchDestination(result), true);
+    window.scrollTo({ top: 0 });
+    // Selecting the same road again doesn't change the URL, but should still reveal it.
+    if (result.kind === 'road') requestAnimationFrame(() => {
+      const card = document.getElementById(`road-${result.code}`);
+      card?.scrollIntoView({ block: 'center' });
+      card?.focus({ preventScroll: true });
+    });
   };
 
   return (
@@ -221,8 +219,11 @@ export default function App() {
       {!wall && <Header
         activeTab={activeTab}
         onSelectTab={setActiveTab}
-        onSearchCorridor={handleSearchCorridor}
-        searchQuery={searchQuery}
+        onGoHome={() => {
+          writeParams({ page: 'cameras', tab: 'woodlands', cam: null, cams: null, road: null, incident: null }, true);
+          window.scrollTo({ top: 0 });
+        }}
+        onSearchSelect={handleSearchSelect}
         onOpenNotifications={() => setNotificationsOpen(true)}
         notificationCount={incidentFeed.incidents.length}
         commuteIncidentCount={commuteIncidentCount}

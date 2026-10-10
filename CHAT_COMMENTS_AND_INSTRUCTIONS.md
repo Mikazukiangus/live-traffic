@@ -35,6 +35,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 
 61. [Turn 61: Review and Live Data Bug Fixes](#61-turn-61-review-and-live-data-bug-fixes)
 62. [Turn 62: Live Data Bug Fixes Merged to Main](#62-turn-62-live-data-bug-fixes-merged-to-main)
+63. [Turn 63: Mobile and Desktop UX Improvements](#63-turn-63-mobile-and-desktop-ux-improvements)
 ---
 
 ## 1. Initial Brief & Architecture
@@ -1099,6 +1100,28 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Deployment: https://live-traffic-bhxefvrwa-carbon-bc04.vercel.app
 - Production site: https://live-traffic-carbon-bc04.vercel.app
 - Direct runtime checks remain blocked: the Vercel connector returned HTTP 403 for team `carbon-bc04`. Deployment completion is confirmed; live endpoint health was not verified in this turn.
+
+
+## 63. Turn 63: Mobile and Desktop UX Improvements
+
+**User Instructions:**
+> "suggest any UI/UX improvement for both mobile/desktop"
+> "proceed" (start with camera layout, mobile ERP cards and functional search on a preview branch)
+> "always update CHAT_COMMENTS_AND_INSTRUCTIONS.md and push to git."
+
+### Done on `codex/mobile-desktop-ux`:
+- Camera tabs now sit directly below the title. Each checkpoint has one visible summary; the repeated two-checkpoint overview is removed. Estimate details are available on tap, with the exclusion of checkpoint queues and immigration visible at all times.
+- Camera feed warnings are compact and expandable. Road Signs has its own heading and sign content, without camera summaries, camera speed warnings or the camera Near me control. All unique messages and GPS locations remain available.
+- Camera views stay mounted for quick tab switching. The enlarged camera uses a native modal with keyboard focus containment, Escape, arrow-key navigation and phone scrolling. Camera names are shared between the live view and search.
+- Header search is available directly on phones and desktops. It matches expressway codes/full names, checkpoint names, camera locations and camera IDs; selecting a result opens the real traffic view or camera using shareable URL state. It no longer changes the demo pickup. The logo returns to Woodlands cameras.
+- ERP uses readable cards on phones and a table on desktops. A vehicle selector covers cars/taxis/light goods, motorcycles, heavy goods/small buses and very heavy goods/big buses. Both current and upcoming amounts use the selected vehicle factor. Charging hours and gantry numbers expand on phone cards; the existing holiday/calendar checks and unverified state remain applied.
+- Larger touch targets for camera tabs, search and the affected header/camera controls. Existing colour palette retained.
+
+### Verification:
+- Type check, all 26 tests and production build pass. New regression checks cover search matching and destinations, the eight cameras, and vehicle-adjusted upcoming ERP rates.
+- Browser checks at 390 × 844 and 1440 × 900: first camera visible in the initial phone screen; Road Signs has no checkpoint summary; camera-number and full-road-name searches select the correct view; keyboard selection, Escape, browser Back and the logo work; ERP vehicle selection and expandable hours work. No horizontal page overflow observed.
+- Local LTA camera photos loaded successfully. Upstream availability can still vary; delayed data and missing requested cameras remain labelled.
+- Preview screenshots saved for camera and ERP layouts on both screen sizes. Main merge requires explicit user approval.
 
 ---
 
