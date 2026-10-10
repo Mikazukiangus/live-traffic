@@ -1011,6 +1011,21 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - The Weather tab now opens with PSI & PM2.5 by Region, followed by Flash Floods (only when there are any), Lightning & Heat Stress, Rain Along Each Expressway and the 24-hour outlook.
 - Verified locally: the section order on the Weather tab is PSI, Lightning, Rain.
 
+## 57. Turn 57: Free Base Map Under the Speed Map
+
+**User Instruction:**
+> "Under "Expressway", figure how to pull some free map data for the missing map."
+
+### Done (preview branch `preview/basemap`, which also carries Turn 56):
+- The speed map had no base map: its roads floated on a grid, and when LTA's speed bands were down there were no roads at all.
+- `scripts/build-basemap.py` pulls free OpenStreetMap data from the Overpass API: the coastline (Singapore, Johor and the Riau islands), all ten expressways (`highway=motorway`, by ref) and town names. It joins the coastline into land shapes, pre-projects everything into the speed map frame, simplifies it and writes `src/data/basemap.ts` (108 KB, 39 KB gzipped).
+  - The data ships with the app, so there is no tile server, no key and nothing to fail at run time.
+  - Re-run the script to refresh it.
+- `SpeedBandMap` now draws land and sea, every expressway in grey (clickable), and town names (hidden on phones) under the LTA speed colours and markers.
+  - When LTA speeds are down, the roads still show and the selected expressway is highlighted.
+- Attribution "Base map © OpenStreetMap contributors" (ODbL) is under the map, linking to openstreetmap.org/copyright.
+- Verified locally: the land fills the map at any width, roads line up with LTA's speed bands, and the town names are placed correctly. Tests and build pass.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*

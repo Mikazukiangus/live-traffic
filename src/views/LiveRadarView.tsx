@@ -777,7 +777,7 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
               <div className="relative z-10 mx-auto mb-auto px-3 py-1.5 rounded bg-black/70 text-center text-slate-200 text-[11px] font-mono">
                 {speedStatus === 'loading'
                   ? 'Loading LTA speed band map…'
-                  : 'LTA speeds unavailable: roads are not drawn. Markers show incidents, flood alerts and lightning.'}
+                  : 'LTA speeds unavailable: roads are shown without speeds. Markers show incidents, flood alerts and lightning.'}
               </div>
             )}
 
@@ -801,15 +801,23 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
             </div>
           </div>
 
-          {speedSegments.length > 0 && (
-            <div className="-mt-2 flex flex-wrap items-center justify-between gap-2 text-[10px] font-mono text-slate-500">
+          <div className="-mt-2 flex flex-wrap items-center justify-between gap-2 text-[10px] font-mono text-slate-500">
+            {speedSegments.length > 0 ? (
               <span className={speedsFromSnapshot ? 'text-amber-700 font-semibold' : ''}>
                 LTA speed bands{speedsUpdatedSgt ? ` • ${speedsUpdatedSgt} SGT` : ''}
                 {speedsFromSnapshot ? ' (saved copy, feed down)' : ''} • click a road to select
               </span>
-              <SpeedBandLegend />
-            </div>
-          )}
+            ) : (
+              <span>Click a road to select</span>
+            )}
+            {speedSegments.length > 0 && <SpeedBandLegend />}
+          </div>
+          <p className="-mt-3 text-[10px] text-slate-400">
+            Base map ©{' '}
+            <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-600">
+              OpenStreetMap contributors
+            </a>
+          </p>
           <MapLayerToggles
             layers={layers}
             onToggle={toggleLayer}

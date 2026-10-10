@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { BASEMAP_LAND, BASEMAP_PLACES, BASEMAP_ROADS } from '../data/basemap';
 
 // [code, band, startLon, startLat, endLon, endLat] as returned by /api/expresswayspeeds?include=segments
 export type SpeedSegment = [string, number, number, number, number, number];
@@ -90,6 +91,34 @@ export const SpeedBandMap: React.FC<SpeedBandMapProps> = ({ segments, selectedCo
       role="img"
       aria-label={`Singapore expressways coloured by LTA speed band, ${selectedCode} highlighted${shown.length ? `, with ${shown.length} markers` : ''}`}
     >
+      {/* Base map from OpenStreetMap: land, every expressway in grey, town names */}
+      <path d={BASEMAP_LAND} fill="#1e2b35" stroke="#2c3d4a" strokeWidth={0.6} vectorEffect="non-scaling-stroke" />
+      {Object.entries(BASEMAP_ROADS).map(([code, d]) => {
+        const isSelected = code === selectedCode;
+        return (
+          <path
+            key={`base-${code}`}
+            d={d}
+            fill="none"
+            stroke={isSelected && !segments.length ? '#cfd5d8' : '#3d4f5c'}
+            strokeWidth={isSelected && !segments.length ? 3 : 1.4}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            vectorEffect="non-scaling-stroke"
+            className={onSelect ? 'cursor-pointer' : undefined}
+            onClick={onSelect ? () => onSelect(code) : undefined}
+          >
+            <title>{code}</title>
+          </path>
+        );
+      })}
+      <g className="max-sm:hidden" fill="#7d8890" fontSize={4.6} textAnchor="middle" style={{ fontFamily: 'inherit' }} aria-hidden="true">
+        {BASEMAP_PLACES.map(([name, px, py]) => (
+          <text key={name} x={px} y={py}>
+            {name}
+          </text>
+        ))}
+      </g>
       {ordered.map((p) => {
         const isSelected = p.code === selectedCode;
         return (
