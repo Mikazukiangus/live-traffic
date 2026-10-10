@@ -50,7 +50,7 @@ export default function App() {
   const activeTab = pageFromSlug(pageSlug);
   // A new page starts on its own default tab, and Back returns to the previous page.
   const setActiveTab = (tab: TabType) => {
-    if (tab !== activeTab) writeParams({ page: PAGE_SLUGS[tab], tab: null, cam: null }, true);
+    if (tab !== activeTab) writeParams({ page: PAGE_SLUGS[tab], tab: null, cam: null, incident: null }, true);
     window.scrollTo({ top: 0 });
   };
   // Wall display: no menus, tabs cycle (?display=wall)
@@ -356,7 +356,9 @@ export default function App() {
       <NotificationsDrawer
         isOpen={notificationsOpen}
         onClose={() => setNotificationsOpen(false)}
-        onSelectIncident={() => setActiveTab('live-traffic-radar')}
+        onSelectIncident={(incident) => {
+          writeParams({ page: 'radar', tab: 'incidents', road: incident.corridorCode || null, incident: incident.id, cam: null }, true);
+        }}
         incidentFeed={incidentFeed}
         commutes={commutes}
         onAddCommute={goToCommutes}

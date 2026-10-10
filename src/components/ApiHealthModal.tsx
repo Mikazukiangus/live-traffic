@@ -1,32 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
-interface EndpointHealth {
-  path: string;
-  name: string;
-  status: string;
-  method: string;
-  purpose: string;
-  upstream: string;
-  latencyMs: number;
-  httpCode: number;
-  error?: string;
-}
-
-interface HealthData {
-  status: string;
-  operational: boolean;
-  service: string;
-  version: string;
-  timestamp: string;
-  uptimeSeconds: number;
-  environment: string;
-  ltaKeyConfigured: boolean;
-  upCount: number;
-  totalCount: number;
-  providerMode: string;
-  probeLatencyMs: number;
-  endpoints: EndpointHealth[];
-}
+import { refreshApiHealth, useApiHealth } from '../utils/apiHealth';
+import { sgtClock } from '../utils/freshness';
 
 interface ApiHealthModalProps {
   isOpen: boolean;
@@ -34,33 +9,13 @@ interface ApiHealthModalProps {
 }
 
 export const ApiHealthModal: React.FC<ApiHealthModalProps> = ({ isOpen, onClose }) => {
-  const [loading, setLoading] = useState<boolean>(true);
-  const [healthData, setHealthData] = useState<HealthData | null>(null);
+  const { data: healthData, loading, error: healthError, checkedAt, latencyMs } = useApiHealth();
   const [endpointPings, setEndpointPings] = useState<Record<string, { latency: number; code: number }>>({});
   const [testingEndpoint, setTestingEndpoint] = useState<string | null>(null);
   const [showRawJson, setShowRawJson] = useState<boolean>(false);
-  const [lastCheckTime, setLastCheckTime] = useState<string>('');
-
   const runFullHealthCheck = async () => {
-    setLoading(true);
-    const start = performance.now();
-    try {
-      const res = await fetch('/api/health');
-      const data: HealthData = await res.json();
-      const totalLatency = Math.round(performance.now() - start);
-
-      setHealthData({
-        ...data,
-        probeLatencyMs: totalLatency,
-      });
-      setLastCheckTime(new Date().toLocaleTimeString());
-      // Per-endpoint status now comes from the server's live upstream probes; clear manual pings.
-      setEndpointPings({});
-    } catch (err) {
-      console.error('Failed to probe /api/health:', err);
-    } finally {
-      setLoading(false);
-    }
+    setEndpointPings({});
+    await refreshApiHealth();
   };
 
   const testSingleEndpoint = async (path: string) => {
@@ -100,7 +55,8 @@ export const ApiHealthModal: React.FC<ApiHealthModalProps> = ({ isOpen, onClose 
     return `${secs}s`;
   };
 
-  const allOperational = healthData?.operational ?? true;
+  const allOperational = !loading && !healthError && !!healthData?.operational;
+  const statusText = loading ? 'CHECKING ENDPOINTS' : healthError ? 'HEALTH CHECK FAILED' : !healthData ? 'NOT CHECKED' : allOperational ? 'ALL SYSTEMS OPERATIONAL' : 'DEGRADED SERVICE';
   const statusLabel = (code: number) => (code === 0 ? 'NO RESPONSE' : `${code} ${code < 400 ? 'OK' : 'ERROR'}`);
 
   return (
@@ -152,15 +108,15 @@ export const ApiHealthModal: React.FC<ApiHealthModalProps> = ({ isOpen, onClose 
               </span>
               <div>
                 <div className="font-extrabold text-sm sm:text-base flex items-center gap-2">
-                  <span>{allOperational ? 'ALL SYSTEMS OPERATIONAL' : 'DEGRADED SERVICE'}</span>
-                  {healthData && (
+                  <span>{statusText}</span>
+                  {healthData && !loading && !healthError && (
                     <span className="text-xs font-normal opacity-80">
                       • {healthData.upCount}/{healthData.totalCount} Endpoints Responsive
                     </span>
                   )}
                 </div>
                 <div className="text-xs opacity-75 font-mono mt-0.5">
-                  Provider Mode: {healthData?.providerMode || 'LTA DataMall & Open Transport API'}
+                  {healthError ? `${healthError}${healthData ? ' • showing the last successful check below' : ''}` : `Provider Mode: ${healthData?.providerMode || 'Awaiting response'}`}
                 </div>
               </div>
             </div>
@@ -183,12 +139,12 @@ export const ApiHealthModal: React.FC<ApiHealthModalProps> = ({ isOpen, onClose 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/80">
               <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">
-                Gateway Latency
+                Health Check Round Trip
               </span>
               <div className="text-lg font-black text-slate-900 font-mono mt-0.5">
-                {healthData?.probeLatencyMs ?? 12} ms
+                {latencyMs == null ? '—' : `${latencyMs} ms`}
               </div>
-              <span className="text-[11px] text-emerald-600 font-medium">Optimal ping speed</span>
+              <span className="text-[11px] text-emerald-600 font-medium">Measured response time</span>
             </div>
 
             <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/80">
@@ -196,21 +152,21 @@ export const ApiHealthModal: React.FC<ApiHealthModalProps> = ({ isOpen, onClose 
                 LTA DataMall Key
               </span>
               <div className="text-lg font-black text-slate-900 font-mono mt-0.5">
-                {healthData?.ltaKeyConfigured ? 'Configured' : 'Public Active'}
+                {!healthData ? '—' : healthData.ltaKeyConfigured ? 'Configured' : 'Not configured'}
               </div>
               <span className="text-[11px] text-slate-500">
-                {healthData?.ltaKeyConfigured ? 'Server-side env variable' : 'Open Data.gov.sg Mode'}
+                {!healthData ? 'Awaiting response' : healthData.ltaKeyConfigured ? 'Server-side env variable' : 'Keyless feeds only'}
               </span>
             </div>
 
             <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/80">
               <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">
-                Gateway Uptime
+                Server Process Age
               </span>
               <div className="text-lg font-black text-slate-900 font-mono mt-0.5">
-                {healthData ? formatUptime(healthData.uptimeSeconds) : 'Active'}
+                {healthData ? formatUptime(healthData.uptimeSeconds) : '—'}
               </div>
-              <span className="text-[11px] text-emerald-600 font-medium">99.98% Service SLA</span>
+              <span className="text-[11px] text-emerald-600 font-medium">Process age at last check</span>
             </div>
 
             <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/80">
@@ -218,9 +174,9 @@ export const ApiHealthModal: React.FC<ApiHealthModalProps> = ({ isOpen, onClose 
                 Last Verified
               </span>
               <div className="text-lg font-black text-slate-900 font-mono mt-0.5">
-                {lastCheckTime || 'Just now'}
+                {checkedAt == null ? '—' : `${sgtClock(checkedAt)} SGT`}
               </div>
-              <span className="text-[11px] text-slate-500">Auto diagnostics</span>
+              <span className="text-[11px] text-slate-500">{checkedAt == null ? 'No successful check yet' : new Date(checkedAt).toLocaleDateString('en-SG', { timeZone: 'Asia/Singapore' })}</span>
             </div>
           </div>
 
@@ -232,7 +188,7 @@ export const ApiHealthModal: React.FC<ApiHealthModalProps> = ({ isOpen, onClose 
                 <span>Active Serverless API Endpoints</span>
               </h3>
               <span className="text-xs text-slate-400 font-mono">
-                {healthData ? `${healthData.upCount}/${healthData.totalCount} Up` : 'Probing…'}
+                {loading ? 'Probing…' : healthError ? 'Last successful results' : healthData ? `${healthData.upCount}/${healthData.totalCount} Up` : 'No results'}
               </span>
             </div>
 

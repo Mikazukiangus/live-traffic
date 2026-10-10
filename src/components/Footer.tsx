@@ -1,29 +1,27 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
+import { refreshApiHealth, useApiHealth } from '../utils/apiHealth';
 
 interface FooterProps {
   onOpenApiHealth: () => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({ onOpenApiHealth }) => {
-  const [health, setHealth] = useState<{ upCount: number; totalCount: number } | null>(null);
-  const [healthError, setHealthError] = useState(false);
-
+  const { data: health, error: healthError, loading } = useApiHealth();
   useEffect(() => {
-    fetch('/api/health')
-      .then((res) => res.json())
-      .then((data) => setHealth({ upCount: data.upCount, totalCount: data.totalCount }))
-      .catch(() => setHealthError(true));
+    refreshApiHealth();
+    const timer = setInterval(refreshApiHealth, 5 * 60_000);
+    return () => clearInterval(timer);
   }, []);
 
-  const allUp = !!health && health.upCount === health.totalCount;
+  const allUp = !loading && !!health && health.upCount === health.totalCount;
   const badgeTone = healthError
     ? 'text-red-700 bg-red-100'
-    : !health
+    : loading || !health
       ? 'text-slate-600 bg-slate-100'
       : allUp
         ? 'text-emerald-700 bg-emerald-100'
         : 'text-amber-700 bg-amber-100';
-  const dotTone = healthError ? 'bg-red-500' : !health ? 'bg-slate-400' : allUp ? 'bg-emerald-500' : 'bg-amber-500';
+  const dotTone = healthError ? 'bg-red-500' : loading || !health ? 'bg-slate-400' : allUp ? 'bg-emerald-500' : 'bg-amber-500';
 
   return (
     <footer className="w-full bg-white border-t border-slate-200 py-6 mt-12">
@@ -54,7 +52,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenApiHealth }) => {
             <span className="material-symbols-outlined text-xs text-sky-600">monitor_heart</span>
             <span className="font-mono text-[11px]">API Health Summary</span>
             <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded font-mono ${badgeTone}`}>
-              {healthError ? 'UNREACHABLE' : health ? `${health.upCount}/${health.totalCount} UP` : 'CHECKING'}
+              {loading ? 'CHECKING' : healthError ? 'UNREACHABLE' : health ? `${health.upCount}/${health.totalCount} UP` : 'CHECKING'}
             </span>
           </button>
 

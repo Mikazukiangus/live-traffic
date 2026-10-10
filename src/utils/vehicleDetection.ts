@@ -41,6 +41,12 @@ function loadRuntime() {
   return runtime;
 }
 
+/** A count only describes the specific camera photo processed by the model. */
+export function currentVehicleCount(counts: Record<string, VehicleCount>, id: string, imageUrl: string): VehicleCount | undefined {
+  const result = counts[id];
+  return result?.imageUrl === imageUrl ? result : undefined;
+}
+
 /** Skip the ~7 MB download when the viewer has asked their browser to save data. */
 export function vehicleCountingAllowed(): boolean {
   const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;

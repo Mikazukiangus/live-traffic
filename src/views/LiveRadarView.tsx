@@ -16,12 +16,13 @@ import {
 import { DirectionTravelTime, useLtaTravelTimes } from '../utils/ltaTravelTimes';
 import { REGION_LABEL, nearestRegion, pm25Band, psiBand, sgtHour, useAirQuality } from '../utils/airQuality';
 import { useUrlParam } from '../utils/urlState';
+import { fetchFeed } from '../utils/feedResponse';
 import { StaleFeed, parseSgt, sgtClock, useNow, useOnline } from '../utils/freshness';
 import { formatKm, kmBetween, locate, nearestExpressway, useNearMe } from '../utils/nearMe';
 import { StaleDataNotice } from '../components/StaleDataNotice';
 import { ShareButton } from '../components/ShareButton';
 import { MyCommute } from '../components/MyCommute';
-import { useRefreshRequests, useShortcuts } from '../utils/appEvents';
+import { requestRefresh, useRefreshRequests, useShortcuts } from '../utils/appEvents';
 import { enterWallDisplay, useWallCycle } from '../utils/wallDisplay';
 import { roadWorksByCode, shortDate, useRoadConditions, worksBy } from '../utils/roadConditions';
 import { HEAT_STYLE, LIGHTNING_NEAR_KM, lightningByExpressway, useWeatherAlerts } from '../utils/weatherAlerts';
@@ -117,7 +118,10 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
   wall = false,
 }) => {
   const corridors = EXPRESSWAY_CORRIDORS;
-  const [selectedCorridorCode, setSelectedCorridorCode] = useState<string>('KPE');
+  const [roadParam, setRoadParam] = useUrlParam('road');
+  const selectedCorridorCode = corridors.some((c) => c.code === roadParam) ? roadParam! : 'KPE';
+  const setSelectedCorridorCode = (code: string) => setRoadParam(code, false);
+  const [incidentParam] = useUrlParam('incident');
   const [filterSeverity, setFilterSeverity] = useState<'all' | 'critical' | 'warning'>('all');
   // The tab is in the address (?tab=weather) so it can be shared; otherwise the last one used.
   const [tabParam, setTabParam] = useUrlParam('tab');
@@ -170,7 +174,7 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
     () => lightningByExpressway(weatherAlerts.data?.strikes, rainForecast?.areas),
     [weatherAlerts.data, rainForecast]
   );
-  const floodsByCode = useMemo(() => floodsByExpressway(floodAlerts, rainForecast?.areas), [floodFeed.data, rainForecast]);
+  const floodsByCode = useMemo(() => floodsByExpressway(floodAlerts, rainForecast?.areas), [floodAlerts, rainForecast]);
   const rainByCode = useMemo(
     () => (rainForecast ? rainByExpressway(rainForecast.areas) : {}),
     [rainForecast]
@@ -196,13 +200,11 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
   const [speedsFromSnapshot, setSpeedsFromSnapshot] = useState(false);
   const loadSpeedBands = useCallback(async () => {
     try {
-      const res = await fetch('/api/expresswayspeeds?include=segments');
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
+      const { data: json, offline } = await fetchFeed<any>('/api/expresswayspeeds?include=segments');
       if (!applySpeeds(json)) throw new Error('No expressway speeds');
       saveSpeedSnapshot(json);
-      setSpeedsFromSnapshot(false);
-      setSpeedStatus('live');
+      setSpeedsFromSnapshot(offline);
+      setSpeedStatus(offline ? 'error' : 'live');
     } catch {
       // Keep the last live speeds, or fall back to the saved copy
       setSpeedStatus('error');
@@ -222,14 +224,8 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
   const [refreshing, setRefreshing] = useState(false);
   const refreshAll = async () => {
     setRefreshing(true);
-    await Promise.all([
-      loadSpeedBands(),
-      travelTimes.refresh(),
-      incidentFeed.refresh(),
-      roadConditions.refresh(),
-      weatherAlerts.refresh(),
-      floodFeed.refresh(),
-    ]);
+    // Each mounted JSON feed handles the same refresh event; this handler owns the map feed.
+    await loadSpeedBands();
     setRefreshing(false);
   };
 
@@ -323,9 +319,9 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
       if (via && code) road = { code, km: kmBetween(lat, lon, via.lat, via.lon), approx: true };
     }
     const region = airQuality ? nearestRegion(lat, lon, airQuality) : null;
-    const erp = road ? erpOn([road.code], new Date()) : null;
+    const erp = road ? erpOn([road.code], new Date(now)) : null;
     return { area, road, region, erp };
-  }, [nearMe, rainForecast, speedSegments, airQuality]);
+  }, [nearMe, rainForecast, speedSegments, airQuality, now]);
 
   // Map layers: incidents, flood alerts and lightning, each switchable
   const [layers, setLayers] = useState(readLayers);
@@ -366,6 +362,19 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
     selectTab('expressways');
     setTimeout(() => document.getElementById('speed-map')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
   };
+
+  const focusedIncident = useRef<string | null>(null);
+  useEffect(() => {
+    if (!incidentParam || activeTab !== 'incidents') {
+      focusedIncident.current = null;
+      return;
+    }
+    if (focusedIncident.current === incidentParam || !incidents.some((i) => i.id === incidentParam)) return;
+    focusedIncident.current = incidentParam;
+    setFilterSeverity('all');
+    const timer = setTimeout(() => document.getElementById(`incident-${incidentParam}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
+    return () => clearTimeout(timer);
+  }, [incidentParam, activeTab, incidents]);
 
   // Filtered incidents
   const filteredIncidents = incidents.filter((inc) => {
@@ -435,10 +444,10 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
             <span className="hidden sm:inline">Report hazard</span>
           </button>
           <button
-            onClick={refreshAll}
+            onClick={requestRefresh}
             disabled={refreshing}
             aria-label="Refresh live data"
-            title="Reload LTA speeds, travel times and incidents now"
+            title="Refresh traffic, weather and alert feeds now"
             className="w-10 h-10 rounded-full bg-white border border-slate-200 hover:bg-slate-100 text-slate-600 flex items-center justify-center cursor-pointer shadow-xs disabled:opacity-50"
           >
             <span className={`material-symbols-outlined ${refreshing ? 'animate-spin' : ''}`}>refresh</span>
@@ -450,6 +459,8 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
 
       {!wall && <MyCommute
         routes={travelTimes.routes}
+        travelFetchedAt={travelTimes.fetchedAt}
+        travelStatus={travelTimes.status}
         speeds={speedDetails}
         incidents={incidents}
         roadWorks={worksByCode}
@@ -1129,7 +1140,8 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
                 return (
                   <div
                     key={inc.id}
-                    className={`p-3 rounded-lg border flex flex-col gap-1.5 text-xs transition-all ${
+                    id={`incident-${inc.id}`}
+                    className={`${inc.id === incidentParam ? 'ring-2 ring-sky-500 scroll-mt-24' : ''} p-3 rounded-lg border flex flex-col gap-1.5 text-xs transition-all ${
                       isCritical
                         ? 'bg-red-50/60 border-red-200'
                         : isWarning

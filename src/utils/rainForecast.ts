@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { usePolledJson } from './usePolledJson';
 
 export interface ForecastArea {
   name: string;
@@ -111,35 +111,6 @@ export function describeCorridorRain(rain: CorridorRain): string {
 
 // NEA updates roughly every 30 minutes; the endpoint is CDN-cached for 5.
 const RAIN_POLL_MS = 5 * 60_000;
-const RETRY_MS = 30_000;
-
 export function useRainForecast(): RainForecast | null {
-  const [forecast, setForecast] = useState<RainForecast | null>(null);
-
-  useEffect(() => {
-    let loaded = false;
-    let retry: ReturnType<typeof setTimeout> | undefined;
-    const load = async () => {
-      try {
-        const res = await fetch('/api/rainforecast');
-        const json = res.ok ? await res.json() : null;
-        if (Array.isArray(json?.areas) && json.areas.length > 0) {
-          setForecast(json);
-          loaded = true;
-        }
-      } catch {
-        // Keep the last forecast
-      }
-      // Until the first forecast arrives, try again soon rather than at the next poll.
-      if (!loaded) retry = setTimeout(load, RETRY_MS);
-    };
-    load();
-    const interval = setInterval(() => loaded && load(), RAIN_POLL_MS);
-    return () => {
-      clearInterval(interval);
-      clearTimeout(retry);
-    };
-  }, []);
-
-  return forecast;
+  return usePolledJson<RainForecast>('/api/rainforecast', RAIN_POLL_MS, (d) => Array.isArray(d?.areas) && d.areas.length > 0).data;
 }

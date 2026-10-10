@@ -3,7 +3,8 @@
  * Each record is one stretch, e.g. { Name: 'PIE', Direction: 2, FarEndPoint: 'CHANGI AIRPORT', EstTime: 3 },
  * so adding a direction's stretches gives the end-to-end time. LTA does not publish KPE or MCE.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useMemo } from 'react';
+import { usePolledJson } from './usePolledJson';
 
 interface LtaTravelTimeRecord {
   Name: string;
@@ -85,30 +86,8 @@ export function sumTravelTimes(records: LtaTravelTimeRecord[]): Record<string, D
 const TRAVEL_TIME_POLL_MS = 2 * 60_000;
 
 export function useLtaTravelTimes() {
-  const [byCode, setByCode] = useState<Record<string, DirectionTravelTime[]>>({});
-  const [routes, setRoutes] = useState<TravelRoute[]>([]);
-  const [status, setStatus] = useState<'loading' | 'live' | 'error'>('loading');
-
-  const refresh = useCallback(async () => {
-    try {
-      const res = await fetch('/api/traveltimes');
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      if (!Array.isArray(json?.value)) throw new Error('Unexpected travel times payload');
-      setByCode(sumTravelTimes(json.value));
-      setRoutes(groupStretches(json.value));
-      setStatus('live');
-    } catch {
-      // Keep the last live times
-      setStatus('error');
-    }
-  }, []);
-
-  useEffect(() => {
-    refresh();
-    const interval = setInterval(refresh, TRAVEL_TIME_POLL_MS);
-    return () => clearInterval(interval);
-  }, [refresh]);
-
-  return { byCode, routes, status, refresh };
+  const feed = usePolledJson<{ value: LtaTravelTimeRecord[] }>('/api/traveltimes', TRAVEL_TIME_POLL_MS, (d) => Array.isArray(d?.value));
+  const byCode = useMemo(() => sumTravelTimes(feed.data?.value || []), [feed.data]);
+  const routes = useMemo(() => groupStretches(feed.data?.value || []), [feed.data]);
+  return { byCode, routes, status: feed.status, fetchedAt: feed.fetchedAt, refresh: feed.refresh };
 }

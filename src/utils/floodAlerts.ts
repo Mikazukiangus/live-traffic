@@ -1,3 +1,5 @@
+import { useMemo } from 'react';
+import { parseSgt, useNow } from './freshness';
 import { usePolledJson } from './usePolledJson';
 import { kmBetween } from './nearMe';
 import { EXPRESSWAY_RAIN_AREAS, ForecastArea } from './rainForecast';
@@ -21,9 +23,20 @@ export interface FloodAlerts {
   alerts: FloodAlert[];
 }
 
+/** Expiry is checked on the device too, including when offline or a refresh fails. */
+export function unexpiredFloodAlerts(alerts: FloodAlert[], now: number): FloodAlert[] {
+  return alerts.filter((a) => {
+    const start = parseSgt(a.startsAt), end = parseSgt(a.endsAt);
+    return start != null && end != null && start <= now && now < end;
+  });
+}
+
 /** PUB flood alerts, checked every 2 minutes. */
 export function useFloodAlerts() {
-  return usePolledJson<FloodAlerts>('/api/live?feed=floods', 2 * 60_000, (d) => Array.isArray(d.alerts));
+  const feed = usePolledJson<FloodAlerts>('/api/live?feed=floods', 2 * 60_000, (d) => Array.isArray(d?.alerts));
+  const now = useNow();
+  const data = useMemo(() => feed.data ? { ...feed.data, alerts: unexpiredFloodAlerts(feed.data.alerts, now) } : null, [feed.data, now]);
+  return { ...feed, data };
 }
 
 // An alert counts as on an expressway when its circle reaches within this distance of a

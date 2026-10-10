@@ -27,6 +27,8 @@ interface SpeedSummary {
 
 interface MyCommuteProps {
   routes: TravelRoute[];
+  travelFetchedAt: number | null;
+  travelStatus: 'loading' | 'live' | 'error';
   speeds: Record<string, SpeedSummary> | null;
   incidents: IncidentAlert[];
   roadWorks: Record<string, RoadWork[]>;
@@ -75,6 +77,8 @@ export const MyCommute: React.FC<MyCommuteProps> = (props) => {
 const CommuteCard: React.FC<MyCommuteProps & { commute: Commute; onEdit: () => void }> = ({
   commute,
   routes,
+  travelFetchedAt,
+  travelStatus,
   speeds,
   incidents,
   roadWorks,
@@ -108,8 +112,10 @@ const CommuteCard: React.FC<MyCommuteProps & { commute: Commute; onEdit: () => v
   // Travel time history for the trend; only LTA times count (estimates move with speed, not time).
   const [samples, setSamples] = useState<Sample[]>([]);
   useEffect(() => {
-    if (total != null && !anyEstimated) setSamples(recordSample(commute.id, total));
-  }, [commute.id, total, anyEstimated]);
+    if (travelStatus === 'live' && travelFetchedAt != null && total != null && !anyEstimated) {
+      setSamples(recordSample(commute.id, total, travelFetchedAt));
+    }
+  }, [commute.id, total, anyEstimated, travelFetchedAt, travelStatus]);
   const trend = trendOf(samples, now);
 
   const toggleAlerts = async () => {

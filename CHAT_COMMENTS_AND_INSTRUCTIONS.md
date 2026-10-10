@@ -33,6 +33,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 26. [Turn 26: Jam Readings and Checkpoint Drive Times (Phases 2 and 3)](#26-turn-26-jam-readings-and-checkpoint-drive-times-phases-2-and-3)
 27. [Turn 27: In-Browser Vehicle Counts (YOLOX) and Browser Caching Fix](#27-turn-27-in-browser-vehicle-counts-yolox-and-browser-caching-fix)
 
+61. [Turn 61: Review and Live Data Bug Fixes](#61-turn-61-review-and-live-data-bug-fixes)
 ---
 
 ## 1. Initial Brief & Architecture
@@ -1050,6 +1051,36 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 
 ### Done:
 - Fast-forward merged `preview/rain-after-psi` (Turn 59) into `main` and pushed. Vercel deploys it to production.
+
+
+## 61. Turn 61: Review and Live Data Bug Fixes
+
+**User Instructions:**
+> "suggest improvements and check for any bugs."
+> "yes" (fix the reported bugs on a preview branch first)
+
+### Done on `codex/live-data-bug-fixes`:
+- Process PUB cancellations even when they have no area readings. Expired flood alerts disappear on the device when offline or after a failed refresh.
+- Tag offline API cache responses with their original receipt time; retained VMS/speed readings show refresh failure or age. Failed browser cache writes still return the successful network response.
+- Camera cards, summaries and the enlarged view use vehicle counts only when the counted image URL matches the photo displayed.
+- Refresh buttons, keyboard R and pull-to-refresh reach mounted traffic, weather and Road Signs feeds. Coalesce simultaneous requests for the same endpoint and stop retry timers on unmount.
+- Alert navigation selects the incident, opens the Incidents tab, highlights it and retains its expressway for the map. Source-derived incident IDs survive response reordering.
+- Record unchanged commute travel times on successful poll timestamps; failed/offline polls are excluded.
+- Share validated health results between footer and modal. Remove invented latency/SLA/verification values and show checking/failure states.
+- Parse incident dates with the Singapore year at New Year.
+- Apply the official 2026–2027 holiday calendar and 13:00 closure on designated ERP holiday eves, including substitute Mondays. Unknown calendar years are labelled unverified. School-holiday rate reductions still require a schedule update.
+
+### Verification:
+- Type check, parser/regression tests and production build pass locally.
+- Browser checks: Road Signs refresh updates its messages and SGT receipt time; a PIE alert opens its highlighted card with `road=PIE`; health modal and footer display the same measured result.
+- Local upstream probes intermittently returned LTA 500 and data.gov.sg 429 responses. The UI reports degraded service without inventing a healthy result.
+- Changes require preview review and explicit merge approval before entering `main`.
+
+### Official calendar and ERP rules:
+- https://www.mom.gov.sg/employment-practices/public-holidays
+- https://www.mom.gov.sg/newsroom/press-releases/2026/0618-public-holidays-for-2027
+- https://onemotoring.lta.gov.sg/content/onemotoring/home/driving/ERP/ERP.html (detailed operating-hours section)
+- https://sso.agc.gov.sg/SL-Supp/S122-2026/Published/20260320?DocDate=20260320 (Puasa eve; the LTA summary elsewhere on the page conflicts by saying Haji)
 
 ---
 

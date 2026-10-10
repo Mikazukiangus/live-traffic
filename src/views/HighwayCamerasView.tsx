@@ -5,7 +5,7 @@ import { RAIN_LEVEL_STYLE, nearestArea, rainLevel, useRainForecast } from '../ut
 import { REGION_LABEL, nearestRegion, pm25Band, psiBand, sgtHour, useAirQuality } from '../utils/airQuality';
 import { JAM_STYLE, JamLevel, NearbyTraffic, jamLevel, trafficNear } from '../utils/expresswaySpeeds';
 import type { SpeedSegment } from '../components/SpeedBandMap';
-import { useVehicleCounts } from '../utils/vehicleDetection';
+import { currentVehicleCount, useVehicleCounts } from '../utils/vehicleDetection';
 import { readParam, useUrlParam, writeParams } from '../utils/urlState';
 import { loadSpeedSnapshot, saveSpeedSnapshot } from '../utils/speedSnapshot';
 import { minutesBetween, useLtaTravelTimes } from '../utils/ltaTravelTimes';
@@ -13,7 +13,8 @@ import { StaleFeed, parseSgt, sgtClock, useOnline } from '../utils/freshness';
 import { formatKm, kmBetween, locate, useNearMe } from '../utils/nearMe';
 import { StaleDataNotice } from '../components/StaleDataNotice';
 import { ShareButton } from '../components/ShareButton';
-import { useRefreshRequests, useShortcuts } from '../utils/appEvents';
+import { requestRefresh, useRefreshRequests, useShortcuts } from '../utils/appEvents';
+import { fetchFeed } from '../utils/feedResponse';
 import { useWallCycle } from '../utils/wallDisplay';
 
 interface HighwayCamerasViewProps {
@@ -258,15 +259,13 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
   };
 
   // Live LTA corridor speeds (CDN-cached speed bands) replace per-camera speed guesses.
-  const fetchSpeeds = async () => {
-    if (Date.now() - speedsFetchedAt.current < SPEEDS_REFRESH_MS) return;
+  const fetchSpeeds = async (force = false) => {
+    if (!force && Date.now() - speedsFetchedAt.current < SPEEDS_REFRESH_MS) return;
     try {
-      const res = await fetch('/api/expresswayspeeds?include=segments');
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
+      const { data: json, offline } = await fetchFeed<any>('/api/expresswayspeeds?include=segments');
       if (!Array.isArray(json?.expressways)) throw new Error('No speeds');
       setSpeedsUpdated(json.lastUpdatedTime || null);
-      setSpeedsFailed(false);
+      setSpeedsFailed(offline);
       setSpeeds(Object.fromEntries(json.expressways.map((e: ExpresswaySpeed) => [e.code, e])));
       if (Array.isArray(json.segments)) setSegments(json.segments);
       if (Array.isArray(json.checkpoints)) {
@@ -290,12 +289,13 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
   };
 
   // Load the LTA camera feed from our serverless endpoint /api/trafficimages
-  const fetchLiveLtaCameras = async () => {
+  const fetchLiveLtaCameras = async (forceSpeeds = false) => {
     setRefreshing(true);
-    fetchSpeeds();
+    fetchSpeeds(forceSpeeds);
     try {
       let rawCameras: any[] = [];
       let captureTimestamp = '';
+      let offlineCameraCopy = false;
 
       // 1. Try our internal serverless API route which proxies LTA DataMall or Data.gov.sg
       try {
@@ -303,6 +303,7 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
         if (res.ok) {
           const json = await res.json();
           rawCameras = json?.cameras || [];
+          offlineCameraCopy = res.headers.get('X-TrafficPulse-Offline') === '1';
           captureTimestamp = json?.timestamp || '';
           setLiveSourceDesc(json?.source === 'lta_datamall_v2' ? 'LTA DataMall Traffic Images' : 'Data.gov.sg Traffic Images');
         }
@@ -318,6 +319,7 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
           rawCameras = fbJson?.items?.[0]?.cameras || [];
           captureTimestamp = fbJson?.items?.[0]?.timestamp || '';
           setLiveSourceDesc('Data.gov.sg Traffic Images');
+          offlineCameraCopy = false;
         }
       }
 
@@ -349,7 +351,7 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
           });
 
         setCameras(liveCameras);
-        setFeedFailed(false);
+        setFeedFailed(offlineCameraCopy);
         setNow(Date.now());
         setRefreshing(false);
         return;
@@ -426,7 +428,7 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
     if (traffic) {
       return { level: traffic.level, detail: `${traffic.speedKmH} km/h`, source: 'Slower direction within 400 m, from LTA speed bands' };
     }
-    const counted = vehicleCounts[cam.id];
+    const counted = currentVehicleCount(vehicleCounts, cam.id, getResolvedCameraUrl(cam.imageUrl));
     const level = counted ? countLevel(cam.id.replace('lta-live-', ''), counted.count) : null;
     return level ? { level, detail: `${counted!.count} vehicles`, source: `Estimated from the vehicle count. ${COUNT_NOTE}` } : null;
   };
@@ -473,7 +475,7 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
     ArrowRight: () => stepCam(1),
     ...(selectedCam ? { Escape: closeCam } : {}),
   });
-  useRefreshRequests(fetchLiveLtaCameras);
+  useRefreshRequests(() => fetchLiveLtaCameras(true));
 
   // Wall display shows each checkpoint in turn (the all-cameras grid stays put)
   const WALL_TABS: TabId[] = ['woodlands', 'tuas'];
@@ -522,7 +524,7 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
   const checkpointSummary = CHECKPOINT_SUMMARY.map((c) => {
     const cam = cameras.find((x) => x.id === `lta-live-${c.bridgeCam}`);
     const reading = cam ? cameraLevel(cam) : null;
-    const count = cam ? vehicleCounts[cam.id]?.count ?? null : null;
+    const count = cam ? currentVehicleCount(vehicleCounts, cam.id, getResolvedCameraUrl(cam.imageUrl))?.count ?? null : null;
     const approach = checkpoints[c.id];
     const route = travelTimes.routes.find((r) => r.code === c.travel.code && r.direction === c.travel.direction);
     const ltaMinutes = route ? minutesBetween(route, c.travel.from, c.travel.to) : null;
@@ -578,10 +580,10 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
         </button>
         <ShareButton title="Live Cameras SG" />
         <button
-          onClick={fetchLiveLtaCameras}
+          onClick={requestRefresh}
           disabled={refreshing}
-          aria-label="Refresh cameras"
-          title="Refresh cameras"
+          aria-label="Refresh cameras and road signs"
+          title="Refresh cameras, signs and weather"
           className="w-10 h-10 rounded-full bg-white border border-slate-200 hover:bg-slate-100 text-slate-600 flex items-center justify-center cursor-pointer shadow-xs disabled:opacity-50"
         >
           <span className={`material-symbols-outlined ${refreshing ? 'animate-spin' : ''}`}>refresh</span>
@@ -760,7 +762,7 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
               {placeCams.map((cam) => {
                 const isStale = now - new Date(cam.capturedAt).getTime() > STALE_CAPTURE_MS;
                 const reading = cameraLevel(cam);
-                const counted = vehicleCounts[cam.id];
+                const counted = currentVehicleCount(vehicleCounts, cam.id, getResolvedCameraUrl(cam.imageUrl));
                 return (
                   <button
                     key={cam.id}
@@ -945,10 +947,10 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
                 <span className="material-symbols-outlined text-base text-slate-400">schedule</span>
                 {formatSgt(selectedCam.capturedAt)} SGT ({captureAge(selectedCam.capturedAt, now)})
               </span>
-              {vehicleCounts[selectedCam.id] && (
+              {currentVehicleCount(vehicleCounts, selectedCam.id, getResolvedCameraUrl(selectedCam.imageUrl)) && (
                 <span className="flex items-center gap-1.5" title={COUNT_NOTE}>
                   <span className="material-symbols-outlined text-base text-slate-400">directions_car</span>~
-                  {vehicleCounts[selectedCam.id].count} vehicles in view
+                  {currentVehicleCount(vehicleCounts, selectedCam.id, getResolvedCameraUrl(selectedCam.imageUrl))?.count} vehicles in view
                 </span>
               )}
               {cameraLevel(selectedCam) ? (

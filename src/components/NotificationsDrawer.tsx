@@ -6,7 +6,7 @@ import { Commute, commuteCodes } from '../utils/commutes';
 interface NotificationsDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelectIncident?: (corridor: string) => void;
+  onSelectIncident?: (incident: IncidentAlert) => void;
   incidentFeed: IncidentFeed;
   commutes: Commute[];
   onAddCommute: () => void;
@@ -33,7 +33,7 @@ export const NotificationsDrawer: React.FC<NotificationsDrawerProps> = ({
       <div
         key={`${commuteNames ? 'c-' : ''}${alert.id}`}
         onClick={() => {
-          onSelectIncident?.(alert.corridor);
+          onSelectIncident?.(alert);
           onClose();
         }}
         className={`p-3.5 rounded-xl border transition-all cursor-pointer hover:shadow-xs flex flex-col gap-1.5 ${
