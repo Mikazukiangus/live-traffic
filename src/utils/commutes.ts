@@ -70,7 +70,7 @@ export async function enableNotifications(): Promise<boolean> {
 }
 
 // LTA incident ids start with the record's position in the feed, which shifts; the rest is its location.
-const incidentKey = (i: IncidentAlert) => `${i.id.replace(/^lta-inc-\d+-/, '')}|${i.type}`;
+const incidentKey = (i: IncidentAlert) => `${i.id}|${i.type}`;
 
 async function notify(title: string, body: string) {
   const options = { body, icon: '/icons/icon-192.png', badge: '/icons/icon-192.png', tag: title, data: { url: '/?page=radar&tab=incidents' } };

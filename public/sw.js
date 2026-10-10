@@ -3,7 +3,7 @@
  * live data it received. Pages and /api data are network-first (always fresh when online);
  * hashed build assets are cache-first. The app flags old data itself from each feed's timestamp.
  */
-const VERSION = 'v4';
+const VERSION = 'v5';
 const SHELL = `shell-${VERSION}`;
 const ASSETS = `assets-${VERSION}`;
 const DATA = `data-${VERSION}`;
@@ -34,13 +34,28 @@ async function networkFirst(request, cacheName, fallbackUrl) {
   try {
     const response = await fetch(request);
     if (response.ok) {
-      const cache = await caches.open(cacheName);
-      cache.put(fallbackUrl || request, response.clone());
+      try {
+        const cache = await caches.open(cacheName);
+        let saved = response.clone();
+        if (cacheName === DATA) {
+          const headers = new Headers(saved.headers);
+          headers.set('X-TrafficPulse-Cached-At', String(Date.now()));
+          saved = new Response(await saved.blob(), { status: saved.status, headers });
+        }
+        await cache.put(fallbackUrl || request, saved);
+      } catch {
+        // Storage full or disabled: the successful network answer is still usable.
+      }
     }
     return response;
   } catch (err) {
     const cached = await caches.match(fallbackUrl || request);
-    if (cached) return cached;
+    if (cached) {
+      if (cacheName !== DATA) return cached;
+      const headers = new Headers(cached.headers);
+      headers.set('X-TrafficPulse-Offline', '1');
+      return new Response(await cached.blob(), { status: cached.status, headers });
+    }
     throw err;
   }
 }

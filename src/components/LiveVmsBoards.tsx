@@ -3,6 +3,8 @@ import { EMAS_SIGNS, EXPRESSWAY_CORRIDORS } from '../data/mockData';
 import { EmasVariableMessageSign } from '../types/traffic';
 import type { SpeedSegment } from './SpeedBandMap';
 import { ForecastArea, nearestArea } from '../utils/rainForecast';
+import { usePolledJson } from '../utils/usePolledJson';
+import { useNow } from '../utils/freshness';
 
 const SAMPLE_BOARD_COUNT = 6;
 // LTA refreshes VMS messages about every 2 minutes.
@@ -120,29 +122,13 @@ const GantryLocations: React.FC<{ locations: GantryLocation[] }> = ({ locations 
 };
 
 export const LiveVmsBoards: React.FC<{ areas?: ForecastArea[] }> = ({ areas = NO_AREAS }) => {
-  const [signs, setSigns] = useState<LtaVmsSign[] | null>(null);
-  const [fetchedAt, setFetchedAt] = useState<string>('');
-  const [failed, setFailed] = useState(false);
+  const feed = usePolledJson<{ value: LtaVmsSign[] }>('/api/vms', VMS_POLL_MS, (d) => Array.isArray(d?.value));
+  const signs = feed.data?.value ?? null;
+  const fetchedAt = feed.fetchedAt ? new Date(feed.fetchedAt).toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'Asia/Singapore' }) + ' SGT' : '';
+  const failed = feed.status === 'error';
+  const now = useNow();
+  const stale = failed || (feed.fetchedAt != null && now - feed.fetchedAt > 5 * 60_000);
   const [segments, setSegments] = useState<SpeedSegment[]>([]);
-
-  useEffect(() => {
-    const loadSigns = async () => {
-      try {
-        const res = await fetch('/api/vms');
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = await res.json();
-        if (!Array.isArray(json.value)) throw new Error('Unexpected VMS payload');
-        setSigns(json.value);
-        setFetchedAt(new Date().toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
-        setFailed(false);
-      } catch {
-        setFailed(true);
-      }
-    };
-    loadSigns();
-    const interval = setInterval(loadSigns, VMS_POLL_MS);
-    return () => clearInterval(interval);
-  }, []);
 
   // Expressway geometry (shared, CDN-cached speed band links) to name each sign's road.
   // LTA speed bands occasionally return errors, so retry until the geometry loads once.
@@ -208,8 +194,8 @@ export const LiveVmsBoards: React.FC<{ areas?: ForecastArea[] }> = ({ areas = NO
         </h2>
         <span className="text-xs font-mono">
           {signs ? (
-            <span className="text-emerald-700">
-              {uniqueMessages} {uniqueMessages === 1 ? 'message' : 'messages'} • {signs.length} signs
+            <span className={stale ? 'text-amber-700' : 'text-emerald-700'}>
+              {stale ? (failed ? 'Refresh failed • last received: ' : 'Outdated • last received: ') : ''}{uniqueMessages} {uniqueMessages === 1 ? 'message' : 'messages'} • {signs.length} signs
             </span>
           ) : failed ? (
             <span className="text-amber-700">Sample signs • LTA feed unavailable</span>
@@ -262,9 +248,9 @@ export const LiveVmsBoards: React.FC<{ areas?: ForecastArea[] }> = ({ areas = NO
               <div className="flex items-center justify-between text-[10px] text-slate-400">
                 <span className="flex items-center gap-1">
                   <span
-                    className={`w-1.5 h-1.5 rounded-full animate-pulse ${signs ? 'bg-emerald-500' : 'bg-amber-400'}`}
+                    className={`w-1.5 h-1.5 rounded-full animate-pulse ${signs && !stale ? 'bg-emerald-500' : 'bg-amber-400'}`}
                   ></span>
-                  <span>{signs ? 'Live' : 'Sample'}</span>
+                  <span>{signs ? (stale ? 'Last received' : 'Live') : 'Sample'}</span>
                 </span>
                 <span className="font-mono text-slate-500">{sign.updatedAt}</span>
               </div>

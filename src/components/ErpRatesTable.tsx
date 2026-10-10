@@ -6,7 +6,7 @@ import {
   ERP_VEHICLE_FACTORS,
   ErpExpresswayGantry,
 } from '../data/erpRates';
-import { GantryState, describe, formatSgd, singaporeNow } from '../utils/erp';
+import { GantryState, describe, erpCalendar, formatSgd, singaporeNow } from '../utils/erp';
 
 interface GantryRow {
   gantry: ErpExpresswayGantry;
@@ -27,11 +27,12 @@ function operatingWindows(gantry: ErpExpresswayGantry): string {
   return windows.map(([s, e]) => `${s}–${e}`).join(', ');
 }
 
-const STATE_ORDER: Record<GantryState, number> = { Charging: 0, 'Free now': 1, 'No charge': 2 };
+const STATE_ORDER: Record<GantryState, number> = { Charging: 0, 'Free now': 1, 'No charge': 2, Unverified: 3 };
 const STATE_BADGE: Record<GantryState, string> = {
   Charging: 'bg-amber-100 text-amber-800',
   'Free now': 'bg-emerald-100 text-emerald-800',
   'No charge': 'bg-slate-100 text-slate-600',
+  Unverified: 'bg-amber-100 text-amber-800',
 };
 
 export const ErpRatesTable: React.FC = () => {
@@ -44,20 +45,21 @@ export const ErpRatesTable: React.FC = () => {
   }, []);
 
   const { weekday, isWeekday, hhmm } = singaporeNow(now);
+  const calendar = erpCalendar(now);
 
   const rows: GantryRow[] = useMemo(
     () =>
       ERP_EXPRESSWAY_GANTRIES.map((gantry) => ({
         gantry,
         windows: operatingWindows(gantry) || '—',
-        ...describe(gantry, isWeekday, hhmm),
+        ...describe(gantry, isWeekday, hhmm, erpCalendar(now)),
       })).sort(
         (a, b) =>
           STATE_ORDER[a.state] - STATE_ORDER[b.state] ||
           b.carRate - a.carRate ||
           a.gantry.code.localeCompare(b.gantry.code)
       ),
-    [isWeekday, hhmm]
+    [now, isWeekday, hhmm]
   );
 
   const chargingCount = rows.filter((r) => r.state === 'Charging').length;
@@ -77,7 +79,7 @@ export const ErpRatesTable: React.FC = () => {
           <p className="text-xs text-slate-500 mt-0.5">
             {weekday} {hhmm} SGT •{' '}
             <span className={chargingCount ? 'text-amber-700 font-semibold' : 'text-emerald-700 font-semibold'}>
-              {chargingCount} of {rows.length} expressway gantries charging now
+              {calendar.known ? `${chargingCount} of ${rows.length} expressway gantries charging now` : 'Holiday calendar needs updating'}
             </span>
           </p>
         </div>
@@ -112,9 +114,9 @@ export const ErpRatesTable: React.FC = () => {
                   <div className="text-[11px] text-slate-400 font-mono">Gantry {gantry.gantryNos}</div>
                 </td>
                 <td className="py-3 px-3 text-slate-500 font-mono font-bold">{gantry.code}</td>
-                <td className="py-3 px-3 font-mono font-bold text-slate-900">{formatSgd(carRate)}</td>
+                <td className="py-3 px-3 font-mono font-bold text-slate-900">{state === 'Unverified' ? '—' : formatSgd(carRate)}</td>
                 <td className="py-3 px-3 font-mono font-bold text-slate-900">
-                  {formatSgd(carRate * ERP_VEHICLE_FACTORS.heavyGoods)}
+                  {state === 'Unverified' ? '—' : formatSgd(carRate * ERP_VEHICLE_FACTORS.heavyGoods)}
                 </td>
                 <td className="py-3 px-3 text-slate-600 font-mono">{windows}</td>
                 <td className="py-3 px-3 text-right">
@@ -129,7 +131,7 @@ export const ErpRatesTable: React.FC = () => {
 
       <p className="text-[10px] text-slate-400">
         Base rates from LTA's published rate table; heavy goods vehicles pay 1.5× the base rate. Expressway ERP
-        operates on weekdays only. Public holidays and any temporary school-holiday rate reductions are not reflected.
+        operates on weekdays, excluding public holidays. The 2026–2027 holiday calendar and 13:00 closure on designated holiday eves are applied. Temporary school-holiday rate reductions are not reflected.
       </p>
     </div>
   );

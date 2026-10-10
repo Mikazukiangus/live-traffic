@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
+import { usePolledJson } from '../utils/usePolledJson';
 import { RAIN_LEVEL_STYLE, rainLevel } from '../utils/rainForecast';
 
 const REGIONS = ['north', 'south', 'east', 'west', 'central'] as const;
@@ -18,7 +19,6 @@ interface Forecast24h {
 
 // NEA reissues the 24-hour forecast a few times a day; the endpoint is CDN-cached for 15 minutes.
 const POLL_MS = 15 * 60_000;
-const RETRY_MS = 30_000;
 
 const ForecastText: React.FC<{ text: string }> = ({ text }) => {
   const level = rainLevel(text);
@@ -33,34 +33,8 @@ const ForecastText: React.FC<{ text: string }> = ({ text }) => {
 };
 
 export const WeatherOutlook24h: React.FC = () => {
-  const [forecast, setForecast] = useState<Forecast24h | null>(null);
-  const [failed, setFailed] = useState(false);
-
-  useEffect(() => {
-    let loaded = false;
-    let retry: ReturnType<typeof setTimeout> | undefined;
-    const load = async () => {
-      try {
-        const res = await fetch('/api/forecast24h');
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = await res.json();
-        if (!json?.general || !Array.isArray(json.periods)) throw new Error('Unexpected forecast payload');
-        setForecast(json);
-        setFailed(false);
-        loaded = true;
-      } catch {
-        setFailed(true);
-        // Until the first forecast arrives, try again soon rather than at the next poll.
-        if (!loaded) retry = setTimeout(load, RETRY_MS);
-      }
-    };
-    load();
-    const interval = setInterval(() => loaded && load(), POLL_MS);
-    return () => {
-      clearInterval(interval);
-      clearTimeout(retry);
-    };
-  }, []);
+  const { data: forecast, status } = usePolledJson<Forecast24h>('/api/forecast24h', POLL_MS, (d) => !!d?.general && Array.isArray(d.periods));
+  const failed = status === 'error';
 
   if (!forecast) {
     return (

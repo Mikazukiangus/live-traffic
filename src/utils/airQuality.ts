@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { usePolledJson } from './usePolledJson';
 
 export type AirRegion = 'north' | 'south' | 'east' | 'west' | 'central';
 
@@ -68,36 +68,6 @@ export const sgtHour = (timestamp: string | null) => timestamp?.slice(11, 16) ??
 
 // NEA updates hourly; the endpoint is CDN-cached for 5 minutes.
 const AIR_POLL_MS = 10 * 60_000;
-const RETRY_MS = 30_000;
-
 export function useAirQuality(): AirQuality | null {
-  const [air, setAir] = useState<AirQuality | null>(null);
-
-  useEffect(() => {
-    let loaded = false;
-    let retry: ReturnType<typeof setTimeout> | undefined;
-    const load = async () => {
-      try {
-        const res = await fetch('/api/airquality');
-        const json = res.ok ? await res.json() : null;
-        if (Array.isArray(json?.regions) && json.regions.length > 0) {
-          setAir(json);
-          // Show a partial answer (one feed failed) but keep retrying until both are in.
-          loaded = json.regions.every((r: RegionAirQuality) => r.psi24h != null && r.pm25OneHour != null);
-        }
-      } catch {
-        // Keep the last readings
-      }
-      // Until full readings arrive, try again soon rather than at the next poll.
-      if (!loaded) retry = setTimeout(load, RETRY_MS);
-    };
-    load();
-    const interval = setInterval(() => loaded && load(), AIR_POLL_MS);
-    return () => {
-      clearInterval(interval);
-      clearTimeout(retry);
-    };
-  }, []);
-
-  return air;
+  return usePolledJson<AirQuality>('/api/airquality', AIR_POLL_MS, (d) => Array.isArray(d?.regions) && d.regions.length > 0).data;
 }

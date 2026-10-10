@@ -1,6 +1,13 @@
 import { ERP_EXPRESSWAY_GANTRIES, ErpExpresswayGantry } from '../data/erpRates';
 
-export type GantryState = 'Charging' | 'Free now' | 'No charge';
+import { EARLY_CLOSING_EVES, ERP_CALENDAR_YEARS, PUBLIC_HOLIDAYS } from '../data/erpCalendar';
+
+export type GantryState = 'Charging' | 'Free now' | 'No charge' | 'Unverified';
+
+export function erpCalendar(date: Date) {
+  const day = new Date(date.getTime() + 8 * 3600_000).toISOString().slice(0, 10);
+  return { holiday: PUBLIC_HOLIDAYS[day] || null, earlyClosing: EARLY_CLOSING_EVES.has(day), known: ERP_CALENDAR_YEARS.includes(Number(day.slice(0, 4))) };
+}
 
 export const formatSgd = (amount: number) => `S$${amount.toFixed(2)}`;
 
@@ -22,14 +29,17 @@ export function singaporeNow(date: Date) {
   };
 }
 
-export function describe(gantry: ErpExpresswayGantry, isWeekday: boolean, hhmm: string): { state: GantryState; carRate: number; note: string } {
-  const schedule = gantry.weekdaySchedule;
-  if (schedule.length === 0) {
+export function describe(gantry: ErpExpresswayGantry, isWeekday: boolean, hhmm: string, calendar?: ReturnType<typeof erpCalendar>): { state: GantryState; carRate: number; note: string } {
+  const schedule = calendar?.earlyClosing
+    ? gantry.weekdaySchedule.filter(([start]) => start < '13:00').map(([start, end, rate]) => [start, end > '13:00' ? '13:00' : end, rate] as [string, string, number])
+    : gantry.weekdaySchedule;
+  if (gantry.weekdaySchedule.length === 0) {
     return { state: 'No charge', carRate: 0, note: 'S$0.00 at all times' };
   }
-  if (!isWeekday) {
-    return { state: 'Free now', carRate: 0, note: `Weekends free • next Mon ${schedule[0][0]}` };
-  }
+  if (calendar?.holiday) return { state: 'Free now', carRate: 0, note: `${calendar.holiday} • no ERP today` };
+  if (!isWeekday) return { state: 'Free now', carRate: 0, note: 'Weekends free' };
+  if (calendar && !calendar.known) return { state: 'Unverified', carRate: 0, note: 'Holiday calendar needs updating' };
+  if (calendar?.earlyClosing && hhmm >= '13:00') return { state: 'Free now', carRate: 0, note: 'Holiday eve • ERP ends at 13:00' };
 
   // Zero-padded HH:MM strings compare correctly as text.
   const index = schedule.findIndex(([start, end]) => start <= hhmm && hhmm < end);
@@ -53,23 +63,25 @@ export interface ErpSummary {
   charging: { gantry: ErpExpresswayGantry; rate: number; note: string }[];
   // The next gantry on these expressways to start charging today, if none is charging
   next: { gantry: ErpExpresswayGantry; start: string; rate: number } | null;
+  calendarKnown: boolean;
 }
 
 /** ERP on the given expressways at `date` (cars; gantries on each road, either direction). */
 export function erpOn(codes: string[], date: Date): ErpSummary {
   const { isWeekday, hhmm } = singaporeNow(date);
+  const calendar = erpCalendar(date);
   const gantries = ERP_EXPRESSWAY_GANTRIES.filter((g) => codes.includes(g.code) && g.weekdaySchedule.length);
   const charging = gantries
-    .map((gantry) => ({ gantry, ...describe(gantry, isWeekday, hhmm) }))
+    .map((gantry) => ({ gantry, ...describe(gantry, isWeekday, hhmm, calendar) }))
     .filter((d) => d.state === 'Charging')
     .map(({ gantry, carRate, note }) => ({ gantry, rate: carRate, note }))
     .sort((a, b) => b.rate - a.rate);
   let next: ErpSummary['next'] = null;
-  if (!charging.length && isWeekday) {
+  if (!charging.length && isWeekday && calendar.known && !calendar.holiday) {
     for (const gantry of gantries) {
-      const slot = gantry.weekdaySchedule.find(([start]) => start > hhmm);
+      const slot = gantry.weekdaySchedule.find(([start]) => start > hhmm && (!calendar.earlyClosing || start < '13:00'));
       if (slot && (!next || slot[0] < next.start)) next = { gantry, start: slot[0], rate: slot[2] };
     }
   }
-  return { charging, next };
+  return { charging, next, calendarKnown: calendar.known };
 }

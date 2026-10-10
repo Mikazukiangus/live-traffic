@@ -5,7 +5,9 @@
  *   "(5/10)10:53 Vehicle Breakdown on KJE (towards PIE) after PIE(Changi). Avoid lane 3."
  * so the expressway, location, lane and time are parsed out of the message text.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useMemo } from 'react';
+import { usePolledJson } from './usePolledJson';
+import { sgtClock } from './freshness';
 import { EXPRESSWAY_CORRIDORS } from '../data/mockData';
 import { IncidentAlert } from '../types/traffic';
 
@@ -56,9 +58,10 @@ const parseTimestamp = (msg: string, now: Date): Date | null => {
   if (!m) return null;
   const [, d, mo, h, mi] = m.map(Number);
   const build = (year: number) => new Date(Date.UTC(year, mo - 1, d, h - 8, mi));
-  let t = build(now.getUTCFullYear());
+  const sgtYear = new Date(now.getTime() + 8 * 3600_000).getUTCFullYear();
+  let t = build(sgtYear);
   // A December report read in early January belongs to last year
-  if (t.getTime() - now.getTime() > 24 * 3600 * 1000) t = build(now.getUTCFullYear() - 1);
+  if (t.getTime() - now.getTime() > 24 * 3600 * 1000) t = build(sgtYear - 1);
   return t;
 };
 
@@ -119,14 +122,23 @@ export const parseLtaMessage = (message: string, now: Date = new Date()): Parsed
 const corridorName = (code?: string) =>
   EXPRESSWAY_CORRIDORS.find((c) => c.code === code)?.name || NON_EXPRESSWAY_CORRIDOR;
 
-export const mapLtaIncident = (item: LtaIncidentRecord, idx: number, now: Date = new Date()): IncidentAlert => {
+// LTA has no incident ID. Fingerprint its source fields so reordered responses preserve
+// selection and commute-notification identity.
+function incidentId(item: LtaIncidentRecord): string {
+  let hash = 2166136261;
+  const identity = JSON.stringify([item.Type, item.Latitude, item.Longitude, item.Message]);
+  for (let i = 0; i < identity.length; i++) hash = Math.imul(hash ^ identity.charCodeAt(i), 16777619);
+  return `lta-inc-${(hash >>> 0).toString(16).padStart(8, '0')}`;
+}
+
+export const mapLtaIncident = (item: LtaIncidentRecord, _idx: number, now: Date = new Date()): IncidentAlert => {
   const msg = item.Message || 'Incident reported';
   const parsed = parseLtaMessage(msg, now);
   const ltaType = (item.Type || '').trim();
   const { type, severity } = LTA_TYPE_MAP[ltaType.toLowerCase()] || { type: 'Other', severity: 'Info' };
 
   return {
-    id: `lta-inc-${idx}-${item.Latitude ?? 0}-${item.Longitude ?? 0}`,
+    id: incidentId(item),
     corridor: corridorName(parsed.corridorCode),
     corridorCode: parsed.corridorCode,
     lat: typeof item.Latitude === 'number' ? item.Latitude : undefined,
@@ -177,34 +189,10 @@ const INCIDENT_POLL_MS = 60_000;
  * After a failed refresh the last live list is kept and status becomes "error".
  */
 export function useLtaIncidents(): IncidentFeed {
-  const [incidents, setIncidents] = useState<IncidentAlert[]>([]);
-  const [status, setStatus] = useState<IncidentFeedStatus>('loading');
-  const [fetchedAt, setFetchedAt] = useState<string | null>(null);
-
-  const refresh = useCallback(async () => {
-    try {
-      const res = await fetch('/api/traffic');
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      if (!Array.isArray(json?.value)) throw new Error('Unexpected incidents payload');
-      const now = new Date();
-      setIncidents(
-        sortBySeverity(json.value.map((item: LtaIncidentRecord, idx: number) => mapLtaIncident(item, idx, now)))
-      );
-      setFetchedAt(
-        now.toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Singapore' })
-      );
-      setStatus('live');
-    } catch {
-      setStatus('error');
-    }
-  }, []);
-
-  useEffect(() => {
-    refresh();
-    const interval = setInterval(refresh, INCIDENT_POLL_MS);
-    return () => clearInterval(interval);
-  }, [refresh]);
-
-  return { incidents, status, fetchedAt, refresh };
+  const feed = usePolledJson<{ value: LtaIncidentRecord[] }>('/api/traffic', INCIDENT_POLL_MS, (d) => Array.isArray(d?.value));
+  const incidents = useMemo(() => {
+    const now = new Date(feed.fetchedAt ?? Date.now());
+    return sortBySeverity((feed.data?.value || []).map((item, idx) => mapLtaIncident(item, idx, now)));
+  }, [feed.data, feed.fetchedAt]);
+  return { incidents, status: feed.status, fetchedAt: feed.fetchedAt ? sgtClock(feed.fetchedAt) : null, refresh: feed.refresh };
 }

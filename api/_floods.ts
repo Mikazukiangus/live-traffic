@@ -38,7 +38,7 @@ export function activeFloodAlerts(records: any[], now: number): FloodAlert[] {
     const item = rec?.item || {};
     const readings: any[] = Array.isArray(item.readings) ? item.readings : [];
     const t = Date.parse(rec?.datetime);
-    if (!readings.length || !Number.isFinite(t)) continue;
+    if (!Number.isFinite(t)) continue;
     const msgType = item.msgType || 'Alert';
     const id = String(item.identifier || rec.datetime);
     if (msgType === 'Cancel') {
