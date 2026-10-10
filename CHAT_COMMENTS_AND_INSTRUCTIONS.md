@@ -34,6 +34,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 27. [Turn 27: In-Browser Vehicle Counts (YOLOX) and Browser Caching Fix](#27-turn-27-in-browser-vehicle-counts-yolox-and-browser-caching-fix)
 
 61. [Turn 61: Review and Live Data Bug Fixes](#61-turn-61-review-and-live-data-bug-fixes)
+62. [Turn 62: Live Data Bug Fixes Merged to Main](#62-turn-62-live-data-bug-fixes-merged-to-main)
 ---
 
 ## 1. Initial Brief & Architecture
@@ -1081,6 +1082,23 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - https://www.mom.gov.sg/newsroom/press-releases/2026/0618-public-holidays-for-2027
 - https://onemotoring.lta.gov.sg/content/onemotoring/home/driving/ERP/ERP.html (detailed operating-hours section)
 - https://sso.agc.gov.sg/SL-Supp/S122-2026/Published/20260320?DocDate=20260320 (Puasa eve; the LTA summary elsewhere on the page conflicts by saying Haji)
+
+
+## 62. Turn 62: Live Data Bug Fixes Merged to Main
+
+**User Instruction:**
+> "merge to main"
+
+### Done:
+- Merged PR #2, `codex/live-data-bug-fixes`, into `main` after all GitHub and Vercel checks passed for `81531df`.
+- Merge commit: `ab0c31c8e9045f1fd780923268a6dc11812c04ac`. Local `main` is synced.
+- Prior verification: type check, 22 tests and production build passed; browser checks covered Road Signs refresh, incident navigation and shared health readings.
+
+### Deployment verification:
+- GitHub's Production deployment record `6980480027` reports Vercel success ("Deployment has completed") for the merge commit.
+- Deployment: https://live-traffic-bhxefvrwa-carbon-bc04.vercel.app
+- Production site: https://live-traffic-carbon-bc04.vercel.app
+- Direct runtime checks remain blocked: the Vercel connector returned HTTP 403 for team `carbon-bc04`. Deployment completion is confirmed; live endpoint health was not verified in this turn.
 
 ---
 
