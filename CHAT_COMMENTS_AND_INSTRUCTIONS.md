@@ -1034,6 +1034,15 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 ### Done:
 - Fast-forward merged `preview/basemap` (Turns 56–57: PSI first on the Weather tab, OpenStreetMap base map) into `main` and pushed. Vercel deploys it to production.
 
+## 59. Turn 59: Rain Below PSI
+
+**User Instruction:**
+> "Move "Rain Along Each Expressway" below PSI cards"
+
+### Done (preview branch `preview/rain-after-psi`):
+- The Weather tab now runs: PSI & PM2.5 by Region, Rain Along Each Expressway, Flash Floods (only when there are any), Lightning & Heat Stress, then the 24-hour outlook.
+- Verified locally in that order.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*
