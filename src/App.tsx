@@ -59,8 +59,9 @@ export default function App() {
   useShortcuts({
     t: () => setActiveTab('live-traffic-radar'),
     c: () => setActiveTab('highway-cameras-emas'),
+    h: () => setActiveTab('roadside-sos-workshops'),
     s: () => setActiveTab('roadside-sos-workshops'),
-    h: () => setActiveTab('route-alerts-courier-hub'),
+    d: () => setActiveTab('route-alerts-courier-hub'),
     r: requestRefresh,
     n: locate,
     w: () => (wall ? exitWallDisplay() : enterWallDisplay()),
@@ -261,8 +262,8 @@ export default function App() {
 
       {/* Main Container with 64px top padding for fixed navbar */}
       <main className={`w-full flex-1 flex flex-col ${wall ? 'pt-2' : 'pt-16'}`}>
-        {/* Telemetry & GNSS fix status bar */}
-        {!wall && <TelemetryBar
+        {/* Pickup location bar, only on the pages that use the pickup */}
+        {!wall && (activeTab === 'roadside-sos-workshops' || activeTab === 'route-alerts-courier-hub') && <TelemetryBar
           currentMarker={currentMarker}
           onSelectMarker={setCurrentMarker}
           incidentFeed={incidentFeed}

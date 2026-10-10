@@ -409,9 +409,9 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
     return groups;
   }, [cameras]);
 
-  // "Other" only appears if LTA publishes a camera missing from the directory.
-  const placeTabs = PLACE_TABS.filter((t) => t.id !== 'other' || camerasByPlace.other?.length);
-  const shownTab: TabId = activeTab === 'other' && !camerasByPlace.other?.length ? 'woodlands' : activeTab;
+  // The two checkpoints get their own tabs; Sentosa and any other camera are under All cameras.
+  const placeTabs = PLACE_TABS.filter((t) => t.id === 'woodlands' || t.id === 'tuas');
+  const shownTab: TabId = activeTab === 'sentosa' || activeTab === 'other' ? 'all' : activeTab;
 
   // Count vehicles in each photo, cameras on the open tab first.
   const countQueue = useMemo(() => {
@@ -434,7 +434,7 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
   const selectedCam = camParam ? cameras.find((c) => c.id === `lta-live-${camParam}`) || null : null;
   const openCam = (cam: CameraCard) => {
     openedHere.current = true;
-    writeParams({ tab: cam.place, cam: cam.id.replace('lta-live-', '') }, true);
+    writeParams({ tab: cam.place === 'woodlands' || cam.place === 'tuas' ? cam.place : 'all', cam: cam.id.replace('lta-live-', '') }, true);
   };
   const closeCam = () => {
     if (openedHere.current) {
@@ -467,18 +467,17 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
   useShortcuts({
     '1': () => selectTab('woodlands'),
     '2': () => selectTab('tuas'),
-    '3': () => selectTab('sentosa'),
+    '3': () => selectTab('signs'),
     '4': () => selectTab('all'),
-    '5': () => selectTab('signs'),
     ArrowLeft: () => stepCam(-1),
     ArrowRight: () => stepCam(1),
     ...(selectedCam ? { Escape: closeCam } : {}),
   });
   useRefreshRequests(fetchLiveLtaCameras);
 
-  // Wall display shows each checkpoint and Sentosa in turn (the all-cameras grid stays put)
-  const WALL_TABS: TabId[] = ['woodlands', 'tuas', 'sentosa'];
-  useWallCycle(wall && activeTab !== 'all', () => selectTab(WALL_TABS[(WALL_TABS.indexOf(activeTab) + 1) % WALL_TABS.length], false));
+  // Wall display shows each checkpoint in turn (the all-cameras grid stays put)
+  const WALL_TABS: TabId[] = ['woodlands', 'tuas'];
+  useWallCycle(wall && shownTab !== 'all', () => selectTab(WALL_TABS[(WALL_TABS.indexOf(shownTab) + 1) % WALL_TABS.length], false));
 
   // Near me: the closest camera, and its tab opened (unless a shared link chose the tab)
   const nearestCam = useMemo(() => {
@@ -668,13 +667,13 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
               </span>
             </button>
           ))}
-          <button onClick={() => selectTab('all')} className={tabClass(shownTab === 'all')}>
-            <span className="sm:hidden">All</span>
-            <span className="hidden sm:inline">All cameras</span>
-          </button>
           <button onClick={() => selectTab('signs')} className={tabClass(shownTab === 'signs')}>
             <span className="sm:hidden">Signs</span>
             <span className="hidden sm:inline">Road Signs</span>
+          </button>
+          <button onClick={() => selectTab('all')} className={tabClass(shownTab === 'all')}>
+            <span className="sm:hidden">All</span>
+            <span className="hidden sm:inline">All cameras</span>
           </button>
         </div>
       </nav>

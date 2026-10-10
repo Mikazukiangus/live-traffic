@@ -964,6 +964,36 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - The alert badge on Yellow Orange now uses dark text.
 - Verified locally in light and dark mode; type check, tests and build pass.
 
+## 54. Turn 54: A More Logical Layout
+
+**User Instructions:**
+> "suggest logical UI for this, for example like under "Live Traffic Radar", the "Incident" tab should be beside "Expressways" tab."
+> "build all"
+
+### Done (preview branch `preview/logical-ui`):
+- **Live Traffic tabs:**
+  - New order: Expressways, Incidents, Weather, and a new ERP tab. Keys 1–4 and the wall display follow it.
+- **Weather tab, most urgent first:** Flash floods (only when there are any), Lightning & heat stress, Rain along each expressway, 24-hour outlook, then PSI & PM2.5 last.
+- **Incidents tab:** "Happening Now" first. Road works and faulty traffic lights are folded into one "Road Works & Traffic Lights" section with a count, opened on tap.
+- **ERP:** the rates table moved from Courier Hub to the ERP tab on Live Traffic. The Drivers page links to it.
+- **Expressway cards:** the "Dispatch Here" button is gone. Towing stays under the map for the selected expressway.
+- **Toolbar:** "Report Road Hazard" is now a calm "Report hazard" button in the toolbar row, not a red emergency button.
+- **Menu names:**
+  - Header: Live Traffic, Cameras & Road Signs, Breakdown Help, Drivers & Car Parks. The short forms (Traffic, Cameras, Help, Drivers) are also used in the phone tab bar.
+  - Keys: T, C, H (or S), D. Page links are unchanged.
+- **Drivers page:** retitled "Car Parks, Heavy Vehicles & Couriers".
+- **Car parks:** a "Car parks near you" section appears on Live Traffic after Near me finds you.
+- **Pickup bar:** the "Pickup location (demo)" bar now shows only on Help and Drivers, the pages that use it.
+- **Cameras tabs:**
+  - New tabs: Woodlands, Tuas, Road Signs, All cameras. Sentosa and any other camera are under All cameras; old Sentosa links open All cameras.
+  - Keys 1–4; the wall display cycles the two checkpoints.
+
+### Verified locally:
+- Tab orders, Weather order, the folded road works, the ERP tab and the Drivers page link to it.
+- Camera tabs, with old `tab=sentosa` links landing on All cameras.
+- The pickup bar is gone from Traffic and Cameras, and the new names show in the header and phone tab bar.
+- 375 px phone width with no sideways scroll. Tests and build pass.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*

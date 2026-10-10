@@ -4,16 +4,16 @@ const GROUPS: { title: string; keys: [string, string][] }[] = [
   {
     title: 'Pages',
     keys: [
-      ['T', 'Live Traffic'],
-      ['C', 'Highway Cameras'],
-      ['S', 'Roadside SOS'],
-      ['H', 'Courier Hub'],
+      ['T', 'Traffic'],
+      ['C', 'Cameras'],
+      ['H', 'Help'],
+      ['D', 'Drivers'],
     ],
   },
   {
     title: 'On a page',
     keys: [
-      ['1 – 5', 'Switch tab'],
+      ['1 – 4', 'Switch tab'],
       ['R', 'Refresh live data'],
       ['N', 'Near me'],
       ['← →', 'Previous / next expressway or camera'],

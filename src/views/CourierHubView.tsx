@@ -1,7 +1,7 @@
 import React from 'react';
-import { ErpRatesTable } from '../components/ErpRatesTable';
 import { CarParkAvailability } from '../components/CarParkAvailability';
 import { GnssMarker } from '../types/traffic';
+import { writeParams } from '../utils/urlState';
 
 interface CourierHubViewProps {
   onOpenSlaModal: () => void;
@@ -22,14 +22,14 @@ export const CourierHubView: React.FC<CourierHubViewProps> = ({
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
             <span className="text-xs font-bold text-sky-600 uppercase tracking-wider">
-              Logistics &amp; Courier Protocol
+              For Drivers
             </span>
           </div>
           <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 mt-1">
-            Commercial Fleet &amp; Courier Logistics Hub
+            Car Parks, Heavy Vehicles &amp; Couriers
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            SLA delay protection, active ERP rates, heavy vehicle tunnel clearances, and backup dispatch manifests.
+            Free car park lots, heavy vehicle tunnel rules, wreckers and delivery delay logs.
           </p>
         </div>
 
@@ -109,8 +109,15 @@ export const CourierHubView: React.FC<CourierHubViewProps> = ({
         </div>
       </div>
 
-      {/* ERP Rates Table */}
-      <ErpRatesTable />
+      {/* ERP rates live with the traffic now */}
+      <button
+        onClick={() => writeParams({ page: 'radar', tab: 'erp' }, true)}
+        className="self-start flex items-center gap-2 px-4 py-3 rounded-xl bg-white border border-slate-200 shadow-xs text-sm font-semibold text-slate-800 hover:bg-slate-100 cursor-pointer"
+      >
+        <span className="material-symbols-outlined text-base text-amber-700">toll</span>
+        ERP rates are on Live Traffic, under the ERP tab
+        <span className="material-symbols-outlined text-base text-slate-400">arrow_forward</span>
+      </button>
     </div>
   );
 };

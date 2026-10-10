@@ -4,8 +4,8 @@ import { TabType } from '../types/traffic';
 const ITEMS: { id: TabType; label: string; icon: string }[] = [
   { id: 'live-traffic-radar', label: 'Traffic', icon: 'speed' },
   { id: 'highway-cameras-emas', label: 'Cameras', icon: 'videocam' },
-  { id: 'roadside-sos-workshops', label: 'SOS', icon: 'sos' },
-  { id: 'route-alerts-courier-hub', label: 'Courier', icon: 'local_shipping' },
+  { id: 'roadside-sos-workshops', label: 'Help', icon: 'sos' },
+  { id: 'route-alerts-courier-hub', label: 'Drivers', icon: 'directions_car' },
 ];
 
 /** Thumb-reach page tabs on phones and tablets (the header's tabs show from lg up). */

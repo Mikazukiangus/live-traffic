@@ -32,10 +32,10 @@ export const Header: React.FC<HeaderProps> = ({
 
   // Short labels until the screen is wide enough for the full ones
   const navItems: { id: TabType; label: string; short: string }[] = [
-    { id: 'live-traffic-radar', label: 'Live Traffic Radar', short: 'Live Traffic' },
-    { id: 'highway-cameras-emas', label: 'Highway Cameras & EMAS', short: 'Cameras' },
-    { id: 'roadside-sos-workshops', label: 'Roadside SOS & Workshops', short: 'Roadside SOS' },
-    { id: 'route-alerts-courier-hub', label: 'Route Alerts & Courier Hub', short: 'Courier Hub' },
+    { id: 'live-traffic-radar', label: 'Live Traffic', short: 'Traffic' },
+    { id: 'highway-cameras-emas', label: 'Cameras & Road Signs', short: 'Cameras' },
+    { id: 'roadside-sos-workshops', label: 'Breakdown Help', short: 'Help' },
+    { id: 'route-alerts-courier-hub', label: 'Drivers & Car Parks', short: 'Drivers' },
   ];
 
   return (

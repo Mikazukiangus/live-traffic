@@ -28,6 +28,8 @@ import { HEAT_STYLE, LIGHTNING_NEAR_KM, lightningByExpressway, useWeatherAlerts 
 import { floodLabel, floodsByExpressway, useFloodAlerts } from '../utils/floodAlerts';
 import { loadSpeedSnapshot, saveSpeedSnapshot } from '../utils/speedSnapshot';
 import { erpOn, formatSgd } from '../utils/erp';
+import { ErpRatesTable } from '../components/ErpRatesTable';
+import { CarParkAvailability } from '../components/CarParkAvailability';
 
 interface LiveRadarViewProps {
   onSwitchToSos: (corridorCode: string) => void;
@@ -70,8 +72,9 @@ const STATUS_BAR: Record<CongestionStatus, string> = {
 const describeTravelTimes = (times: DirectionTravelTime[]) =>
   times.map((t) => `${t.minutes} min to ${t.towards}`).join(' • ');
 
-type RadarTab = 'expressways' | 'weather' | 'incidents';
-const isRadarTab = (t: string | null): t is RadarTab => t === 'expressways' || t === 'weather' || t === 'incidents';
+type RadarTab = 'expressways' | 'incidents' | 'weather' | 'erp';
+const RADAR_TABS: RadarTab[] = ['expressways', 'incidents', 'weather', 'erp'];
+const isRadarTab = (t: string | null): t is RadarTab => RADAR_TABS.includes(t as RadarTab);
 
 // LTA publishes speed bands every 5 minutes; three missed updates means the feed has stalled.
 const SPEEDS_STALE_MS = 15 * 60_000;
@@ -232,8 +235,7 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
 
   useRefreshRequests(refreshAll);
 
-  // Keyboard: 1–3 switch tabs, ← → step through the expressways
-  const RADAR_TABS: RadarTab[] = ['expressways', 'weather', 'incidents'];
+  // Keyboard: 1–4 switch tabs, ← → step through the expressways
   const stepCorridor = (by: number) => {
     const i = corridors.findIndex((c) => c.code === selectedCorridorCode);
     setSelectedCorridorCode(corridors[(i + by + corridors.length) % corridors.length].code);
@@ -241,8 +243,9 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
   };
   useShortcuts({
     '1': () => selectTab('expressways'),
-    '2': () => selectTab('weather'),
-    '3': () => selectTab('incidents'),
+    '2': () => selectTab('incidents'),
+    '3': () => selectTab('weather'),
+    '4': () => selectTab('erp'),
     ArrowLeft: () => stepCorridor(-1),
     ArrowRight: () => stepCorridor(1),
   });
@@ -426,10 +429,10 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
             onClick={() => onCallHotline('18002255582', 'EMAS Operation Center')}
             aria-label="Report road hazard"
             title="Call the LTA EMAS Operation Centre"
-            className="h-10 px-3 sm:px-4 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-full transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
+            className="h-10 px-3 bg-white border border-slate-200 hover:bg-red-50 hover:border-red-200 text-red-700 text-xs font-bold rounded-full transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
           >
-            <span className="material-symbols-outlined text-base">emergency</span>
-            <span className="hidden sm:inline">Report Road Hazard</span>
+            <span className="material-symbols-outlined text-base">report</span>
+            <span className="hidden sm:inline">Report hazard</span>
           </button>
           <button
             onClick={refreshAll}
@@ -522,6 +525,19 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
         </div>
       )}
 
+      {!wall && nearMe.status === 'found' && nearMe.lat != null && nearMe.lon != null && (
+        <details className="group/parks">
+          <summary className="list-none cursor-pointer inline-flex items-center gap-1.5 text-sm font-semibold text-sky-700 hover:text-sky-800">
+            <span className="material-symbols-outlined text-base">local_parking</span>
+            Car parks near you
+            <span className="material-symbols-outlined text-base group-open/parks:rotate-180 transition-transform">expand_more</span>
+          </summary>
+          <div className="mt-3">
+            <CarParkAvailability lat={nearMe.lat} lon={nearMe.lon} placeLabel="you" />
+          </div>
+        </details>
+      )}
+
       {/* Tabs stay pinned under the fixed site header while scrolling */}
       <nav className="sticky top-16 z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 py-2 bg-slate-50/95 backdrop-blur-sm">
         <div className="flex gap-1 p-1 bg-white border border-slate-200 rounded-xl shadow-xs w-full sm:w-fit">
@@ -530,9 +546,6 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
             <span className={`hidden sm:inline text-xs ${activeTab === 'expressways' ? 'text-sky-100' : 'text-slate-400'}`}>
               {corridors.length}
             </span>
-          </button>
-          <button onClick={() => selectTab('weather')} className={tabClass(activeTab === 'weather')}>
-            Weather
           </button>
           <button onClick={() => selectTab('incidents')} className={tabClass(activeTab === 'incidents')}>
             <span>Incidents</span>
@@ -545,6 +558,12 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
                 {incidents.length}
               </span>
             )}
+          </button>
+          <button onClick={() => selectTab('weather')} className={tabClass(activeTab === 'weather')}>
+            Weather
+          </button>
+          <button onClick={() => selectTab('erp')} className={tabClass(activeTab === 'erp')}>
+            ERP
           </button>
         </div>
       </nav>
@@ -689,16 +708,6 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
                       : `${incidentCounts[corridor.code] || 0} active LTA ${incidentCounts[corridor.code] === 1 ? 'incident' : 'incidents'}`}
                     {worksByCode[corridor.code]?.length ? ` · ${worksByCode[corridor.code].length} road works` : ''}
                   </span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onSwitchToSos(corridor.code);
-                    }}
-                    className="text-sky-600 hover:text-sky-700 font-bold flex items-center gap-0.5 text-xs"
-                  >
-                    <span>Dispatch Here</span>
-                    <span className="material-symbols-outlined text-xs">arrow_forward</span>
-                  </button>
                 </div>
               </div>
             );
@@ -839,94 +848,7 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
       </section>
 
       <section className={activeTab === 'weather' ? 'flex flex-col gap-6' : 'hidden'}>
-        {/* NEA air quality: 24-hour PSI and 1-hour PM2.5 per region */}
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col gap-4">
-          <div className="flex flex-wrap items-start justify-between gap-2">
-            <div>
-              <span className="text-[11px] text-sky-600 font-bold uppercase tracking-wider">NEA Air Quality</span>
-              <h3 className="text-lg font-bold text-slate-900">PSI &amp; PM2.5 by Region</h3>
-            </div>
-            {airQuality && (
-              <span className="text-xs text-slate-500 font-mono">
-                {sgtHour(airQuality.psiTimestamp ?? airQuality.pm25Timestamp)} SGT reading
-              </span>
-            )}
-          </div>
-          {!airQuality ? (
-            <div className="text-xs text-slate-400">Loading NEA air quality…</div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-xs">
-              {airQuality.regions.map((r) => {
-                const psi = r.psi24h != null ? psiBand(r.psi24h) : null;
-                const pm = r.pm25OneHour != null ? pm25Band(r.pm25OneHour) : null;
-                return (
-                  <div key={r.name} className="p-3 rounded-lg bg-slate-50 border border-slate-100 flex flex-col gap-2">
-                    <div className="text-[10px] text-slate-500 font-semibold uppercase">{REGION_LABEL[r.name]}</div>
-                    <div title="24-hour Pollutant Standards Index">
-                      <div className="flex items-baseline gap-1.5">
-                        <span className="text-xl font-bold font-mono text-slate-900">{r.psi24h ?? '—'}</span>
-                        <span className="text-[10px] text-slate-500">PSI</span>
-                      </div>
-                      {psi && (
-                        <div className={`flex items-center gap-1 font-semibold ${psi.text}`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${psi.dot}`}></span>
-                          {psi.label}
-                        </div>
-                      )}
-                    </div>
-                    <div className="pt-2 border-t border-slate-200/70" title="Latest 1-hour PM2.5 concentration">
-                      <span className="font-mono font-bold text-slate-900">{r.pm25OneHour ?? '—'}</span>
-                      <span className="text-[10px] text-slate-500"> µg/m³ PM2.5</span>
-                      {pm && <div className={`font-semibold ${pm.text}`}>{pm.label}</div>}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-          <p className="text-[11px] text-slate-500">
-            PSI is the 24-hour index (Good up to 50, Moderate 51–100, Unhealthy 101–200). PM2.5 is the latest 1-hour reading.
-          </p>
-        </div>
-
-        {/* NEA 2-hour rain forecast along each expressway */}
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col gap-4">
-          <div className="flex flex-wrap items-start justify-between gap-2">
-            <div>
-              <span className="text-[11px] text-sky-600 font-bold uppercase tracking-wider">NEA 2-Hour Forecast</span>
-              <h3 className="text-lg font-bold text-slate-900">Rain Along Each Expressway</h3>
-            </div>
-            {rainForecast && (
-              <span className="text-xs text-slate-500 font-mono">{rainForecast.validPeriod.text}</span>
-            )}
-          </div>
-          {Object.keys(rainByCode).length === 0 ? (
-            <div className="text-xs text-slate-400">
-              Loading NEA rain forecast…
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {corridors.map((corridor) => {
-                const rain = rainByCode[corridor.code];
-                if (!rain) return null;
-                return (
-                  <div
-                    key={corridor.code}
-                    className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 border border-slate-100 text-xs"
-                    title={rain.wetAreas.map((a) => `${a.name}: ${a.forecast}`).join('\n') || undefined}
-                  >
-                    <span className={`material-symbols-outlined text-xl ${RAIN_LEVEL_STYLE[rain.level].className}`}>
-                      {RAIN_LEVEL_STYLE[rain.level].icon}
-                    </span>
-                    <span className="font-extrabold font-mono text-slate-900 w-10 shrink-0">{corridor.code}</span>
-                    <span className={`line-clamp-2 ${RAIN_LEVEL_STYLE[rain.level].className}`}>{describeCorridorRain(rain)}</span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
+        {/* Most urgent first: floods, lightning and heat, rain; air quality last */}
         {/* PUB flood alerts, only while there are any */}
         {floodAlerts.length > 0 && (
         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col gap-3">
@@ -1035,8 +957,96 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
           )}
         </div>
 
+        {/* NEA 2-hour rain forecast along each expressway */}
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col gap-4">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <span className="text-[11px] text-sky-600 font-bold uppercase tracking-wider">NEA 2-Hour Forecast</span>
+              <h3 className="text-lg font-bold text-slate-900">Rain Along Each Expressway</h3>
+            </div>
+            {rainForecast && (
+              <span className="text-xs text-slate-500 font-mono">{rainForecast.validPeriod.text}</span>
+            )}
+          </div>
+          {Object.keys(rainByCode).length === 0 ? (
+            <div className="text-xs text-slate-400">
+              Loading NEA rain forecast…
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {corridors.map((corridor) => {
+                const rain = rainByCode[corridor.code];
+                if (!rain) return null;
+                return (
+                  <div
+                    key={corridor.code}
+                    className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 border border-slate-100 text-xs"
+                    title={rain.wetAreas.map((a) => `${a.name}: ${a.forecast}`).join('\n') || undefined}
+                  >
+                    <span className={`material-symbols-outlined text-xl ${RAIN_LEVEL_STYLE[rain.level].className}`}>
+                      {RAIN_LEVEL_STYLE[rain.level].icon}
+                    </span>
+                    <span className="font-extrabold font-mono text-slate-900 w-10 shrink-0">{corridor.code}</span>
+                    <span className={`line-clamp-2 ${RAIN_LEVEL_STYLE[rain.level].className}`}>{describeCorridorRain(rain)}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
         {/* NEA 24-hour weather outlook */}
         <WeatherOutlook24h />
+
+        {/* NEA air quality: 24-hour PSI and 1-hour PM2.5 per region */}
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col gap-4">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <span className="text-[11px] text-sky-600 font-bold uppercase tracking-wider">NEA Air Quality</span>
+              <h3 className="text-lg font-bold text-slate-900">PSI &amp; PM2.5 by Region</h3>
+            </div>
+            {airQuality && (
+              <span className="text-xs text-slate-500 font-mono">
+                {sgtHour(airQuality.psiTimestamp ?? airQuality.pm25Timestamp)} SGT reading
+              </span>
+            )}
+          </div>
+          {!airQuality ? (
+            <div className="text-xs text-slate-400">Loading NEA air quality…</div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-xs">
+              {airQuality.regions.map((r) => {
+                const psi = r.psi24h != null ? psiBand(r.psi24h) : null;
+                const pm = r.pm25OneHour != null ? pm25Band(r.pm25OneHour) : null;
+                return (
+                  <div key={r.name} className="p-3 rounded-lg bg-slate-50 border border-slate-100 flex flex-col gap-2">
+                    <div className="text-[10px] text-slate-500 font-semibold uppercase">{REGION_LABEL[r.name]}</div>
+                    <div title="24-hour Pollutant Standards Index">
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-xl font-bold font-mono text-slate-900">{r.psi24h ?? '—'}</span>
+                        <span className="text-[10px] text-slate-500">PSI</span>
+                      </div>
+                      {psi && (
+                        <div className={`flex items-center gap-1 font-semibold ${psi.text}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${psi.dot}`}></span>
+                          {psi.label}
+                        </div>
+                      )}
+                    </div>
+                    <div className="pt-2 border-t border-slate-200/70" title="Latest 1-hour PM2.5 concentration">
+                      <span className="font-mono font-bold text-slate-900">{r.pm25OneHour ?? '—'}</span>
+                      <span className="text-[10px] text-slate-500"> µg/m³ PM2.5</span>
+                      {pm && <div className={`font-semibold ${pm.text}`}>{pm.label}</div>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          <p className="text-[11px] text-slate-500">
+            PSI is the 24-hour index (Good up to 50, Moderate 51–100, Unhealthy 101–200). PM2.5 is the latest 1-hour reading.
+          </p>
+        </div>
       </section>
 
       <section className={activeTab === 'incidents' ? 'flex flex-col gap-6' : 'hidden'}>
@@ -1046,7 +1056,7 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
             <div>
               <div className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-                <h3 className="font-bold text-slate-900 text-base">Active Traffic Incidents</h3>
+                <h3 className="font-bold text-slate-900 text-base">Happening Now</h3>
               </div>
               <span className={`text-[11px] font-mono ${incidentStatus === 'error' ? 'text-amber-700' : 'text-slate-400'}`}>
                 {incidentStatus === 'loading'
@@ -1168,8 +1178,22 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
             )}
           </div>
         </div>
-        {/* LTA road works on the expressways, and faulty traffic lights */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        {/* LTA road works on the expressways, and faulty traffic lights: ongoing, so folded away by default */}
+        <details className="group/works flex flex-col gap-4">
+          <summary className="list-none cursor-pointer flex items-center justify-between gap-3 bg-white px-5 py-4 rounded-xl border border-slate-200 shadow-xs">
+            <span className="flex flex-col">
+              <span className="font-bold text-slate-900 text-base">Road Works &amp; Traffic Lights</span>
+              <span className="text-xs text-slate-500">
+                {roadConditions.data
+                  ? `${Object.values(worksByCode).reduce((n, w) => n + w.length, 0)} expressway road works today · ${
+                      roadConditions.data.faultyLights?.length ?? 0
+                    } faulty traffic lights`
+                  : 'Ongoing LTA road works and traffic light faults'}
+              </span>
+            </span>
+            <span className="material-symbols-outlined text-slate-500 group-open/works:rotate-180 transition-transform">expand_more</span>
+          </summary>
+        <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
           <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col gap-3">
             <div className="border-b border-slate-100 pb-2">
               <h3 className="font-bold text-slate-900 text-base flex items-center gap-1.5">
@@ -1244,6 +1268,11 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
             )}
           </div>
         </div>
+        </details>
+      </section>
+
+      <section className={activeTab === 'erp' ? 'flex flex-col gap-6' : 'hidden'}>
+        <ErpRatesTable />
       </section>
     </div>
   );
