@@ -994,6 +994,14 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - The pickup bar is gone from Traffic and Cameras, and the new names show in the header and phone tab bar.
 - 375 px phone width with no sideways scroll. Tests and build pass.
 
+## 55. Turn 55: Logical Layout Merged to Main
+
+**User Instruction:**
+> "merge to main"
+
+### Done:
+- Fast-forward merged `preview/logical-ui` (Turn 54) into `main` and pushed. Vercel deploys it to production.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*
