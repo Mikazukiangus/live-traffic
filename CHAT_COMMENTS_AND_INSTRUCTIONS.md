@@ -1026,6 +1026,14 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Attribution "Base map © OpenStreetMap contributors" (ODbL) is under the map, linking to openstreetmap.org/copyright.
 - Verified locally: the land fills the map at any width, roads line up with LTA's speed bands, and the town names are placed correctly. Tests and build pass.
 
+## 58. Turn 58: PSI First and Base Map Merged to Main
+
+**User Instruction:**
+> "Merge to main"
+
+### Done:
+- Fast-forward merged `preview/basemap` (Turns 56–57: PSI first on the Weather tab, OpenStreetMap base map) into `main` and pushed. Vercel deploys it to production.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*
