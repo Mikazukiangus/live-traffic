@@ -1043,6 +1043,14 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - The Weather tab now runs: PSI & PM2.5 by Region, Rain Along Each Expressway, Flash Floods (only when there are any), Lightning & Heat Stress, then the 24-hour outlook.
 - Verified locally in that order.
 
+## 60. Turn 60: Rain Below PSI Merged to Main
+
+**User Instruction:**
+> "Yes" (merge to main)
+
+### Done:
+- Fast-forward merged `preview/rain-after-psi` (Turn 59) into `main` and pushed. Vercel deploys it to production.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*
