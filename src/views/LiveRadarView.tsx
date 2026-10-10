@@ -848,7 +848,57 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
       </section>
 
       <section className={activeTab === 'weather' ? 'flex flex-col gap-6' : 'hidden'}>
-        {/* Most urgent first: floods, lightning and heat, rain; air quality last */}
+        {/* Air quality first, then floods, lightning and heat, rain, and the 24-hour outlook */}
+        {/* NEA air quality: 24-hour PSI and 1-hour PM2.5 per region */}
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col gap-4">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <span className="text-[11px] text-sky-600 font-bold uppercase tracking-wider">NEA Air Quality</span>
+              <h3 className="text-lg font-bold text-slate-900">PSI &amp; PM2.5 by Region</h3>
+            </div>
+            {airQuality && (
+              <span className="text-xs text-slate-500 font-mono">
+                {sgtHour(airQuality.psiTimestamp ?? airQuality.pm25Timestamp)} SGT reading
+              </span>
+            )}
+          </div>
+          {!airQuality ? (
+            <div className="text-xs text-slate-400">Loading NEA air quality…</div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-xs">
+              {airQuality.regions.map((r) => {
+                const psi = r.psi24h != null ? psiBand(r.psi24h) : null;
+                const pm = r.pm25OneHour != null ? pm25Band(r.pm25OneHour) : null;
+                return (
+                  <div key={r.name} className="p-3 rounded-lg bg-slate-50 border border-slate-100 flex flex-col gap-2">
+                    <div className="text-[10px] text-slate-500 font-semibold uppercase">{REGION_LABEL[r.name]}</div>
+                    <div title="24-hour Pollutant Standards Index">
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-xl font-bold font-mono text-slate-900">{r.psi24h ?? '—'}</span>
+                        <span className="text-[10px] text-slate-500">PSI</span>
+                      </div>
+                      {psi && (
+                        <div className={`flex items-center gap-1 font-semibold ${psi.text}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${psi.dot}`}></span>
+                          {psi.label}
+                        </div>
+                      )}
+                    </div>
+                    <div className="pt-2 border-t border-slate-200/70" title="Latest 1-hour PM2.5 concentration">
+                      <span className="font-mono font-bold text-slate-900">{r.pm25OneHour ?? '—'}</span>
+                      <span className="text-[10px] text-slate-500"> µg/m³ PM2.5</span>
+                      {pm && <div className={`font-semibold ${pm.text}`}>{pm.label}</div>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          <p className="text-[11px] text-slate-500">
+            PSI is the 24-hour index (Good up to 50, Moderate 51–100, Unhealthy 101–200). PM2.5 is the latest 1-hour reading.
+          </p>
+        </div>
+
         {/* PUB flood alerts, only while there are any */}
         {floodAlerts.length > 0 && (
         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col gap-3">
@@ -997,56 +1047,6 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
 
         {/* NEA 24-hour weather outlook */}
         <WeatherOutlook24h />
-
-        {/* NEA air quality: 24-hour PSI and 1-hour PM2.5 per region */}
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col gap-4">
-          <div className="flex flex-wrap items-start justify-between gap-2">
-            <div>
-              <span className="text-[11px] text-sky-600 font-bold uppercase tracking-wider">NEA Air Quality</span>
-              <h3 className="text-lg font-bold text-slate-900">PSI &amp; PM2.5 by Region</h3>
-            </div>
-            {airQuality && (
-              <span className="text-xs text-slate-500 font-mono">
-                {sgtHour(airQuality.psiTimestamp ?? airQuality.pm25Timestamp)} SGT reading
-              </span>
-            )}
-          </div>
-          {!airQuality ? (
-            <div className="text-xs text-slate-400">Loading NEA air quality…</div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-xs">
-              {airQuality.regions.map((r) => {
-                const psi = r.psi24h != null ? psiBand(r.psi24h) : null;
-                const pm = r.pm25OneHour != null ? pm25Band(r.pm25OneHour) : null;
-                return (
-                  <div key={r.name} className="p-3 rounded-lg bg-slate-50 border border-slate-100 flex flex-col gap-2">
-                    <div className="text-[10px] text-slate-500 font-semibold uppercase">{REGION_LABEL[r.name]}</div>
-                    <div title="24-hour Pollutant Standards Index">
-                      <div className="flex items-baseline gap-1.5">
-                        <span className="text-xl font-bold font-mono text-slate-900">{r.psi24h ?? '—'}</span>
-                        <span className="text-[10px] text-slate-500">PSI</span>
-                      </div>
-                      {psi && (
-                        <div className={`flex items-center gap-1 font-semibold ${psi.text}`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${psi.dot}`}></span>
-                          {psi.label}
-                        </div>
-                      )}
-                    </div>
-                    <div className="pt-2 border-t border-slate-200/70" title="Latest 1-hour PM2.5 concentration">
-                      <span className="font-mono font-bold text-slate-900">{r.pm25OneHour ?? '—'}</span>
-                      <span className="text-[10px] text-slate-500"> µg/m³ PM2.5</span>
-                      {pm && <div className={`font-semibold ${pm.text}`}>{pm.label}</div>}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-          <p className="text-[11px] text-slate-500">
-            PSI is the 24-hour index (Good up to 50, Moderate 51–100, Unhealthy 101–200). PM2.5 is the latest 1-hour reading.
-          </p>
-        </div>
       </section>
 
       <section className={activeTab === 'incidents' ? 'flex flex-col gap-6' : 'hidden'}>

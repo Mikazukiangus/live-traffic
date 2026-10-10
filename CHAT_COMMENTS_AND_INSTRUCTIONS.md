@@ -1002,6 +1002,15 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 ### Done:
 - Fast-forward merged `preview/logical-ui` (Turn 54) into `main` and pushed. Vercel deploys it to production.
 
+## 56. Turn 56: PSI First on the Weather Tab
+
+**User Instruction:**
+> "under weather, put PSI on top above "Rain along Expressway" and "Lightning & Heat Stress""
+
+### Done (preview branch `preview/psi-first`):
+- The Weather tab now opens with PSI & PM2.5 by Region, followed by Flash Floods (only when there are any), Lightning & Heat Stress, Rain Along Each Expressway and the 24-hour outlook.
+- Verified locally: the section order on the Weather tab is PSI, Lightning, Rain.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*
