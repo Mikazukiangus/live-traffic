@@ -11,6 +11,10 @@ export function erpCalendar(date: Date) {
 
 export const formatSgd = (amount: number) => `S$${amount.toFixed(2)}`;
 
+/** Status notes contain upcoming base rates too; apply the chosen vehicle factor consistently. */
+export const vehicleRateNote = (note: string, factor: number) =>
+  note.replace(/S\$(\d+\.\d{2})/g, (_, amount: string) => formatSgd(Number(amount) * factor));
+
 // Current weekday and HH:MM in Singapore, regardless of the viewer's time zone.
 export function singaporeNow(date: Date) {
   const parts = new Intl.DateTimeFormat('en-GB', {

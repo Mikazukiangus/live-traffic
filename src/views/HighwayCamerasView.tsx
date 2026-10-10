@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { CAMERA_DIRECTORY, CameraPlace } from '../data/cameras';
 import { LiveVmsBoards } from '../components/LiveVmsBoards';
 import { HighwayCameraFeed } from '../types/traffic';
 import { RAIN_LEVEL_STYLE, nearestArea, rainLevel, useRainForecast } from '../utils/rainForecast';
@@ -50,69 +51,6 @@ const hideBrokenImage = (e: React.SyntheticEvent<HTMLImageElement>) => {
 };
 
 // Official verified LTA directory for live cameras based on real-world coordinates and Singapore gantry IDs
-type CameraPlace = 'woodlands' | 'tuas' | 'sentosa';
-
-const REAL_LTA_CAMERA_DIRECTORY: Record<
-  string,
-  { name: string; short: string; place: CameraPlace; corridor: string; locationDesc: string }
-> = {
-  '2701': {
-    name: 'BKE • Woodlands Causeway (Towards Johor)',
-    short: 'Causeway towards Johor',
-    place: 'woodlands',
-    corridor: 'BKE',
-    locationDesc: 'Causeway Bridge Inspection Entry • Camera #2701',
-  },
-  '2702': {
-    name: 'BKE • Woodlands Checkpoint Viaduct',
-    short: 'Checkpoint viaduct',
-    place: 'woodlands',
-    corridor: 'BKE',
-    locationDesc: 'Woodlands Crossing Approach to BKE • Camera #2702',
-  },
-  '2704': {
-    name: 'BKE • Woodlands South Flyover (Exit 10)',
-    short: 'Woodlands South flyover',
-    place: 'woodlands',
-    corridor: 'BKE',
-    locationDesc: 'BKE before Turf Club Avenue • Camera #2704',
-  },
-  '4703': {
-    name: 'AYE • Tuas Second Link Bridge (Towards Malaysia)',
-    short: 'Second Link towards Malaysia',
-    place: 'tuas',
-    corridor: 'AYE',
-    locationDesc: 'Second Link International Bridge KM 1.2 • Camera #4703',
-  },
-  '4712': {
-    name: 'AYE • Tuas Checkpoint Arrival Viaduct',
-    short: 'Checkpoint arrival viaduct',
-    place: 'tuas',
-    corridor: 'AYE',
-    locationDesc: 'Jalan Ahmad Ibrahim Approach • Camera #4712',
-  },
-  '4713': {
-    name: 'AYE • Tuas West Checkpoint Departure',
-    short: 'Tuas West departure',
-    place: 'tuas',
-    corridor: 'AYE',
-    locationDesc: 'Tuas West Extension Viaduct • Camera #4713',
-  },
-  '4798': {
-    name: 'MCE • Sentosa Gateway / HarbourFront Viaduct',
-    short: 'Sentosa Gateway',
-    place: 'sentosa',
-    corridor: 'MCE',
-    locationDesc: 'Sentosa Gateway after Telok Blangah Rd • Camera #4798',
-  },
-  '4799': {
-    name: 'MCE • Telok Blangah Rd / Keppel Bay Approach',
-    short: 'Telok Blangah / Keppel Bay',
-    place: 'sentosa',
-    corridor: 'MCE',
-    locationDesc: 'HarbourFront towards Marina Coastal Expressway • Camera #4799',
-  },
-};
 
 type TabId = CameraPlace | 'other' | 'all' | 'signs';
 
@@ -331,7 +269,7 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
           .filter((c) => c.image || c.ImageLink)
           .map((c) => {
             const camId = String(c.camera_id || c.CameraID);
-            const meta = REAL_LTA_CAMERA_DIRECTORY[camId];
+            const meta = CAMERA_DIRECTORY[camId];
             const capturedAt = c.timestamp || captureTimestamp || new Date().toISOString();
             return {
               id: `lta-live-${camId}`,
@@ -434,6 +372,18 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
   };
 
   const selectedCam = camParam ? cameras.find((c) => c.id === `lta-live-${camParam}`) || null : null;
+  const cameraDialog = useRef<HTMLDialogElement>(null);
+  const cameraOpen = !!selectedCam;
+  useEffect(() => {
+    if (!cameraOpen) return;
+    const dialog = cameraDialog.current;
+    const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    dialog?.showModal();
+    return () => {
+      dialog?.close();
+      if (trigger?.isConnected) trigger.focus({ preventScroll: true });
+    };
+  }, [cameraOpen]);
   const openCam = (cam: CameraCard) => {
     openedHere.current = true;
     writeParams({ tab: cam.place === 'woodlands' || cam.place === 'tuas' ? cam.place : 'all', cam: cam.id.replace('lta-live-', '') }, true);
@@ -514,7 +464,7 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
   }
 
   const tabClass = (selected: boolean) =>
-    `flex-1 sm:flex-none px-2 sm:px-4 py-2 rounded-lg text-[13px] sm:text-sm font-semibold whitespace-nowrap flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
+    `flex-1 sm:flex-none min-h-11 px-2 sm:px-4 py-2 rounded-lg text-[13px] sm:text-sm font-semibold whitespace-nowrap flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
       selected ? 'bg-sky-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
     }`;
 
@@ -542,11 +492,14 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
   };
 
   return (
-    <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 py-8 flex flex-col gap-6">
+    <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 py-5 sm:py-8 flex flex-col gap-4 sm:gap-5">
       {/* Header */}
       <div className="flex items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-900">Live Cameras</h1>
+          <h1 className="text-2xl font-extrabold text-slate-900">{shownTab === 'signs' ? 'Road Signs' : 'Live Cameras'}</h1>
+          {shownTab === 'signs' ? (
+            <p className="text-sm text-slate-500 mt-1">LTA messages & locations</p>
+          ) : (
           <p className="text-sm text-slate-500 mt-1 flex items-center gap-1.5">
             <span className={`w-2 h-2 rounded-full ${feedFailed ? 'bg-amber-400' : 'bg-emerald-500 animate-pulse'}`}></span>
             <span>
@@ -559,9 +512,10 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
               info
             </span>
           </p>
+          )}
         </div>
         <div className={`items-center gap-2 shrink-0 ${wall ? 'hidden' : 'flex'}`}>
-        <button
+        {shownTab !== 'signs' && <button
           onClick={() => {
             nearMeTapped.current = true;
             locate();
@@ -569,7 +523,7 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
           disabled={nearMe.status === 'locating'}
           aria-label="Near me"
           title="Open the cameras nearest you. Your location stays on this device."
-          className={`h-10 px-3 rounded-full border text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-60 ${
+          className={`h-11 min-w-11 px-3 rounded-full border text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-60 ${
             nearMe.status === 'found' ? 'bg-sky-50 border-sky-200 text-sky-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
           }`}
         >
@@ -577,29 +531,52 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
             {nearMe.status === 'locating' ? 'progress_activity' : 'my_location'}
           </span>
           <span className="hidden sm:inline">Near me</span>
-        </button>
-        <ShareButton title="Live Cameras SG" />
+        </button>}
+        <ShareButton title={shownTab === 'signs' ? 'Road Signs SG' : 'Live Cameras SG'} className="!h-11 !w-11" />
         <button
           onClick={requestRefresh}
           disabled={refreshing}
           aria-label="Refresh cameras and road signs"
           title="Refresh cameras, signs and weather"
-          className="w-10 h-10 rounded-full bg-white border border-slate-200 hover:bg-slate-100 text-slate-600 flex items-center justify-center cursor-pointer shadow-xs disabled:opacity-50"
+          className="w-11 h-11 rounded-full bg-white border border-slate-200 hover:bg-slate-100 text-slate-600 flex items-center justify-center cursor-pointer shadow-xs disabled:opacity-50"
         >
           <span className={`material-symbols-outlined ${refreshing ? 'animate-spin' : ''}`}>refresh</span>
         </button>
         </div>
       </div>
 
-      <StaleDataNotice feeds={staleFeeds} online={online} />
+      {/* Tabs stay pinned under the fixed site header while scrolling */}
+      <nav aria-label="Camera views" className="sticky top-16 z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 py-2 bg-slate-50/95 backdrop-blur-sm">
+        <div className="flex gap-1 p-1 bg-white border border-slate-200 rounded-xl shadow-xs w-full sm:w-fit">
+          {placeTabs.map((t) => (
+            <button key={t.id} onClick={() => selectTab(t.id)} aria-pressed={shownTab === t.id} className={tabClass(shownTab === t.id)}>
+              <span>{t.label}</span>
+              <span className={`hidden sm:inline text-xs ${shownTab === t.id ? 'text-sky-100' : 'text-slate-400'}`}>
+                {camerasByPlace[t.id]?.length || 0}
+              </span>
+            </button>
+          ))}
+          <button onClick={() => selectTab('signs')} aria-pressed={shownTab === 'signs'} className={tabClass(shownTab === 'signs')}>
+            <span className="sm:hidden">Signs</span>
+            <span className="hidden sm:inline">Road Signs</span>
+          </button>
+          <button onClick={() => selectTab('all')} aria-pressed={shownTab === 'all'} className={tabClass(shownTab === 'all')}>
+            <span className="sm:hidden">All</span>
+            <span className="hidden sm:inline">All cameras</span>
+          </button>
+        </div>
+      </nav>
 
-      {nearMe.status === 'found' && nearestCam && (
+
+      {shownTab !== 'signs' && <StaleDataNotice feeds={staleFeeds} online={online} compact />}
+
+      {shownTab !== 'signs' && nearMe.status === 'found' && nearestCam && (
         <p className="text-sm text-slate-600 flex items-center gap-2 -mb-2">
           <span className="material-symbols-outlined text-base text-sky-600">my_location</span>
           Nearest camera: <span className="font-semibold text-slate-800">{nearestCam.cam.short}</span>, {formatKm(nearestCam.km)} away
         </p>
       )}
-      {(nearMe.status === 'denied' || nearMe.status === 'unavailable') && (
+      {shownTab !== 'signs' && (nearMe.status === 'denied' || nearMe.status === 'unavailable') && (
         <p className="text-sm text-slate-600 flex items-center gap-2 -mb-2">
           <span className="material-symbols-outlined text-base text-slate-400">location_off</span>
           {nearMe.status === 'denied'
@@ -608,77 +585,6 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
         </p>
       )}
 
-      {/* Checkpoints at a glance */}
-      {cameras.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {checkpointSummary.map((c) => (
-            <button
-              key={c.id}
-              onClick={() => selectTab(c.id)}
-              className="text-left rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-xs hover:border-sky-300 cursor-pointer flex flex-col gap-1.5"
-            >
-              <span className="flex items-center gap-2 text-sm font-bold text-slate-900">
-                <span className="material-symbols-outlined text-base text-sky-600">directions_car</span>
-                {c.name} Checkpoint
-                <span className="text-xs font-normal text-slate-500">towards Johor</span>
-              </span>
-              <span className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-700">
-                {c.reading ? (
-                  <span className={`flex items-center gap-1.5 font-semibold ${JAM_STYLE[c.reading.level].text}`} title={`${c.bridge} camera: ${c.reading.detail}. ${c.reading.source}`}>
-                    <span className={`w-2 h-2 rounded-full ${JAM_STYLE[c.reading.level].dot}`}></span>
-                    {c.bridge}: {c.reading.level}
-                  </span>
-                ) : (
-                  c.count != null && (
-                    <span title={COUNT_NOTE}>
-                      {c.bridge}: ~{c.count} vehicles in view
-                    </span>
-                  )
-                )}
-                {c.approach ? (
-                  <span title={`Estimated from LTA speed bands over ${c.approach.km} km (${c.approach.via}). Excludes the checkpoint queue and immigration.`}>
-                    ~{c.approach.minutes} min to checkpoint
-                  </span>
-                ) : (
-                  c.ltaMinutes != null && (
-                    <span title={`LTA estimated travel time, ${c.travel.from} to ${c.travel.to}. Excludes the checkpoint queue and immigration.`}>
-                      {c.travel.label}: {c.ltaMinutes} min
-                    </span>
-                  )
-                )}
-                {c.queue && (
-                  <span className={`flex items-center gap-1.5 ${JAM_STYLE[c.queue].text}`}>
-                    <span className={`w-2 h-2 rounded-full ${JAM_STYLE[c.queue].dot}`}></span>
-                    {c.queue} near checkpoint
-                  </span>
-                )}
-              </span>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Tabs stay pinned under the fixed site header while scrolling */}
-      <nav className="sticky top-16 z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 py-2 bg-slate-50/95 backdrop-blur-sm">
-        <div className="flex gap-1 p-1 bg-white border border-slate-200 rounded-xl shadow-xs w-full sm:w-fit">
-          {placeTabs.map((t) => (
-            <button key={t.id} onClick={() => selectTab(t.id)} className={tabClass(shownTab === t.id)}>
-              <span>{t.label}</span>
-              <span className={`hidden sm:inline text-xs ${shownTab === t.id ? 'text-sky-100' : 'text-slate-400'}`}>
-                {camerasByPlace[t.id]?.length || 0}
-              </span>
-            </button>
-          ))}
-          <button onClick={() => selectTab('signs')} className={tabClass(shownTab === 'signs')}>
-            <span className="sm:hidden">Signs</span>
-            <span className="hidden sm:inline">Road Signs</span>
-          </button>
-          <button onClick={() => selectTab('all')} className={tabClass(shownTab === 'all')}>
-            <span className="sm:hidden">All</span>
-            <span className="hidden sm:inline">All cameras</span>
-          </button>
-        </div>
-      </nav>
 
       {cameras.length === 0 && shownTab !== 'signs' && (
         <div className="bg-white rounded-2xl border border-slate-200 p-10 text-center text-sm text-slate-500">
@@ -686,76 +592,78 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
         </div>
       )}
 
+      {camParam && !selectedCam && !refreshing && (
+        <p role="status" className="text-sm text-amber-800">Camera {camParam} is unavailable in the latest feed. Choose another camera below.</p>
+      )}
+
       {/* Every tab stays mounted (hidden when inactive) so images and signs are ready on tap */}
       {placeTabs.map((t) => {
         const placeCams = camerasByPlace[t.id] || [];
         if (placeCams.length === 0) return null;
-        const checkpoint = checkpoints[t.id];
-        // Checkpoint tabs lead with the drive-time estimate; Sentosa shows its expressway average.
-        const speed = checkpoint ? null : speedText(placeCams[0].corridor);
+        const summary = checkpointSummary.find((c) => c.id === t.id)!;
         const rain = cameraRain(placeCams[0]);
         const air = cameraAir(placeCams[0]);
-        const queueLevel = checkpoint?.queueSpeedKmH != null ? jamLevel(checkpoint.queueSpeedKmH) : null;
-        // The Causeway itself has no LTA speed data, so its reading comes from the camera's vehicle count.
-        const causewayCam = t.id === 'woodlands' ? placeCams.find((c) => c.id === 'lta-live-2701') : undefined;
-        const causeway = causewayCam ? cameraLevel(causewayCam) : null;
 
         return (
           <section key={t.id} className={shownTab === t.id ? 'flex flex-col gap-5' : 'hidden'}>
-            {/* One-line summary for the place */}
-            <div className="flex flex-wrap items-center gap-2 text-sm">
-              {checkpoint && (
-                <span
-                  className="px-3 py-1 rounded-full bg-white border border-slate-200 text-slate-800 font-semibold flex items-center gap-1.5 cursor-help"
-                  title={`Estimated drive to ${checkpoint.name}: ${checkpoint.minMinutes}–${checkpoint.maxMinutes} min over ${checkpoint.km} km (${checkpoint.via}), from LTA speed bands. Singapore side only; excludes the checkpoint queue and immigration.`}
-                >
-                  <span className="material-symbols-outlined text-base text-sky-600">schedule</span>~{checkpoint.minutes} min to
-                  checkpoint
-                  <span className="text-xs font-normal text-slate-500">+ queue at checkpoint</span>
-                </span>
-              )}
-              {checkpoint && queueLevel && (
-                <span
-                  className={`px-3 py-1 rounded-full bg-white border border-slate-200 flex items-center gap-1.5 cursor-help ${JAM_STYLE[queueLevel].text}`}
-                  title={`Average LTA speed over the last 1 km before ${checkpoint.name}: ${checkpoint.queueSpeedKmH} km/h`}
-                >
-                  <span className={`w-2 h-2 rounded-full ${JAM_STYLE[queueLevel].dot}`}></span>
-                  {queueLevel} near checkpoint
-                </span>
-              )}
-              {causeway && (
-                <span
-                  className={`px-3 py-1 rounded-full bg-white border border-slate-200 flex items-center gap-1.5 cursor-help ${JAM_STYLE[causeway.level].text}`}
-                  title={`Causeway camera: ${causeway.detail}. ${causeway.source}`}
-                >
-                  <span className={`w-2 h-2 rounded-full ${JAM_STYLE[causeway.level].dot}`}></span>
-                  Causeway: {causeway.level}
-                </span>
-              )}
-              {speed && (
-                <span className="px-3 py-1 rounded-full bg-white border border-slate-200 text-slate-700 flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-base text-sky-600">speed</span>
-                  {speed}
-                </span>
-              )}
-              {rain && (
-                <span
-                  className={`px-3 py-1 rounded-full bg-white border border-slate-200 flex items-center gap-1.5 ${rain.style.className}`}
-                  title={`NEA 2-hour forecast for ${rain.area.name}, ${rainForecast?.validPeriod.text}`}
-                >
-                  <span className="material-symbols-outlined text-base">{rain.style.icon}</span>
-                  {rain.area.forecast}
-                </span>
-              )}
-              {air && (
-                <span
-                  className={`px-3 py-1 rounded-full bg-white border border-slate-200 flex items-center gap-1.5 cursor-help ${air.band.text}`}
-                  title={air.detail}
-                >
-                  <span className={`w-2 h-2 rounded-full ${air.band.dot}`}></span>
-                  PSI {air.psi} {air.band.label}
-                </span>
-              )}
+            {/* Only the selected checkpoint's summary is visible, with details available on tap. */}
+            <div className="rounded-xl border border-slate-200 bg-white p-3 sm:p-4 flex flex-col gap-2">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+                <span className="font-bold text-slate-900">{t.label} · towards Johor</span>
+                {summary.approach ? (
+                  <span className="font-semibold text-slate-800">~{summary.approach.minutes} min approach</span>
+                ) : summary.ltaMinutes != null ? (
+                  <span className="font-semibold text-slate-800">{summary.travel.label}: {summary.ltaMinutes} min</span>
+                ) : (
+                  <span className="text-slate-500">Approach time unavailable</span>
+                )}
+                {summary.reading ? (
+                  <span className={`flex items-center gap-1.5 font-semibold ${JAM_STYLE[summary.reading.level].text}`}>
+                    <span className={`w-2 h-2 rounded-full ${JAM_STYLE[summary.reading.level].dot}`}></span>
+                    {summary.bridge}: {summary.reading.level}
+                  </span>
+                ) : summary.count != null ? (
+                  <span className="text-slate-600">{summary.bridge}: ~{summary.count} vehicles</span>
+                ) : null}
+                {summary.queue && (
+                  <span className={`flex items-center gap-1.5 ${JAM_STYLE[summary.queue].text}`}>
+                    <span className={`w-2 h-2 rounded-full ${JAM_STYLE[summary.queue].dot}`}></span>
+                    {summary.queue} near checkpoint
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+                {rain && (
+                  <span className={`flex items-center gap-1.5 ${rain.style.className}`}>
+                    <span className="material-symbols-outlined text-base" aria-hidden="true">{rain.style.icon}</span>
+                    Next 2h: {rain.area.forecast}
+                  </span>
+                )}
+                {air && (
+                  <span className={`flex items-center gap-1.5 ${air.band.text}`}>
+                    <span className={`w-2 h-2 rounded-full ${air.band.dot}`}></span>
+                    PSI {air.psi} · {air.band.label}
+                  </span>
+                )}
+              </div>
+              <details className="text-xs text-slate-500">
+                <summary className="min-h-11 flex items-center gap-1 cursor-pointer">
+                  <span className="material-symbols-outlined text-base" aria-hidden="true">info</span>
+                  Singapore approach only · excludes checkpoint queue and immigration
+                </summary>
+                <div className="pt-1 space-y-1 leading-relaxed">
+                  {summary.approach ? (
+                    <p>Estimated {summary.approach.minMinutes}–{summary.approach.maxMinutes} min over {summary.approach.km} km ({summary.approach.via}), from LTA speed bands.</p>
+                  ) : summary.ltaMinutes != null ? (
+                    <p>LTA estimated travel time: {summary.travel.from} to {summary.travel.to}.</p>
+                  ) : null}
+                  {summary.reading && <p>{summary.bridge}: {summary.reading.detail}. {summary.reading.source}.</p>}
+                  {summary.count != null && <p>{COUNT_NOTE}</p>}
+                  {summary.approach?.queueSpeedKmH != null && <p>Last 1 km before the checkpoint: {summary.approach.queueSpeedKmH} km/h (LTA).</p>}
+                  {rain && <p>NEA forecast for {rain.area.name}: {rainForecast?.validPeriod.text}.</p>}
+                  {air && <p>{air.detail}</p>}
+                </div>
+              </details>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -827,7 +735,7 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
                 key={cam.id}
                 onClick={() => toggleGridCam(id)}
                 aria-pressed={on}
-                className={`h-8 px-3 rounded-full border text-xs font-semibold cursor-pointer flex items-center gap-1 ${
+                className={`min-h-11 px-3 rounded-full border text-xs font-semibold cursor-pointer flex items-center gap-1 ${
                   on ? 'bg-sky-50 border-sky-200 text-sky-800' : 'bg-white border-slate-200 text-slate-400'
                 }`}
               >
@@ -884,17 +792,25 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
 
       {/* Enlarged camera */}
       {selectedCam && (
-        <div
-          onClick={closeCam}
-          className="fixed inset-0 z-50 bg-scrim/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150"
+        <dialog
+          ref={cameraDialog}
+          aria-label={selectedCam.short}
+          onClick={(event) => { if (event.target === event.currentTarget) closeCam(); }}
+          onCancel={(event) => { event.preventDefault(); closeCam(); }}
+          onKeyDown={(event) => {
+            event.stopPropagation();
+            if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+              event.preventDefault();
+              stepCam(event.key === 'ArrowLeft' ? -1 : 1);
+            }
+          }}
+          className="fixed inset-0 m-auto w-[calc(100%_-_2rem)] max-w-4xl max-h-[calc(100dvh_-_2rem)] overflow-y-auto bg-white rounded-2xl border border-slate-200 p-0 text-slate-900 shadow-2xl backdrop:bg-scrim/80"
         >
           <div
             onClick={(e) => e.stopPropagation()}
             onTouchStart={onSwipeStart}
             onTouchEnd={onSwipeEnd}
-            role="dialog"
-            aria-label={selectedCam.short}
-            className="bg-white rounded-2xl max-w-4xl w-full p-5 flex flex-col gap-4 shadow-2xl"
+            className="w-full p-4 sm:p-5 flex flex-col gap-4"
           >
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -902,11 +818,11 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
                 <p className="text-xs text-slate-500">{selectedCam.name}</p>
               </div>
               <div className="flex items-center gap-1 shrink-0">
-              <ShareButton title={`${selectedCam.short} camera`} className="!h-9 !shadow-none !border-transparent" />
+              <ShareButton title={`${selectedCam.short} camera`} className="!h-11 !w-11 !shadow-none !border-transparent" />
               <button
                 onClick={closeCam}
                 aria-label="Close"
-                className="p-1.5 rounded-md hover:bg-slate-100 text-slate-500 cursor-pointer"
+                className="w-11 h-11 rounded-md hover:bg-slate-100 text-slate-500 cursor-pointer"
               >
                 <span className="material-symbols-outlined">close</span>
               </button>
@@ -1003,7 +919,7 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
               </button>
             </div>
           </div>
-        </div>
+        </dialog>
       )}
     </div>
   );

@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { RoadSearch } from './RoadSearch';
+import { RoadSearchResult } from '../utils/roadSearch';
 import { TabType } from '../types/traffic';
 import { useInstallPrompt } from '../utils/installPrompt';
 import { THEME_LABEL, THEME_ORDER, setTheme, useTheme } from '../utils/theme';
@@ -7,8 +9,8 @@ import { setLargeText, useLargeText } from '../utils/textSize';
 interface HeaderProps {
   activeTab: TabType;
   onSelectTab: (tab: TabType) => void;
-  onSearchCorridor: (query: string) => void;
-  searchQuery: string;
+  onGoHome: () => void;
+  onSearchSelect: (result: RoadSearchResult) => void;
   onOpenNotifications: () => void;
   notificationCount: number;
   // Incidents on the visitor's saved commutes
@@ -18,8 +20,8 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({
   activeTab,
   onSelectTab,
-  onSearchCorridor,
-  searchQuery,
+  onGoHome,
+  onSearchSelect,
   onOpenNotifications,
   notificationCount,
   commuteIncidentCount,
@@ -40,12 +42,13 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="fixed top-0 w-full z-50 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm">
-      <div className="h-16 w-full px-4 sm:px-6 flex items-center justify-between gap-3 max-w-7xl mx-auto">
+      <div className="h-16 w-full px-3 sm:px-6 flex items-center justify-between gap-2 max-w-7xl mx-auto">
         {/* Left: Brand logo & live badge */}
         <div className="flex items-center gap-3 shrink-0">
           <button
-            onClick={() => onSelectTab('roadside-sos-workshops')}
-            className="flex items-center gap-2 text-left group"
+            onClick={onGoHome}
+            aria-label="TrafficPulse home"
+            className="min-h-11 min-w-11 flex items-center gap-2 text-left group"
           >
             <img
               alt="TrafficPulse"
@@ -57,37 +60,10 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
           </button>
 
-          <div className="hidden 2xl:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span className="text-[11px] text-emerald-700 uppercase tracking-wider font-bold">
-              LTA DataMall Live
-            </span>
-          </div>
+
         </div>
 
-        {/* Center-Left: Corridor search lookup */}
-        <div className="hidden md:flex items-center flex-1 max-w-xs mx-3">
-          <div className="relative w-full">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none">
-              search
-            </span>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => onSearchCorridor(e.target.value)}
-              placeholder="Corridor lookup (e.g. PIE, CTE)..."
-              className="w-full h-10 pl-9 pr-4 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 text-xs placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => onSearchCorridor('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
-              >
-                ✕
-              </button>
-            )}
-          </div>
-        </div>
+        <RoadSearch onSelect={(result) => { setMobileMenuOpen(false); onSearchSelect(result); }} />
 
         {/* Center: Navigation tabs */}
         <nav className="hidden lg:flex items-center gap-1">
@@ -127,7 +103,7 @@ export const Header: React.FC<HeaderProps> = ({
             aria-pressed={largeText}
             aria-label={largeText ? 'Normal text size' : 'Larger text'}
             title={largeText ? 'Normal text size' : 'Larger text and buttons'}
-            className={`hidden sm:block p-2 rounded-lg transition-colors ${
+            className={`hidden sm:block w-11 h-11 rounded-lg transition-colors ${
               largeText ? 'bg-sky-100 text-sky-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
             }`}
           >
@@ -137,7 +113,7 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={() => setTheme(nextTheme)}
             aria-label={`${THEME_LABEL[theme].label}. Switch to ${nextTheme === 'auto' ? 'device setting' : nextTheme}`}
             title={`${THEME_LABEL[theme].label} (click for ${nextTheme === 'auto' ? 'device setting' : nextTheme})`}
-            className="p-2 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900 transition-colors"
+            className="w-11 h-11 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900 transition-colors"
           >
             <span className="material-symbols-outlined text-xl">{THEME_LABEL[theme].icon}</span>
           </button>
@@ -145,7 +121,7 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={onOpenNotifications}
             aria-label={`Alerts: ${notificationCount} LTA incidents${commuteIncidentCount ? `, ${commuteIncidentCount} on your commutes` : ''}`}
             title={commuteIncidentCount ? `${commuteIncidentCount} incident${commuteIncidentCount === 1 ? '' : 's'} on your commutes` : 'Live incidents and commute alerts'}
-            className="relative p-2 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900 transition-colors"
+            className="relative w-11 h-11 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900 transition-colors"
           >
             <span className="material-symbols-outlined text-xl">notifications</span>
             {commuteIncidentCount > 0 ? (
@@ -160,7 +136,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Open Menu"
-            className="lg:hidden p-2 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900 transition-colors"
+            className="lg:hidden w-11 h-11 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900 transition-colors"
           >
             <span className="material-symbols-outlined text-xl">
               {mobileMenuOpen ? 'close' : 'menu'}
@@ -172,15 +148,6 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
         <div className="lg:hidden border-t border-slate-200 bg-white px-4 py-3 shadow-lg flex flex-col gap-2 animate-in fade-in slide-in-from-top-2 duration-150">
-          <div className="mb-2">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => onSearchCorridor(e.target.value)}
-              placeholder="Corridor lookup (PIE, CTE)..."
-              className="w-full h-10 px-3 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 text-sm"
-            />
-          </div>
           {navItems.map((item) => (
             <button
               key={item.id}
