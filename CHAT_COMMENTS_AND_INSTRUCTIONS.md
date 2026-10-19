@@ -93,6 +93,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 84. [Turn 84: Implement Safe Logging on a Preview Branch](#84-turn-84-implement-safe-logging-on-a-preview-branch)
 85. [Turn 85: Continue and Verify Logging Safeguards](#85-turn-85-continue-and-verify-logging-safeguards)
 86. [Turn 86: Logging Safeguards Merged to Main](#86-turn-86-logging-safeguards-merged-to-main)
+87. [Turn 87: Modularity and Responsibility Review](#87-turn-87-modularity-and-responsibility-review)
 
 ---
 
@@ -1503,6 +1504,21 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Verified the production homepage returned 200. An invalid-image request returned fixed 502 `UPSTREAM_FAILURE` JSON, omitted the supplied value and included `Cache-Control: no-store`. The camera endpoint returned 200 with eight LTA DataMall cameras. Health returned 200 with 15/15 UP and the LTA key configured.
 - Updated `SECRETS_AND_LOGGING.md` to reflect that the safeguards are released. Credentials, local env-file permissions, remote environment/security settings and published history were not changed. No credential values/fragments or signed camera links were printed.
 - Updated this log and table of contents for commit/push to `main` under the standing instruction. No further approval is required for this completed merge.
+
+---
+
+## 87. Turn 87: Modularity and Responsibility Review
+
+**User Instruction:**
+> "review my structure for modularity: which files do too much, and how should i split them along responsibility seams?"
+
+### Reviewed (19 October 2026, SGT):
+- Reviewed the current `main` source at `29820e5`, the project history log, API adapters, shared configuration/diagnostics, feed hooks, major views/components and relevant tests. Refreshed `origin/main` and confirmed the checkout is current.
+- Added `MODULARITY_REVIEW.md` with evidence, proposed module ownership, an incremental implementation order and behavior-preservation checks. Highest priorities are shared speed-data ownership, the 1,311-line radar view, the 928-line camera view, and separating speed endpoint transport/cache responsibilities from aggregation and checkpoint tracing.
+- Identified further seams in `api/_client.ts`, `App.tsx`, `MyCommute.tsx`, VMS transformation/rendering, vehicle inference versus React scheduling, health endpoint metadata, and real reference data versus demo fixtures. Noted repeated speed contracts, band values and checkpoint booth zones.
+- Distinguished existing same-URL in-flight request deduplication from shared polling/state; recommended a shared typed resource with explicit summary/geometry demand. Preserved the distinction between corridor averages, nearby traffic calculations and route estimates. Config validation and safe diagnostics are cohesive and should retain their current boundaries.
+- This is a review and documentation update only. No refactoring, credential changes, new dependencies or live provider requests were performed. Existing tests were inspected, not rerun; the review does not claim newly reproduced runtime bugs. Implementation remains a preview-branch follow-up requiring explicit main-merge approval.
+- Updated this log and table of contents for commit and push to `main` under the standing logging instruction.
 
 ---
 
