@@ -1,3 +1,4 @@
+import { safeFailure } from '../../shared/diagnostics.ts';
 import { config } from '../../config/client';
 /**
  * Counts vehicles in a traffic camera photo on the viewer's device with YOLOX-Nano
@@ -205,7 +206,7 @@ export function useVehicleCounts(cameras: { id: string; imageUrl: string }[]) {
           const count = await countVehicles(next.imageUrl);
           if (mounted.current) setCounts((prev) => ({ ...prev, [next.id]: { count, imageUrl: next.imageUrl } }));
         } catch (err) {
-          console.warn(`Vehicle count failed for ${next.id}`, err);
+          console.warn(JSON.stringify(safeFailure('vehicle', err).log));
           failed = true;
         }
         counted.current[next.id] = next.imageUrl;

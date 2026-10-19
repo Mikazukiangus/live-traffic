@@ -1,3 +1,4 @@
+import { reportFailure } from '../shared/diagnostics.ts';
 import { config } from '../config/server.ts';
 /**
  * Car park availability from LTA DataMall (LTA, HDB and URA car parks, ~6 pages).
@@ -51,6 +52,6 @@ export default async function handler(req: any, res?: any) {
       CACHE
     );
   } catch (err: any) {
-    return sendJson(res, 502, { success: false, error: 'Failed to fetch LTA car park availability', message: err?.message });
+    return sendJson(res, 502, reportFailure('lta', err));
   }
 }

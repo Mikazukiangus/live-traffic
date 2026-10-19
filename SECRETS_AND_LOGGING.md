@@ -2,7 +2,9 @@
 
 Audited on **19 October 2026 (SGT)** against `main` at `c34987a`.
 This report and the examples below contain no actual credential values or fragments.
-The examples are guidance; they have **not** been installed in the application's handlers.
+The original findings below describe that audit baseline. Logging/error safeguards are
+now implemented on preview branch `codex/safe-error-logging`; production requires
+explicit merge approval. The local file-permission recommendation remains a manual step.
 
 ## Scan result
 
@@ -35,7 +37,7 @@ environment values. Binary model/image assets were not treated as historical
 text by the exact-key scan. No production credentials were retrieved or tested.
 No credentials were rotated, remote settings changed, or history rewritten.
 
-## Findings that still need attention
+## Findings at the audit baseline
 
 ### 1. API error output can disclose credentials — medium
 
@@ -134,88 +136,66 @@ variables → Actions → Secrets**. Keep non-sensitive URLs and timing override
 `secrets`; keep it out of summaries, artifacts and command tracing. Do not send
 secrets to code from untrusted pull requests.
 
-## Safe logs and public errors: dependency-free example
+## Implemented logging and error safeguards
 
-The following server-side example is intentionally selective. It never serializes
-the original exception, stack, cause, headers, upstream body or URL. Service labels
-and status codes are checked at runtime as well as by TypeScript. All public error
-text is fixed. This follows OWASP's advice to exclude authentication tokens,
-passwords and keys from logs: [Logging Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html#data-to-exclude).
+`shared/diagnostics.ts` contains the dependency-free implementation:
 
-```ts
-const SERVICES = new Set(['lta', 'nea', 'camera', 'gateway']);
+- `safeFailure` selects fixed public error codes/messages and log fields. It accepts
+  only known service labels and validated numeric HTTP codes. Timeout/abort errors
+  have a fixed classification. It never reads or serializes an error's message,
+  stack, cause, headers, URL, config or response body.
+- `UpstreamHttpError` carries only a numeric provider status. DataMall/data.gov.sg
+  error bodies and `errorMsg` strings are not retained for diagnostic output.
+- `reportFailure` emits one JSON line from the safe projection and returns its
+  public body. Node-style and Web Response errors use the same projection and
+  `no-store` headers. Successful feed data and required signed camera image URLs
+  remain available.
 
-export function safeFailure(service: string, error: unknown, status?: number) {
-  const timeout = error instanceof Error &&
-    (error.name === 'TimeoutError' || error.name === 'AbortError');
-  const code = timeout ? 'UPSTREAM_TIMEOUT' : 'UPSTREAM_FAILURE';
-  const validStatus = typeof status === 'number' && Number.isInteger(status) &&
-    status >= 100 && status <= 599;
-
-  return {
-    log: {
-      event: 'upstream_failure',
-      service: SERVICES.has(service) ? service : 'gateway',
-      code,
-      ...(validStatus ? { upstreamHttpCode: status } : {}),
-    },
-    body: {
-      success: false,
-      code,
-      error: timeout
-        ? 'Traffic provider timed out'
-        : 'Traffic provider temporarily unavailable',
-    },
-  };
-}
-
-// Extra protection for a controlled string that must be retained.
-// Covers literal and URI-encoded values; it is NOT a general log sanitizer.
-export function redactKnownSecrets(text: string, values: readonly string[]) {
-  const needles = [...new Set(values.filter(Boolean).flatMap(
-    (value) => [value, encodeURIComponent(value)],
-  ))].sort((a, b) => b.length - a.length);
-  let result = text;
-  for (const needle of needles) result = result.replaceAll(needle, '[REDACTED]');
-  return result;
-}
-```
-
-Use the safe projection in a handler's catch block (after adding it to a shared
-server module). The `sendJson` helper already supplies `no-store` by default:
+Example integration in a server handler:
 
 ```ts
-const { log, body } = safeFailure('lta', error);
-console.error(JSON.stringify(log));
-return sendJson(res, 502, body);
+import { reportFailure } from '../shared/diagnostics.ts';
+import { sendJson } from './_client.ts';
+
+// Inside catch (error):
+return sendJson(res, 502, reportFailure('lta', error));
 ```
 
-Before reading or forwarding a non-OK upstream body, use the same projection with
-`response.status`. Map any provider JSON `errorMsg` to a fixed public code too.
-For health probes, retain HTTP status and latency, but use fixed error text.
-
-If headers or credentials appear in a diagnostic schema, replace their **whole
-values** with `[REDACTED]` or omit them. Do not preserve a prefix/suffix. Apply
-this to `AccountKey`, `Authorization`, cookies, API keys, password/token/secret
-fields, Vercel protection-bypass values and signed URL parameters. Never pass a
-full config/request/error object to the logger. Redacting known strings alone
-will miss unknown tokens, alternative encodings and custom error serializers;
-the selective projection above remains the primary protection.
-
-Example safe outputs:
+A provider HTTP 500 produces a diagnostic line such as:
 
 ```json
-{"event":"upstream_failure","service":"lta","code":"UPSTREAM_FAILURE","upstreamHttpCode":500}
+{"event":"upstream_failure","service":"lta","code":"UPSTREAM_HTTP_ERROR","upstreamHttpCode":500}
 ```
+
+The public body contains only fixed text and the numeric status:
 
 ```json
-{"success":false,"code":"UPSTREAM_FAILURE","error":"Traffic provider temporarily unavailable"}
+{"success":false,"code":"UPSTREAM_HTTP_ERROR","error":"Upstream responded 500"}
 ```
 
-The example was exercised locally with fake secrets in error messages, stacks,
-causes, headers and URLs; they were absent from its log/public output. Additional
-checks cover literal/URI-encoded redaction, timeouts and invalid metadata.
-Integration changes still need tests for both Node-style and Web Response handlers.
+`server/apiMiddleware.ts` applies the same policy to development and preview
+loader/handler exceptions. The browser's health errors and vehicle-count warnings
+also omit raw exception details.
+
+`scripts/health-report.ts` validates the health response and writes only static
+feed names/paths, status, numeric HTTP codes and latency to Actions summaries and
+annotations. Unknown/duplicate/missing feeds and invalid measurements fail closed.
+Upstream 429 responses still trigger a retry and then remain warnings; other
+failures still fail the job. The bypass header is sent to curl through stdin,
+not its process arguments. The workflow does not print its target URL or body.
+
+`tests/diagnostics.test.ts` exercises fake secrets in error messages, stacks,
+causes, URLs, headers, upstream JSON/HTML and weather error envelopes; both response
+styles; the dev/preview middleware; browser health errors; and the native Node CI
+reporter. No real secrets or provider calls are used in these regression tests.
+
+For future diagnostic fields, omit credentials or replace their **whole value**
+with `[REDACTED]`. Do not preserve prefixes/suffixes. This includes `AccountKey`,
+`Authorization`, cookies, password/token/secret fields, protection-bypass values
+and signed URL parameters. The current logger avoids these fields altogether.
+Do not add a full config/request/error object to a log call or assume literal
+string replacement can catch every token or encoding. This follows
+[OWASP's logging guidance](https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html#data-to-exclude).
 
 ## Keep checking
 

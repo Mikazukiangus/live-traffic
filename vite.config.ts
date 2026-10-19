@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import { defineConfig, loadEnv, Plugin } from 'vite';
 import { createConfig, ENV_KEYS } from './config/schema.ts';
+import { createApiMiddleware } from './server/apiMiddleware.ts';
 
 // Import handlers only after .env files have been loaded and validated below.
 const handlers: Record<string, () => Promise<{ default: (req: any, res?: any) => any }>> = {
@@ -33,39 +34,7 @@ function apiDevServerPlugin(): Plugin {
   };
 }
 
-async function apiMiddleware(req: any, res: any, next: () => void) {
-  if (!req.url?.startsWith('/api/')) {
-    return next();
-  }
-
-  const pathname = req.url.split('?')[0].replace(/\.ts$/, '');
-
-  // Provide compatibility helpers for serverless res
-  if (typeof (res as any).json !== 'function') {
-    (res as any).json = (body: any) => {
-      res.setHeader('Content-Type', 'application/json');
-      res.end(JSON.stringify(body));
-      return res;
-    };
-  }
-  if (typeof (res as any).status !== 'function') {
-    (res as any).status = (code: number) => {
-      res.statusCode = code;
-      return res;
-    };
-  }
-
-  try {
-    const load = handlers[pathname];
-    if (!load) return next();
-    const { default: handler } = await load();
-    await handler(req, res);
-  } catch (err: any) {
-    console.error(`API Error on ${pathname}:`, err);
-    res.statusCode = 500;
-    (res as any).json({ error: 'Internal Server Error', message: err?.message });
-  }
-}
+const apiMiddleware = createApiMiddleware(handlers);
 
 export default defineConfig(({ mode }) => {
   // Vite's mode files are loaded first; shell/platform values take precedence.

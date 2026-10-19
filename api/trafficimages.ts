@@ -1,3 +1,4 @@
+import { reportFailure, UpstreamHttpError } from '../shared/diagnostics.ts';
 import { config } from '../config/server.ts';
 /**
  * LTA Traffic Images Serverless Endpoint
@@ -5,7 +6,7 @@ import { config } from '../config/server.ts';
  * - If LTA_ACCOUNT_KEY is missing: seamlessly fetches official real-time traffic images from Data.gov.sg open transport API
  * Returns normalized live camera feed with real-time timestamps and direct image URLs.
  */
-import { getLtaAccountKey, liveCacheHeaders, setHeaders } from './_client.ts';
+import { getLtaAccountKey, liveCacheHeaders, sendJson, setHeaders } from './_client.ts';
 
 // LTA captures every 1-5 minutes; the page polls every 30 seconds.
 const CACHE = liveCacheHeaders(...config.server.cache.proxy);
@@ -74,7 +75,10 @@ export default async function handler(req: any, res?: any) {
           },
         });
       }
-    } catch {
+      reportFailure('camera', undefined, dmResponse.status);
+      await dmResponse.body?.cancel().catch(() => undefined);
+    } catch (error) {
+      reportFailure('camera', error);
       // Fall through to open Data.gov.sg
     }
   }
@@ -124,20 +128,9 @@ export default async function handler(req: any, res?: any) {
       });
     }
 
-    throw new Error(`Upstream returned ${govResponse.status}`);
+    throw new UpstreamHttpError(govResponse.status);
   } catch (error: any) {
-    const errPayload = {
-      success: false,
-      error: 'Failed to fetch live traffic images',
-      message: error?.message,
-    };
-    if (res && typeof res.status === 'function') {
-      return res.status(502).json(errPayload);
-    }
-    return new Response(JSON.stringify(errPayload), {
-      status: 502,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return sendJson(res, 502, reportFailure('camera', error));
   }
 }
 

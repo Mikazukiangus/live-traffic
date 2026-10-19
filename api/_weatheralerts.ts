@@ -1,3 +1,4 @@
+import { reportFailure } from '../shared/diagnostics.ts';
 import { config } from '../config/server.ts';
 /**
  * NEA lightning and heat stress (keyless).
@@ -23,11 +24,9 @@ export default async function handler(req: any, res?: any) {
 
   const [lightning, wbgt] = await Promise.allSettled([fetchDataGovV2(LIGHTNING_URL), fetchDataGovV2(WBGT_URL)]);
   if (lightning.status === 'rejected' && wbgt.status === 'rejected') {
-    return sendJson(res, 502, {
-      success: false,
-      error: 'Failed to fetch NEA lightning and heat stress',
-      message: `Lightning: ${lightning.reason?.message}; WBGT: ${wbgt.reason?.message}`,
-    });
+    const body = reportFailure('nea', lightning.reason);
+    reportFailure('nea', wbgt.reason);
+    return sendJson(res, 502, body);
   }
 
   const lightningRecord = lightning.status === 'fulfilled' ? lightning.value.records?.[0] : null;

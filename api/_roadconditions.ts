@@ -1,3 +1,4 @@
+import { reportFailure } from '../shared/diagnostics.ts';
 import { config } from '../config/server.ts';
 /**
  * Road works on the expressways and faulty traffic lights, from LTA DataMall.
@@ -57,11 +58,9 @@ export default async function handler(req: any, res?: any) {
     fetchLtaAll(config.server.upstreams.faultyLights, accountKey, { wave: 1, maxPages: 4 }),
   ]);
   if (works.status === 'rejected' && lights.status === 'rejected') {
-    return sendJson(res, 502, {
-      success: false,
-      error: 'Failed to fetch LTA road conditions',
-      message: `RoadWorks: ${works.reason?.message}; FaultyTrafficLights: ${lights.reason?.message}`,
-    });
+    const body = reportFailure('lta', works.reason);
+    reportFailure('lta', lights.reason);
+    return sendJson(res, 502, body);
   }
 
   const today = sgToday();

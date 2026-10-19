@@ -90,6 +90,8 @@ This document records all user instructions, feedback, technical inquiries, inve
 81. [Turn 81: Validated Configuration Merged to Main](#81-turn-81-validated-configuration-merged-to-main)
 82. [Turn 82: Reaffirm Mandatory Project Log Updates](#82-turn-82-reaffirm-mandatory-project-log-updates)
 83. [Turn 83: Secret History Scan and Safe Logging Guide](#83-turn-83-secret-history-scan-and-safe-logging-guide)
+84. [Turn 84: Implement Safe Logging on a Preview Branch](#84-turn-84-implement-safe-logging-on-a-preview-branch)
+85. [Turn 85: Continue and Verify Logging Safeguards](#85-turn-85-continue-and-verify-logging-safeguards)
 
 ---
 
@@ -1455,6 +1457,31 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Added `SECRETS_AND_LOGGING.md` with scope/findings, local/Vercel/GitHub storage instructions, exact code locations, fixed public error output, selective diagnostic logging, whole-value redaction and rotation/history-cleanup guidance. Linked it from `DEVELOPMENT.md`. Verified current Vercel Secret-type and build-log masking guidance; the local LTA key is below the documented 32-character build masking threshold, so platform masking must not be relied on.
 - Extracted the documented TypeScript example and passed eight synthetic-only checks for omitted error/header/URL/stack/cause data, literal/URI-encoded redaction, timeouts and invalid metadata. No real-key network tests were performed. Application source, credentials, local file permissions and remote security settings were not changed; runtime integration is a follow-up implementation requiring the established preview/merge workflow.
 - Updated this log and table of contents for commit/push under the standing instruction. This is a documentation-only change; application build/tests and production endpoint checks were not repeated.
+
+---
+
+## 84. Turn 84: Implement Safe Logging on a Preview Branch
+
+**User Instruction:**
+> "yes go ahead to implement the logging and error-output fixes on a preview branch."
+
+### Implemented on `codex/safe-error-logging` (19 October 2026, SGT):
+- Added `shared/diagnostics.ts`: fixed public error codes/messages, a numeric-only upstream HTTP error type, and structured logs limited to an allowlisted service, event, classification and validated HTTP status. Raw exceptions, messages, stacks, causes, headers, provider error bodies, URLs and config objects are omitted.
+- Applied the shared policy to LTA proxies, speed aggregation, camera feeds/proxy, weather/air quality, road conditions, car parks and floods. Non-success LTA bodies are discarded; malformed success/error envelopes are rejected instead of being forwarded. Provider error responses use `no-store`; successful OData and signed camera links remain functional.
+- Extracted the dev/preview API adapter to `server/apiMiddleware.ts` and sanitized loader/handler failures. Health probes, browser health errors and vehicle-count warnings also omit raw exception details. Missing/unknown live-feed routing returns fixed text.
+- Added `scripts/health-report.ts` for public CI summaries/annotations: static feed labels/paths plus validated status/HTTP/latency measurements only. Invalid/missing/duplicate feed records fail closed; upstream 429 retry/warning behavior is preserved. The bypass header now enters curl via stdin rather than process arguments, and transport failures reach the safe reporter.
+- Updated `SECRETS_AND_LOGGING.md` to describe the implemented safeguards. No credential rotations, local env-file permission changes, remote security-setting changes or history rewrites are part of this implementation. Production still requires explicit merge approval.
+
+## 85. Turn 85: Continue and Verify Logging Safeguards
+
+**User Instruction:**
+> "continue where you last left off."
+
+### Verification and preview preparation (19 October 2026, SGT):
+- Continued the same authorized preview implementation. Type check, all 51 tests and the production build passed. The 15 new regression tests cover fake credentials in thrown errors, provider JSON/HTML and weather envelopes; both Node-style and Web Response paths; health probes/browser errors; dev/preview exceptions; preserved successful camera links; and safe native Node CI reporting.
+- CI reporting tests verify healthy/failing/rate-limited outcomes, a retry on 429, invalid-response failure, and absence of fake credentials or server-supplied labels/errors from summaries/annotations. The workflow shell block also passed `bash -n`. The real scheduled workflow was not dispatched.
+- Started an isolated local server on `127.0.0.1:3192` after the sandbox initially denied binding the port. An invalid image URL returned fixed 502 JSON with `no-store` and omitted the supplied value. A real camera request returned 200 with three cameras from the data.gov.sg fallback; the failed direct attempt emitted only a safe structured diagnostic. Stopped the test server afterward.
+- Recorded both user instructions and updated the table of contents for commit/push on the preview branch. Main merge remains subject to explicit approval.
 
 ---
 

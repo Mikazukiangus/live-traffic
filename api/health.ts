@@ -1,3 +1,4 @@
+import { safeFailure } from '../shared/diagnostics.ts';
 import { config } from '../config/server.ts';
 /**
  * Health check & diagnostic endpoint for TrafficPulse LTA DataMall serverless connection.
@@ -43,7 +44,7 @@ async function probe(url: string, headers: Record<string, string> = {}): Promise
       status: 'DOWN',
       httpCode: 0,
       latencyMs: Date.now() - start,
-      error: err?.name === 'TimeoutError' ? `Timed out after ${PROBE_TIMEOUT_MS}ms` : err?.message || 'Network error',
+      error: safeFailure('gateway', err).body.error,
     };
   }
 }
