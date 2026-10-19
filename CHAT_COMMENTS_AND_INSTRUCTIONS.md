@@ -1483,6 +1483,12 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Started an isolated local server on `127.0.0.1:3192` after the sandbox initially denied binding the port. An invalid image URL returned fixed 502 JSON with `no-store` and omitted the supplied value. A real camera request returned 200 with three cameras from the data.gov.sg fallback; the failed direct attempt emitted only a safe structured diagnostic. Stopped the test server afterward.
 - Recorded both user instructions and updated the table of contents for commit/push on the preview branch. Main merge remains subject to explicit approval.
 
+### Preview deployment follow-up:
+- Pushed implementation commit `47f8715` and opened draft PR #5: https://github.com/Mikazukiangus/live-traffic/pull/5. The PR is mergeable; GitHub checks and Vercel preview checks passed.
+- Preview deployment `dpl_24VWFFAeF4rcdYD98vFrhT5zZLeK` is READY: https://live-traffic-qvqx3cmmv-carbon-bc04.vercel.app. The homepage returned 200. An invalid-image request returned 502 with fixed `UPSTREAM_FAILURE` JSON, omitted the supplied value and had `Cache-Control: no-store`.
+- Preview cameras returned 200 with three cameras from LTA DataMall. Health returned 200 with the key configured and 14/15 UP; the only failed probe was the 24-hour forecast (upstream HTTP 429). This external rate limit remains visible through safe status/error text.
+- Before publishing, a changed-file Gitleaks scan found no candidates and an exact local-key comparison found no matches. No key values/fragments or signed camera URLs were printed. The isolated local server was stopped. The preview result and this log update are pushed on the review branch; `main` has not been merged.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*
