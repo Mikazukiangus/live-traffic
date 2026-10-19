@@ -1209,6 +1209,19 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 ### Done:
 - Fast-forward merged `preview/health-retry` into `main` and pushed. The 07:30 SGT scheduled health check now retries after 90 seconds and reports upstream rate limits (HTTP 429) as warnings.
 
+
+## 71. Turn 71: Housekeeping (Node Types, Vite Config, Dev Port, Bun)
+
+**User Instruction:**
+> "do all of them on a preview branch"
+
+### Done (branch `preview/housekeeping`):
+- `@types/node` ^22.14.0 → ^24.19.2 to match the Node 24 runtime (Vercel and CI); `undici-types` 6.21.0 → 7.24.6 came with it.
+- `vite.config.ts`: `__dirname` → `import.meta.dirname`. The Vite "unsupported by configLoader: native" warning no longer appears in builds.
+- `npm run dev` now uses port 3100 with `--strictPort` (port 3000 and 3001 are used by other local projects); the local `.claude/launch.json` dev entry was updated to match.
+- Frozen install, type check, 26/26 tests and build pass. Dev server on 3100 renders Live Traffic; LTA speeds load. PUB flood alerts were rate limited (HTTP 429) upstream during the check.
+- Bun 1.4.1 installed for the local user (not part of the branch).
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*
