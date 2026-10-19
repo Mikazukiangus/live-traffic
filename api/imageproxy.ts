@@ -1,3 +1,4 @@
+import { reportFailure, UpstreamHttpError } from '../shared/diagnostics.ts';
 import { IMAGE_PROXY_HOSTS } from '../config/policy.ts';
 import { config } from '../config/server.ts';
 /**
@@ -5,7 +6,7 @@ import { config } from '../config/server.ts';
  * Fixes browser MIME-type blocking (x-content-type-options: nosniff on application/octet-stream)
  * by proxying the image and serving with correct image/jpeg headers and caching.
  */
-import { setHeaders } from './_client.ts';
+import { sendJson, setHeaders } from './_client.ts';
 
 // LTA DataMall camera images are S3 links without CORS headers; proxying them lets the
 // browser read pixels for vehicle counting.
@@ -38,21 +39,13 @@ export default async function handler(req: any, res?: any) {
   }
 
   if (!imageUrl) {
-    const err = { error: 'Missing image url parameter' };
-    if (res && typeof res.status === 'function') {
-      return res.status(400).json(err);
-    }
-    return new Response(JSON.stringify(err), { status: 400 });
+    return sendJson(res, 400, { error: 'Missing image url parameter' });
   }
 
   try {
     const parsed = new URL(imageUrl);
     if (parsed.protocol !== 'https:' || !ALLOWED_HOSTS.includes(parsed.hostname)) {
-      const err = { error: 'Host not permitted in proxy' };
-      if (res && typeof res.status === 'function') {
-        return res.status(403).json(err);
-      }
-      return new Response(JSON.stringify(err), { status: 403 });
+      return sendJson(res, 403, { error: 'Host not permitted in proxy' });
     }
 
     const response = await fetch(imageUrl, {
@@ -64,7 +57,7 @@ export default async function handler(req: any, res?: any) {
     });
 
     if (!response.ok) {
-      throw new Error(`Upstream returned ${response.status}`);
+      throw new UpstreamHttpError(response.status);
     }
 
     const arrayBuffer = await response.arrayBuffer();
@@ -90,11 +83,7 @@ export default async function handler(req: any, res?: any) {
       },
     });
   } catch (error: any) {
-    const err = { error: 'Failed to proxy image', message: error?.message };
-    if (res && typeof res.status === 'function') {
-      return res.status(502).json(err);
-    }
-    return new Response(JSON.stringify(err), { status: 502 });
+    return sendJson(res, 502, reportFailure('camera', error));
   }
 }
 

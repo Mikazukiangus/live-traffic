@@ -1,3 +1,4 @@
+import { reportFailure } from '../shared/diagnostics.ts';
 import { config } from '../config/server.ts';
 /**
  * PUB flood alerts (keyless), via data.gov.sg.
@@ -112,6 +113,6 @@ export default async function handler(req: any, res?: any) {
     const { records, latest } = await recentRecords(now);
     return sendJson(res, 200, { success: true, source: 'pub_flood_alerts', checkedAt: latest, alerts: activeFloodAlerts(records, now) }, CACHE);
   } catch (err: any) {
-    return sendJson(res, 502, { success: false, error: 'Failed to fetch PUB flood alerts', message: err?.message }, NO_STORE);
+    return sendJson(res, 502, reportFailure('nea', err), NO_STORE);
   }
 }

@@ -1,3 +1,4 @@
+import { reportFailure, UpstreamHttpError } from '../shared/diagnostics.ts';
 import { config } from '../config/server.ts';
 /**
  * NEA 24-Hour Weather Forecast Serverless Endpoint (keyless)
@@ -38,11 +39,11 @@ export default async function handler(req: any, res?: any) {
       headers: { accept: 'application/json' },
       signal: AbortSignal.timeout(config.server.weatherTimeoutMs),
     });
-    if (!response.ok) throw new Error(`Upstream responded ${response.status}`);
+    if (!response.ok) throw new UpstreamHttpError(response.status);
 
     // v2 responses are wrapped: { code, errorMsg, data: { records } }
     const json = await response.json();
-    if (json?.code !== 0 || !json?.data) throw new Error(json?.errorMsg || 'Unexpected forecast payload');
+    if (json?.code !== 0 || !json?.data) throw new Error('Unexpected forecast payload');
 
     const record = json.data.records?.[0];
     if (!record?.general) throw new Error('No forecast issued');
@@ -77,11 +78,7 @@ export default async function handler(req: any, res?: any) {
       CACHE
     );
   } catch (error: any) {
-    return send(res, 502, {
-      success: false,
-      error: 'Failed to fetch NEA 24-hour forecast',
-      message: error?.message,
-    });
+    return send(res, 502, reportFailure('nea', error));
   }
 }
 

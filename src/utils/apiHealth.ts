@@ -1,5 +1,8 @@
 import { config } from '../../config/client';
+import { safeFailure, UpstreamHttpError } from '../../shared/diagnostics.ts';
 import { useSyncExternalStore } from 'react';
+
+class UnexpectedHealthResponse extends Error {}
 
 export interface EndpointHealth {
   path: string; name: string; status: string; method: string; purpose: string; upstream: string;
@@ -47,12 +50,13 @@ export function refreshApiHealth(): Promise<void> {
     const start = performance.now();
     try {
       const res = await fetch('/api/health', { cache: 'no-store', signal: AbortSignal.timeout(config.healthTimeoutMs) });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) throw new UpstreamHttpError(res.status);
       const data: unknown = await res.json();
-      if (!isHealthData(data)) throw new Error('Unexpected health response');
+      if (!isHealthData(data)) throw new UnexpectedHealthResponse();
       publish({ data, checkedAt: Date.parse(data.timestamp), latencyMs: Math.round(performance.now() - start) });
     } catch (err) {
-      publish({ error: err instanceof Error ? err.message : 'Health check failed' });
+      publish({ error: err instanceof UpstreamHttpError ? `HTTP ${err.status}`
+        : err instanceof UnexpectedHealthResponse ? 'Unexpected health response' : safeFailure('gateway', err).body.error });
     } finally {
       publish({ loading: false });
       pending = null;

@@ -1,3 +1,4 @@
+import { reportFailure, UpstreamHttpError } from '../shared/diagnostics.ts';
 import { config } from '../config/server.ts';
 /**
  * Expressway Speed Summary Serverless Endpoint
@@ -176,7 +177,7 @@ const round5 = (n: number) => Math.round(n * 1e5) / 1e5;
 const inSingapore = (lon: number, lat: number) => lon > 103.5 && lon < 104.2 && lat > 1.1 && lat < 1.5;
 
 async function fetchPage(skip: number, accountKey: string): Promise<{ value: any[]; lastUpdatedTime?: string }> {
-  let lastError = '';
+  let lastError: unknown = new Error('Speed data unavailable');
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
       const response = await fetch(`${SPEED_BANDS_ENDPOINT}?$skip=${skip}`, {
@@ -185,16 +186,18 @@ async function fetchPage(skip: number, accountKey: string): Promise<{ value: any
       });
       if (response.ok) {
         const data = await response.json();
-        return { value: data.value || [], lastUpdatedTime: data.lastUpdatedTime };
+        if (!Array.isArray(data?.value)) throw new Error('Unexpected LTA payload');
+        return { value: data.value, lastUpdatedTime: data.lastUpdatedTime };
       }
-      lastError = `LTA responded ${response.status} at $skip=${skip}`;
+      lastError = new UpstreamHttpError(response.status);
+      await response.body?.cancel().catch(() => undefined);
     } catch (err: any) {
-      lastError = err?.message || `Network error at $skip=${skip}`;
+      lastError = err;
     }
     // Back off before retrying; LTA throttles bursts.
     if (attempt < MAX_ATTEMPTS) await new Promise((r) => setTimeout(r, config.server.lta.retryDelayMs * attempt));
   }
-  throw new Error(lastError);
+  throw lastError;
 }
 
 function statusFromSlowShare(slowPct: number): ExpresswaySpeedSummary['status'] {
@@ -315,7 +318,7 @@ export default async function handler(req: any, res?: any) {
     const body = wantsSegments(req) ? { ...cache.payload, segments: cache.segments } : cache.payload;
     return send(200, body, liveCacheHeaders(...config.server.cache.speeds));
   } catch (err: any) {
-    return send(502, { success: false, error: 'Failed to aggregate LTA speed bands', message: err?.message }, NO_STORE);
+    return send(502, reportFailure('lta', err), NO_STORE);
   }
 }
 

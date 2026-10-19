@@ -1,4 +1,5 @@
 import { config } from '../config/server.ts';
+import { reportFailure, UpstreamHttpError } from '../shared/diagnostics.ts';
 /**
  * LTA DataMall Serverless Client Helper
  * Handles authentication, proxying, query params, and CORS for LTA DataMall OData APIs.
@@ -96,18 +97,7 @@ export async function handleLtaRequest(
       documentation: 'https://datamall.lta.gov.sg/content/datamall/en.html',
     };
 
-    if (res && typeof res.status === 'function') {
-      setCorsHeaders(res);
-      return res.status(401).json(errorBody);
-    }
-
-    return new Response(JSON.stringify(errorBody), {
-      status: 401,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': config.server.corsOrigin,
-      },
-    });
+    return sendJson(res, 401, errorBody);
   }
 
   try {
@@ -139,21 +129,15 @@ export async function handleLtaRequest(
       },
     });
 
-    const contentType = response.headers.get('content-type') || '';
-    let data: any;
-
-    if (contentType.includes('application/json')) {
-      data = await response.json();
-    } else {
-      const text = await response.text();
-      try {
-        data = JSON.parse(text);
-      } catch {
-        data = { raw: text };
-      }
+    if (!response.ok) {
+      await response.body?.cancel().catch(() => undefined);
+      return sendJson(res, response.status, reportFailure('lta', undefined, response.status));
     }
 
-    const cache = response.ok ? LTA_PROXY_CACHE : NO_STORE;
+    const data = await response.json();
+    if (!data || !Array.isArray(data.value)) throw new Error('Unexpected LTA payload');
+
+    const cache = LTA_PROXY_CACHE;
     if (res && typeof res.status === 'function') {
       setCorsHeaders(res);
       setHeaders(res, cache);
@@ -169,26 +153,7 @@ export async function handleLtaRequest(
       },
     });
   } catch (error: any) {
-    const errorBody = {
-      status: 'error',
-      statusCode: 502,
-      error: 'Failed to fetch from LTA DataMall',
-      message: error?.message || 'Unknown network error',
-      endpoint: endpointUrl,
-    };
-
-    if (res && typeof res.status === 'function') {
-      setCorsHeaders(res);
-      return res.status(502).json(errorBody);
-    }
-
-    return new Response(JSON.stringify(errorBody), {
-      status: 502,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': config.server.corsOrigin,
-      },
-    });
+    return sendJson(res, 502, reportFailure('lta', error));
   }
 }
 
@@ -229,9 +194,14 @@ export async function fetchLtaAll(url: string, accountKey: string, { wave = conf
         headers: { AccountKey: accountKey, accept: 'application/json' },
         signal: AbortSignal.timeout(config.server.requestTimeoutMs),
       });
-      if (response.ok) return (await response.json()).value || [];
+      if (response.ok) {
+        const data = await response.json();
+        if (!Array.isArray(data?.value)) throw new Error('Unexpected LTA payload');
+        return data.value;
+      }
       // LTA throttles bursts; back off and try twice more.
-      if (attempt >= config.server.lta.attempts) throw new Error(`LTA responded ${response.status} at $skip=${skip}`);
+      await response.body?.cancel().catch(() => undefined);
+      if (attempt >= config.server.lta.attempts) throw new UpstreamHttpError(response.status);
       await new Promise((r) => setTimeout(r, config.server.lta.retryDelayMs * attempt));
     }
   };
@@ -253,8 +223,8 @@ export async function fetchDataGovV2(url: string): Promise<any> {
     await new Promise((r) => setTimeout(r, config.server.weatherRetryDelayMs));
     response = await get();
   }
-  if (!response.ok) throw new Error(`Upstream responded ${response.status}`);
+  if (!response.ok) throw new UpstreamHttpError(response.status);
   const json = await response.json();
-  if (json?.code !== 0 || !json?.data) throw new Error(json?.errorMsg || 'Unexpected payload');
+  if (json?.code !== 0 || !json?.data) throw new Error('Unexpected provider payload');
   return json.data;
 }

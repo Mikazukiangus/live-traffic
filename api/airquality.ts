@@ -1,3 +1,4 @@
+import { reportFailure, UpstreamHttpError } from '../shared/diagnostics.ts';
 import { config } from '../config/server.ts';
 /**
  * NEA Air Quality Serverless Endpoint (keyless)
@@ -36,9 +37,9 @@ async function fetchLatest(url: string) {
     await new Promise((r) => setTimeout(r, config.server.weatherRetryDelayMs));
     response = await get();
   }
-  if (!response.ok) throw new Error(`Upstream responded ${response.status}`);
+  if (!response.ok) throw new UpstreamHttpError(response.status);
   const json = await response.json();
-  if (json?.code !== 0 || !json?.data) throw new Error(json?.errorMsg || 'Unexpected payload');
+  if (json?.code !== 0 || !json?.data) throw new Error('Unexpected provider payload');
   const item = json.data.items?.[0];
   if (!item?.readings) throw new Error('No readings published');
   return { item, regions: json.data.regionMetadata || [] };
@@ -57,11 +58,9 @@ export default async function handler(req: any, res?: any) {
 
   const [psi, pm25] = await Promise.allSettled([fetchLatest(PSI_URL), fetchLatest(PM25_URL)]);
   if (psi.status === 'rejected' && pm25.status === 'rejected') {
-    return send(res, 502, {
-      success: false,
-      error: 'Failed to fetch NEA air quality',
-      message: `PSI: ${psi.reason?.message}; PM2.5: ${pm25.reason?.message}`,
-    });
+    const body = reportFailure('nea', psi.reason);
+    reportFailure('nea', pm25.reason);
+    return send(res, 502, body);
   }
 
   const psiData = psi.status === 'fulfilled' ? psi.value : null;
