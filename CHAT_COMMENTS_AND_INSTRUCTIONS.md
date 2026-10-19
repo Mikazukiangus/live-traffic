@@ -1246,6 +1246,15 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - If a deploy happens while a tab is open and a page chunk is missing, the app reloads once to pick up the new build (guarded against reload loops).
 - Checked in the production build: Cameras loads only its own chunks; vehicle counting (ONNX worker) still works; Live Traffic opens instantly with the map; `#commute` scrolls correctly; the reload guard reloads once and not twice. Type check, 26/26 tests and build pass.
 
+
+## 74. Turn 74: Code Splitting Merged to Main
+
+**User Instruction:**
+> "merge to main"
+
+### Done:
+- Fast-forward merged `preview/code-splitting` (commit `8b96fa4`) into `main` and pushed. Production now loads each page as its own chunk.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*
