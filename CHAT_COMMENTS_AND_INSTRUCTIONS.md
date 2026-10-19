@@ -1122,6 +1122,15 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Local LTA camera photos loaded successfully. Upstream availability can still vary; delayed data and missing requested cameras remain labelled.
 - Preview screenshots saved for camera and ERP layouts on both screen sizes. Main merge requires explicit user approval.
 
+### GitHub and preview deployment:
+- Implementation commit `b2a8d5b` pushed to `codex/mobile-desktop-ux`; draft PR #3: https://github.com/Mikazukiangus/live-traffic/pull/3.
+- Vercel preview for that exact commit is READY with no alias error: https://live-traffic-brp8jkbuw-carbon-bc04.vercel.app.
+- Branch preview: https://live-traffic-git-codex-mobile-desktop-ux-carbon-bc04.vercel.app.
+- Deployed homepage returned HTTP 200 and its `index-BReE7mRx.js` bundle matches the local production build.
+- Preview has the LTA key configured (presence only checked). `/api/trafficimages`, `/api/vms` and `/api/rainforecast` returned HTTP 200: 7 camera records at this check, 25 signs and 47 forecast areas. Only records actually returned by the camera feed are displayed; the directory/search supports the eight remaining camera IDs and labels a requested camera that is temporarily absent.
+- `/api/health` returned HTTP 200 with 14/15 UP. Its direct two-hour forecast probe was rate limited (429); the app's cached forecast endpoint returned successfully.
+- Main has not been merged. Always record subsequent work in this log and push it to GitHub, as instructed.
+
 ## 64. Turn 64: Dependency Lockfile and Unused Packages
 
 **User Instructions:**
