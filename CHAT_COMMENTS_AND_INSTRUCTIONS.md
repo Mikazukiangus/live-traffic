@@ -1115,6 +1115,16 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - `package-lock.json` is ignored.
 - `npm audit` found 0 vulnerabilities; all direct dependencies are actively maintained. Type check, 22/22 tests and build pass.
 
+
+## 65. Turn 65: Dependency Lockfile Merged to Main
+
+**User Instruction:**
+> "merge to main"
+
+### Done:
+- Fast-forward merged `preview/deps-lockfile` (commit `3cefcfc`) into `main` and pushed.
+- Production now installs with `bun install --frozen-lockfile` from the committed `bun.lock`.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*
