@@ -1,3 +1,4 @@
+import { config } from '../config/server.ts';
 /**
  * LTA DataMall Estimated Travel Times Serverless Endpoint
  * Upstream: https://datamall2.mytransport.sg/ltaodataservice/EstTravelTimes
@@ -5,7 +6,7 @@
  */
 import { handleLtaRequest } from './_client.ts';
 
-const LTA_TRAVEL_TIMES_ENDPOINT = 'https://datamall2.mytransport.sg/ltaodataservice/EstTravelTimes';
+const LTA_TRAVEL_TIMES_ENDPOINT = config.server.upstreams.travelTimes;
 
 export default async function handler(req: any, res?: any) {
   return handleLtaRequest(LTA_TRAVEL_TIMES_ENDPOINT, req, res);

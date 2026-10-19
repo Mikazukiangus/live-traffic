@@ -1,3 +1,4 @@
+import { config } from '../../config/client';
 import React from 'react';
 import { usePolledJson } from '../utils/usePolledJson';
 import { RAIN_LEVEL_STYLE, rainLevel } from '../utils/rainForecast';
@@ -18,7 +19,7 @@ interface Forecast24h {
 }
 
 // NEA reissues the 24-hour forecast a few times a day; the endpoint is CDN-cached for 15 minutes.
-const POLL_MS = 15 * 60_000;
+const POLL_MS = config.poll.forecast24h;
 
 const ForecastText: React.FC<{ text: string }> = ({ text }) => {
   const level = rainLevel(text);

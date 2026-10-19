@@ -1,3 +1,4 @@
+import { config } from '../../config/client';
 import { usePolledJson } from './usePolledJson';
 import { kmBetween } from './nearMe';
 import { EXPRESSWAY_RAIN_AREAS, ForecastArea } from './rainForecast';
@@ -26,7 +27,7 @@ export interface WeatherAlerts {
 
 /** NEA lightning (latest observation) and WBGT heat stress. */
 export function useWeatherAlerts() {
-  return usePolledJson<WeatherAlerts>('/api/live?feed=weatheralerts', 3 * 60_000, (d) => !!d?.strikes && !!d.heatStations, (d) => Array.isArray(d?.strikes) || Array.isArray(d?.heatStations));
+  return usePolledJson<WeatherAlerts>('/api/live?feed=weatheralerts', config.poll.weatherAlerts, (d) => !!d?.strikes && !!d.heatStations, (d) => Array.isArray(d?.strikes) || Array.isArray(d?.heatStations));
 }
 
 // A strike this close to a forecast area an expressway passes through counts as near that expressway.

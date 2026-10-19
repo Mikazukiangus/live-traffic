@@ -1,3 +1,4 @@
+import { config } from '../../config/client';
 import { usePolledJson } from './usePolledJson';
 
 export interface ForecastArea {
@@ -110,7 +111,7 @@ export function describeCorridorRain(rain: CorridorRain): string {
 }
 
 // NEA updates roughly every 30 minutes; the endpoint is CDN-cached for 5.
-const RAIN_POLL_MS = 5 * 60_000;
+const RAIN_POLL_MS = config.poll.rain;
 export function useRainForecast(): RainForecast | null {
   return usePolledJson<RainForecast>('/api/rainforecast', RAIN_POLL_MS, (d) => Array.isArray(d?.areas) && d.areas.length > 0).data;
 }

@@ -1,3 +1,4 @@
+import { config } from '../../config/client';
 /**
  * Counts vehicles in a traffic camera photo on the viewer's device with YOLOX-Nano
  * (Megvii, Apache-2.0; see public/models/YOLOX-LICENSE.txt) running in ONNX Runtime Web (MIT).
@@ -50,7 +51,7 @@ export function currentVehicleCount(counts: Record<string, VehicleCount>, id: st
 /** Skip the ~7 MB download when the viewer has asked their browser to save data. */
 export function vehicleCountingAllowed(): boolean {
   const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
-  return !connection?.saveData;
+  return config.vehicleCountingEnabled && !connection?.saveData;
 }
 
 function toTensor(ort: Ort, tile: HTMLCanvasElement): { tensor: Tensor; scale: number } {

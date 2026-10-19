@@ -1,3 +1,4 @@
+import { config } from '../config/server.ts';
 /**
  * Car park availability from LTA DataMall (LTA, HDB and URA car parks, ~6 pages).
  * Upstream: https://datamall2.mytransport.sg/ltaodataservice/CarParkAvailabilityv2
@@ -6,9 +7,9 @@
  */
 import { fetchLtaAll, getLtaAccountKey, handlePreflight, liveCacheHeaders, sendJson } from './_client.ts';
 
-const CARPARKS_URL = 'https://datamall2.mytransport.sg/ltaodataservice/CarParkAvailabilityv2';
+const CARPARKS_URL = config.server.upstreams.carParks;
 // LTA updates lots every minute.
-const CACHE = liveCacheHeaders(60, 120);
+const CACHE = liveCacheHeaders(...config.server.cache.carParks);
 
 // Lot types: C = car, Y = motorcycle, H = heavy vehicle (S, season, is left out)
 const LOT_KEY: Record<string, 'car' | 'motorcycle' | 'heavy'> = { C: 'car', Y: 'motorcycle', H: 'heavy' };

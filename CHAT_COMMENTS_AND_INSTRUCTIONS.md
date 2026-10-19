@@ -83,6 +83,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 76. [Turn 76: Project Status Review](#76-turn-76-project-status-review)
 77. [Turn 77: Local Python Virtual Environment](#77-turn-77-local-python-virtual-environment)
 78. [Turn 78: Environment Setup Confirmation](#78-turn-78-environment-setup-confirmation)
+79. [Turn 79: Validated Configuration and Environment Audit](#79-turn-79-validated-configuration-and-environment-audit)
 
 ---
 
@@ -1364,6 +1365,28 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Confirmed `.venv/` and `.env.local` remain ignored by Git. The setup guide and Turn 77 were already pushed as `a23084e`; there were no pending tracked changes before recording this check.
 - Bun dependencies were verified by the previous turn's frozen install. Python activation is only needed in terminals using Python helpers; the app continues to use Bun.
 - No application changes or live endpoint checks were needed. Logged this confirmation and updated the table of contents under the standing instruction to record and push every turn.
+
+## 79. Turn 79: Validated Configuration and Environment Audit
+
+**User Instruction:**
+> "Audit my repo for hardcoded settings that should be environment variables, centralize them into one validated config object, and generate a complete .env.example."
+
+### Done on `codex/validated-config` (19 October 2026, SGT):
+- Added `config/schema.ts` as the single definition/validator for 51 settings: 19 server, 21 public, 4 development, 4 helper-tool and 3 CI settings. Runtime config objects are deeply frozen. Invalid values fail with setting names without printing supplied values.
+- Server handlers import `config/server.ts`; browser code imports the public-only projection from `config/client.ts`. Vite rejects a server-config import into the browser graph. No whole-process environment is injected into client code.
+- Centralized provider bases and derived endpoint paths, primary/legacy LTA key resolution, upstream timeouts, retry limits/backoff, pagination limits, live-feed CDN profiles, image-cache duration, CORS origin, polling/freshness intervals, retained-speed age, wall cycling, vehicle-counting enablement, local bind host/ports and canonical/social metadata origin. Current defaults preserve existing behavior.
+- Fixed local initialization order: Vite loads and validates env files before dynamically importing API handlers. Camera requests now use the same key resolver as the other endpoints. Added missing LTA/camera/image-proxy request timeouts. Pagination refuses incomplete datasets instead of returning partial summaries when a configured cap is exhausted.
+- The offline Python base-map helper and scheduled health workflow consume explicit non-secret projections of the same config. The workflow schedule remains 07:30 SGT; its target, HTTP timeout and retry delay are configurable via repository variables. The bypass secret stays a GitHub Actions secret.
+- Replaced the obsolete Gemini/AI Studio example with a complete, generated `.env.example`. `bun run config:example` regenerates it; a regression test enforces exact agreement with the schema. Existing `.env.local`, credentials, `.venv/`, dependency versions and `bun.lock` were preserved.
+- Added `CONFIGURATION_AUDIT.md` with findings and intentional code constants: image-host security policy, provider protocol paths/page size, Singapore geography/timezone, official ERP data/calendar, model calibration, static assets, UI animation timings and platform lifecycle settings. Updated `DEVELOPMENT.md` with overrides, scopes, restart/rebuild instructions and a safe fresh-clone copy command.
+
+### Verification:
+- Type check, all 36 tests, frozen Bun install and production build passed. Python helper syntax and both helper/CI config projections were checked without regenerating the map or sending workflow notifications.
+- Real build tests verify public overrides in emitted assets/social metadata, absence of a fake private-key sentinel, build failure on a server-config browser import, and value-free errors on invalid startup settings. Configuration tests cover defaults, ranges/URLs/booleans, legacy precedence, keyless operation, template completeness and partial-page protection.
+- Local server started with `DEV_HOST=127.0.0.1 DEV_PORT=3191`, leaving the usual development port available. `/api/trafficimages` returned 200 with 8 cameras, `/api/vms` returned 200 with 25 signs, and `/api/health` returned 200 with the key configured and 15/15 UP at that check. Values/fragments of the key were never printed.
+- Browser smoke tests loaded Cameras, Road Signs and Live Traffic. Editing the schema during a check restarted Vite and interrupted a request/development tab; reloading restored the app. Later feed availability varied and the UI displayed warnings; current availability is separate from configuration/build checks.
+- A credential-like literal scan of tracked non-test text found no candidates; no credential values were printed. This was a focused configuration audit, not a comprehensive security audit.
+- Changes and this log are pushed for preview review. Main merge requires explicit user direction.
 
 ---
 

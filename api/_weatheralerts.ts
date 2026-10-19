@@ -1,3 +1,4 @@
+import { config } from '../config/server.ts';
 /**
  * NEA lightning and heat stress (keyless).
  * Upstream: https://api-open.data.gov.sg/v2/real-time/api/weather?api=lightning
@@ -7,9 +8,9 @@
  */
 import { NO_STORE, fetchDataGovV2, handlePreflight, liveCacheHeaders, sendJson } from './_client.ts';
 
-const LIGHTNING_URL = 'https://api-open.data.gov.sg/v2/real-time/api/weather?api=lightning';
-const WBGT_URL = 'https://api-open.data.gov.sg/v2/real-time/api/weather?api=wbgt';
-const CACHE = liveCacheHeaders(120, 300);
+const LIGHTNING_URL = config.server.upstreams.lightning;
+const WBGT_URL = config.server.upstreams.wbgt;
+const CACHE = liveCacheHeaders(...config.server.cache.weatherAlerts);
 
 const num = (v: unknown) => {
   const n = typeof v === 'number' ? v : parseFloat(String(v));

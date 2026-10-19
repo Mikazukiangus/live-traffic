@@ -1,3 +1,4 @@
+import { config } from '../../config/client';
 import { useEffect, useRef, useState } from 'react';
 import { useUrlParam, writeParams } from './urlState';
 
@@ -5,7 +6,7 @@ import { useUrlParam, writeParams } from './urlState';
  * Wall display (?display=wall): no menus, full screen where allowed, and pages cycle through
  * their tabs on their own, for a screen in an operations room.
  */
-export const WALL_CYCLE_MS = 30_000;
+export const WALL_CYCLE_MS = config.wallCycleMs;
 
 export function useWallDisplay() {
   const [display] = useUrlParam('display');

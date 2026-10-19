@@ -1,3 +1,5 @@
+import { IMAGE_PROXY_HOSTS } from '../../config/policy';
+import { config } from '../../config/client';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { CAMERA_DIRECTORY, CameraPlace } from '../data/cameras';
 import { LiveVmsBoards } from '../components/LiveVmsBoards';
@@ -26,7 +28,7 @@ interface HighwayCamerasViewProps {
 
 // data.gov.sg serves images as octet-stream with nosniff, and LTA DataMall's S3 links send no
 // CORS headers (needed to count vehicles in the photo), so both go through our image proxy.
-const PROXIED_IMAGE_HOSTS = ['https://images.data.gov.sg/', 'https://dm-traffic-camera-itsc.s3.ap-southeast-1.amazonaws.com/'];
+const PROXIED_IMAGE_HOSTS = IMAGE_PROXY_HOSTS.map((host) => `https://${host}/`);
 const getResolvedCameraUrl = (url: string): string =>
   PROXIED_IMAGE_HOSTS.some((h) => url.startsWith(h)) ? `/api/imageproxy?url=${encodeURIComponent(url)}` : url;
 
@@ -103,7 +105,7 @@ const CHECKPOINT_SUMMARY: {
 // LTA retired every other expressway camera feed on this date (ERP 2.0 transition).
 const LTA_CAMERAS_RETIRED_ON = '30 Jun 2026';
 // LTA captures roughly every 1–5 minutes; older than this means the feed has stalled.
-const STALE_CAPTURE_MS = 15 * 60_000;
+const STALE_CAPTURE_MS = config.freshness.cameras;
 
 interface CameraCard extends HighwayCameraFeed {
   // ISO capture time from LTA.
@@ -133,9 +135,9 @@ interface CheckpointApproach {
 }
 
 // LTA speed bands change every 5 minutes, so the 30-second camera refresh needn't refetch them.
-const SPEEDS_REFRESH_MS = 2 * 60_000;
+const SPEEDS_REFRESH_MS = config.poll.travelTimes;
 // Three missed speed band updates means LTA's feed has stalled.
-const SPEEDS_STALE_MS = 15 * 60_000;
+const SPEEDS_STALE_MS = config.freshness.speeds;
 
 const formatSgt = (iso: string) =>
   new Date(iso).toLocaleTimeString('en-SG', {
@@ -251,7 +253,7 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
 
       // 2. Direct fallback to Data.gov.sg open endpoint if needed
       if (!rawCameras || rawCameras.length === 0) {
-        const fallbackRes = await fetch('https://api.data.gov.sg/v1/transport/traffic-images');
+        const fallbackRes = await fetch(config.trafficImagesUrl);
         if (fallbackRes.ok) {
           const fbJson = await fallbackRes.json();
           rawCameras = fbJson?.items?.[0]?.cameras || [];
@@ -305,7 +307,7 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
 
   useEffect(() => {
     fetchLiveLtaCameras();
-    const interval = setInterval(fetchLiveLtaCameras, 30000);
+    const interval = setInterval(fetchLiveLtaCameras, config.poll.cameras);
     return () => clearInterval(interval);
   }, []);
 
@@ -507,7 +509,7 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
             </span>
             <span
               className="material-symbols-outlined text-base text-slate-400 cursor-help"
-              title={`${liveSourceDesc}, refreshed every 30 seconds. LTA retired its other expressway cameras on ${LTA_CAMERAS_RETIRED_ON}; only the Woodlands, Tuas and Sentosa cameras remain.`}
+              title={`${liveSourceDesc}, refreshed every ${Math.round(config.poll.cameras / 1000)} seconds. LTA retired its other expressway cameras on ${LTA_CAMERAS_RETIRED_ON}; only the Woodlands, Tuas and Sentosa cameras remain.`}
             >
               info
             </span>
@@ -588,7 +590,7 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
 
       {cameras.length === 0 && shownTab !== 'signs' && (
         <div className="bg-white rounded-2xl border border-slate-200 p-10 text-center text-sm text-slate-500">
-          {refreshing ? 'Loading cameras…' : 'Camera feed unavailable. Retrying every 30 seconds.'}
+          {refreshing ? 'Loading cameras…' : `Camera feed unavailable. Retrying every ${Math.round(config.poll.cameras / 1000)} seconds.`}
         </div>
       )}
 

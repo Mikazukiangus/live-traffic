@@ -1,16 +1,17 @@
+import { config } from '../config/server.ts';
 /**
  * LTA Traffic Images Serverless Endpoint
  * - If LTA_ACCOUNT_KEY is present: fetches full Singapore expressway cameras from LTA DataMall Traffic-Imagesv2
  * - If LTA_ACCOUNT_KEY is missing: seamlessly fetches official real-time traffic images from Data.gov.sg open transport API
  * Returns normalized live camera feed with real-time timestamps and direct image URLs.
  */
-import { handleLtaRequest, liveCacheHeaders, setHeaders } from './_client.ts';
+import { getLtaAccountKey, liveCacheHeaders, setHeaders } from './_client.ts';
 
 // LTA captures every 1-5 minutes; the page polls every 30 seconds.
-const CACHE = liveCacheHeaders(30, 60);
+const CACHE = liveCacheHeaders(...config.server.cache.proxy);
 
-const LTA_DATAMALL_TRAFFIC_IMAGES = 'https://datamall2.mytransport.sg/ltaodataservice/Traffic-Imagesv2';
-const DATA_GOV_TRAFFIC_IMAGES = 'https://api.data.gov.sg/v1/transport/traffic-images';
+const LTA_DATAMALL_TRAFFIC_IMAGES = config.server.upstreams.images;
+const DATA_GOV_TRAFFIC_IMAGES = config.trafficImagesUrl;
 
 // DataMall image names embed the capture time in UTC, e.g. .../2701_1120_20261005033013_E7E99C.jpg
 function captureTimeFromLink(link: string): string | null {
@@ -21,12 +22,13 @@ function captureTimeFromLink(link: string): string | null {
 }
 
 export default async function handler(req: any, res?: any) {
-  const accountKey = process.env.LTA_ACCOUNT_KEY || req.headers?.['accountkey'];
+  const accountKey = getLtaAccountKey(req);
 
   // 1. If official DataMall AccountKey is configured, query DataMall v2
   if (accountKey) {
     try {
       const dmResponse = await fetch(LTA_DATAMALL_TRAFFIC_IMAGES, {
+        signal: AbortSignal.timeout(config.server.requestTimeoutMs),
         headers: {
           AccountKey: accountKey,
           accept: 'application/json',
@@ -80,6 +82,7 @@ export default async function handler(req: any, res?: any) {
   // 2. Open LTA Data.gov.sg Real-Time Transport Camera Feed
   try {
     const govResponse = await fetch(DATA_GOV_TRAFFIC_IMAGES, {
+      signal: AbortSignal.timeout(config.server.requestTimeoutMs),
       headers: {
         accept: 'application/json',
       },

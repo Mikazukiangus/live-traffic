@@ -1,3 +1,4 @@
+import { config } from '../../config/client';
 import React, { useEffect } from 'react';
 import { refreshApiHealth, useApiHealth } from '../utils/apiHealth';
 
@@ -9,7 +10,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenApiHealth }) => {
   const { data: health, error: healthError, loading } = useApiHealth();
   useEffect(() => {
     refreshApiHealth();
-    const timer = setInterval(refreshApiHealth, 5 * 60_000);
+    const timer = setInterval(refreshApiHealth, config.poll.health);
     return () => clearInterval(timer);
   }, []);
 

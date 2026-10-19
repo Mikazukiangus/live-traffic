@@ -1,3 +1,4 @@
+import { config } from '../../config/client';
 /**
  * LTA DataMall EstTravelTimes, summed per expressway and direction.
  * Each record is one stretch, e.g. { Name: 'PIE', Direction: 2, FarEndPoint: 'CHANGI AIRPORT', EstTime: 3 },
@@ -83,7 +84,7 @@ export function sumTravelTimes(records: LtaTravelTimeRecord[]): Record<string, D
 }
 
 // LTA refreshes travel times every 5 minutes.
-const TRAVEL_TIME_POLL_MS = 2 * 60_000;
+const TRAVEL_TIME_POLL_MS = config.poll.travelTimes;
 
 export function useLtaTravelTimes() {
   const feed = usePolledJson<{ value: LtaTravelTimeRecord[] }>('/api/traveltimes', TRAVEL_TIME_POLL_MS, (d) => Array.isArray(d?.value));

@@ -114,7 +114,7 @@ export const NotificationsDrawer: React.FC<NotificationsDrawerProps> = ({
               {status === 'loading'
                 ? 'Loading LTA incidents…'
                 : status === 'error'
-                ? 'LTA incident feed unavailable. Retrying every minute.'
+                ? 'LTA incident feed unavailable. Retrying automatically.'
                 : 'No active incidents reported by LTA.'}
             </div>
           )}

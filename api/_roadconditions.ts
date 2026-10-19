@@ -1,3 +1,4 @@
+import { config } from '../config/server.ts';
 /**
  * Road works on the expressways and faulty traffic lights, from LTA DataMall.
  * Upstream: https://datamall2.mytransport.sg/ltaodataservice/RoadWorks (all roads, ~17 pages)
@@ -14,10 +15,9 @@ import {
   sendJson,
 } from './_client.ts';
 
-const LTA = 'https://datamall2.mytransport.sg/ltaodataservice';
 // Road works are planned weeks ahead; traffic light faults change by the minute but are few.
 // The CDN keeps the whole answer 5 minutes, so the 17-page road works list is rarely refetched.
-const CACHE = liveCacheHeaders(300, 900);
+const CACHE = liveCacheHeaders(...config.server.cache.roadConditions);
 
 // LTA road names (and tunnel variants) -> expressway code
 const EXPRESSWAY_ROAD_NAMES: [RegExp, string][] = [
@@ -53,8 +53,8 @@ export default async function handler(req: any, res?: any) {
   }
 
   const [works, lights] = await Promise.allSettled([
-    fetchLtaAll(`${LTA}/RoadWorks`, accountKey),
-    fetchLtaAll(`${LTA}/FaultyTrafficLights`, accountKey, { wave: 1, maxPages: 4 }),
+    fetchLtaAll(config.server.upstreams.roadWorks, accountKey),
+    fetchLtaAll(config.server.upstreams.faultyLights, accountKey, { wave: 1, maxPages: 4 }),
   ]);
   if (works.status === 'rejected' && lights.status === 'rejected') {
     return sendJson(res, 502, {

@@ -2,18 +2,23 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import { defineConfig, loadEnv, Plugin } from 'vite';
-import healthHandler from './api/health.ts';
-import trafficHandler from './api/traffic.ts';
-import trafficImagesHandler from './api/trafficimages.ts';
-import trafficFlowHandler from './api/trafficflow.ts';
-import vmsHandler from './api/vms.ts';
-import travelTimesHandler from './api/traveltimes.ts';
-import imageProxyHandler from './api/imageproxy.ts';
-import expresswaySpeedsHandler from './api/expresswayspeeds.ts';
-import rainForecastHandler from './api/rainforecast.ts';
-import forecast24hHandler from './api/forecast24h.ts';
-import airQualityHandler from './api/airquality.ts';
-import liveFeedsHandler from './api/live.ts';
+import { createConfig, ENV_KEYS } from './config/schema.ts';
+
+// Import handlers only after .env files have been loaded and validated below.
+const handlers: Record<string, () => Promise<{ default: (req: any, res?: any) => any }>> = {
+  '/api/health': () => import('./api/health.ts'),
+  '/api/traffic': () => import('./api/traffic.ts'),
+  '/api/trafficimages': () => import('./api/trafficimages.ts'),
+  '/api/trafficflow': () => import('./api/trafficflow.ts'),
+  '/api/vms': () => import('./api/vms.ts'),
+  '/api/traveltimes': () => import('./api/traveltimes.ts'),
+  '/api/imageproxy': () => import('./api/imageproxy.ts'),
+  '/api/expresswayspeeds': () => import('./api/expresswayspeeds.ts'),
+  '/api/rainforecast': () => import('./api/rainforecast.ts'),
+  '/api/forecast24h': () => import('./api/forecast24h.ts'),
+  '/api/airquality': () => import('./api/airquality.ts'),
+  '/api/live': () => import('./api/live.ts'),
+};
 
 function apiDevServerPlugin(): Plugin {
   return {
@@ -51,46 +56,10 @@ async function apiMiddleware(req: any, res: any, next: () => void) {
   }
 
   try {
-    switch (pathname) {
-      case '/api/health':
-        await healthHandler(req, res);
-        return;
-      case '/api/traffic':
-        await trafficHandler(req, res);
-        return;
-      case '/api/trafficimages':
-        await trafficImagesHandler(req, res);
-        return;
-      case '/api/trafficflow':
-        await trafficFlowHandler(req, res);
-        return;
-      case '/api/vms':
-        await vmsHandler(req, res);
-        return;
-      case '/api/traveltimes':
-        await travelTimesHandler(req, res);
-        return;
-      case '/api/imageproxy':
-        await imageProxyHandler(req, res);
-        return;
-      case '/api/expresswayspeeds':
-        await expresswaySpeedsHandler(req, res);
-        return;
-      case '/api/rainforecast':
-        await rainForecastHandler(req, res);
-        return;
-      case '/api/forecast24h':
-        await forecast24hHandler(req, res);
-        return;
-      case '/api/airquality':
-        await airQualityHandler(req, res);
-        return;
-      case '/api/live':
-        await liveFeedsHandler(req, res);
-        return;
-      default:
-        return next();
-    }
+    const load = handlers[pathname];
+    if (!load) return next();
+    const { default: handler } = await load();
+    await handler(req, res);
   } catch (err: any) {
     console.error(`API Error on ${pathname}:`, err);
     res.statusCode = 500;
@@ -99,17 +68,25 @@ async function apiMiddleware(req: any, res: any, next: () => void) {
 }
 
 export default defineConfig(({ mode }) => {
-  // Expose server-only secrets from .env / .env.local to the /api handlers in dev.
-  // Vercel injects these directly into process.env in production.
-  const env = loadEnv(mode, process.cwd(), '');
-  for (const key of ['LTA_ACCOUNT_KEY', 'LTA_API_KEY']) {
-    if (env[key] && !process.env[key]) {
-      process.env[key] = env[key];
-    }
+  // Vite's mode files are loaded first; shell/platform values take precedence.
+  // Only recognized settings are forwarded to local API handlers, never to client `define`.
+  const loaded = loadEnv(mode, process.cwd(), '');
+  const environment = { ...loaded, ...process.env };
+  const config = createConfig(environment);
+  for (const key of ENV_KEYS) {
+    if (environment[key] !== undefined) process.env[key] = environment[key];
   }
 
   return {
-    plugins: [react(), tailwindcss(), apiDevServerPlugin()],
+    plugins: [react(), tailwindcss(), apiDevServerPlugin(), {
+      name: 'validated-config-boundary',
+      transform(_source, id) {
+        if (id.split('?')[0].replaceAll('\\', '/').endsWith('/config/server.ts')) {
+          this.error('Server config cannot be included in the browser bundle. Use config/client.ts.');
+        }
+      },
+      transformIndexHtml(html) { return html.replaceAll('__TRAFFICPULSE_SITE_URL__', config.siteUrl); },
+    }],
     resolve: {
       alias: {
         '@': path.resolve(import.meta.dirname, '.'),
@@ -131,12 +108,16 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
+    preview: { host: config.dev.host, port: config.dev.previewPort, strictPort: true },
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
       // Do not modify—file watching is disabled to prevent flickering during agent edits.
-      hmr: process.env.DISABLE_HMR !== 'true',
+      host: config.dev.host,
+      port: config.dev.port,
+      strictPort: true,
+      hmr: !config.dev.disableHmr,
       // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
-      watch: process.env.DISABLE_HMR === 'true' ? null : {},
+      watch: config.dev.disableHmr ? null : {},
     },
   };
 });

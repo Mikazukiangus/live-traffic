@@ -1,3 +1,4 @@
+import { config } from '../../config/client';
 import React, { useEffect, useMemo, useState } from 'react';
 import { EMAS_SIGNS, EXPRESSWAY_CORRIDORS } from '../data/mockData';
 import { EmasVariableMessageSign } from '../types/traffic';
@@ -8,7 +9,7 @@ import { useNow } from '../utils/freshness';
 
 const SAMPLE_BOARD_COUNT = 6;
 // LTA refreshes VMS messages about every 2 minutes.
-const VMS_POLL_MS = 60_000;
+const VMS_POLL_MS = config.poll.live;
 // A sign further than this from any expressway link is labelled by equipment ID only.
 const MAX_MATCH_METRES = 300;
 // Gantries listed per board before "show all".

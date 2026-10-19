@@ -86,3 +86,54 @@ For this checkout, the original base interpreter is Codex's bundled Python at
 `.venv/`, `node_modules/`, and `.env.local` are ignored by Git. Keep the LTA key in
 `.env.local` for the app's server-side handlers; activating Python does not load
 that file automatically.
+
+## Environment configuration
+
+All supported settings and validation live in `config/schema.ts`:
+
+- Server handlers import the frozen `config` from `config/server.ts`.
+- Browser code imports the public projection from `config/client.ts`. It contains
+  no credentials or server configuration. Vite rejects imports of the server entry
+  point into the browser build.
+- Vite, the map-generation helper and the production-health workflow use the same
+  schema. The Python helper asks Bun for only its non-secret Overpass settings.
+- `.env.example` is generated from that schema with `bun run config:example`.
+  Defaults preserve the app's existing behavior; blank LTA keys allow keyless
+  camera/weather operation. Set `LTA_ACCOUNT_KEY` to enable the other LTA feeds.
+
+On a fresh clone, create the private override file only if it does not exist:
+
+```sh
+if [ ! -e .env.local ]; then cp .env.example .env.local; fi
+```
+
+This checkout already has `.env.local`. Add or change selected overrides there;
+keep its existing LTA key. Shell/platform values take precedence over Vite's env
+files. Stop and restart the development process after changing settings.
+
+`VITE_*` settings are public and baked into the browser build. Rebuild/redeploy
+for their changes to take effect. Never put a secret under that prefix. Unknown
+public settings, invalid URLs, unsupported booleans and out-of-range numbers fail
+validation with setting names and no supplied values. Empty optional settings use
+safe defaults. `LTA_API_KEY` remains a legacy alias; `LTA_ACCOUNT_KEY` wins.
+
+Examples of optional overrides:
+
+```dotenv
+DEV_HOST=127.0.0.1
+DEV_PORT=3100
+VITE_CAMERA_POLL_MS=45000
+VITE_VEHICLE_COUNTING_ENABLED=false
+```
+
+Configure Vercel settings in the intended Development/Preview/Production scope.
+Keep `LTA_ACCOUNT_KEY` server-only and sensitive. No additional Vercel variables
+are required to preserve current behavior.
+
+The scheduled health workflow reads `VITE_SITE_URL`, `PRODUCTION_HEALTH_URL`,
+`HEALTHCHECK_RETRY_DELAY_MS` and `HEALTHCHECK_TIMEOUT_MS` from GitHub Actions
+repository **variables**, and `VERCEL_AUTOMATION_BYPASS_SECRET` from repository
+**secrets**. The bypass secret is never app configuration. The workflow's 07:30
+SGT schedule remains a versioned workflow setting.
+
+See `CONFIGURATION_AUDIT.md` for scope and settings deliberately kept in code.

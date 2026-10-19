@@ -1,3 +1,4 @@
+import { config } from '../config/server.ts';
 /**
  * NEA 24-Hour Weather Forecast Serverless Endpoint (keyless)
  * Upstream: https://api-open.data.gov.sg/v2/real-time/api/twenty-four-hr-forecast
@@ -5,9 +6,9 @@
  */
 import { NO_STORE, liveCacheHeaders, setCorsHeaders, setHeaders } from './_client.ts';
 
-const TWENTY_FOUR_HR_FORECAST = 'https://api-open.data.gov.sg/v2/real-time/api/twenty-four-hr-forecast';
+const TWENTY_FOUR_HR_FORECAST = config.server.upstreams.forecast24h;
 // NEA reissues this a few times a day.
-const CACHE = liveCacheHeaders(900, 1800);
+const CACHE = liveCacheHeaders(...config.server.cache.forecast24h);
 const REGIONS = ['north', 'south', 'east', 'west', 'central'] as const;
 
 function send(res: any, status: number, body: unknown, cache = NO_STORE) {
@@ -19,7 +20,7 @@ function send(res: any, status: number, body: unknown, cache = NO_STORE) {
   }
   return new Response(JSON.stringify(body), {
     status,
-    headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', ...cache },
+    headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': config.server.corsOrigin, ...cache },
   });
 }
 
@@ -35,7 +36,7 @@ export default async function handler(req: any, res?: any) {
   try {
     const response = await fetch(TWENTY_FOUR_HR_FORECAST, {
       headers: { accept: 'application/json' },
-      signal: AbortSignal.timeout(10_000),
+      signal: AbortSignal.timeout(config.server.weatherTimeoutMs),
     });
     if (!response.ok) throw new Error(`Upstream responded ${response.status}`);
 

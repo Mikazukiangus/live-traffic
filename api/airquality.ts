@@ -1,3 +1,4 @@
+import { config } from '../config/server.ts';
 /**
  * NEA Air Quality Serverless Endpoint (keyless)
  * Upstream: https://api-open.data.gov.sg/v2/real-time/api/psi
@@ -7,10 +8,10 @@
  */
 import { NO_STORE, liveCacheHeaders, setCorsHeaders, setHeaders } from './_client.ts';
 
-const PSI_URL = 'https://api-open.data.gov.sg/v2/real-time/api/psi';
-const PM25_URL = 'https://api-open.data.gov.sg/v2/real-time/api/pm25';
+const PSI_URL = config.server.upstreams.psi;
+const PM25_URL = config.server.upstreams.pm25;
 // NEA publishes both readings hourly.
-const CACHE = liveCacheHeaders(300, 600);
+const CACHE = liveCacheHeaders(...config.server.cache.weather);
 const REGIONS = ['north', 'south', 'east', 'west', 'central'] as const;
 
 function send(res: any, status: number, body: unknown, cache = NO_STORE) {
@@ -22,17 +23,17 @@ function send(res: any, status: number, body: unknown, cache = NO_STORE) {
   }
   return new Response(JSON.stringify(body), {
     status,
-    headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', ...cache },
+    headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': config.server.corsOrigin, ...cache },
   });
 }
 
 // v2 responses are wrapped: { code, errorMsg, data: { regionMetadata, items } }
 async function fetchLatest(url: string) {
-  const get = () => fetch(url, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(10_000) });
+  const get = () => fetch(url, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(config.server.weatherTimeoutMs) });
   let response = await get();
   // data.gov.sg rate-limits keyless calls in short bursts; one retry usually gets through.
   if (response.status === 429) {
-    await new Promise((r) => setTimeout(r, 1500));
+    await new Promise((r) => setTimeout(r, config.server.weatherRetryDelayMs));
     response = await get();
   }
   if (!response.ok) throw new Error(`Upstream responded ${response.status}`);
