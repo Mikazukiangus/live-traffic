@@ -36,6 +36,18 @@ This document records all user instructions, feedback, technical inquiries, inve
 61. [Turn 61: Review and Live Data Bug Fixes](#61-turn-61-review-and-live-data-bug-fixes)
 62. [Turn 62: Live Data Bug Fixes Merged to Main](#62-turn-62-live-data-bug-fixes-merged-to-main)
 63. [Turn 63: Mobile and Desktop UX Improvements](#63-turn-63-mobile-and-desktop-ux-improvements)
+64. [Turn 64: Dependency Lockfile and Unused Packages](#64-turn-64-dependency-lockfile-and-unused-packages)
+65. [Turn 65: Dependency Lockfile Merged to Main](#65-turn-65-dependency-lockfile-merged-to-main)
+66. [Turn 66: Mobile and Desktop UX Merged to Main](#66-turn-66-mobile-and-desktop-ux-merged-to-main)
+67. [Turn 67: React and Vite Patch Updates](#67-turn-67-react-and-vite-patch-updates)
+68. [Turn 68: React and Vite Patch Updates Merged to Main](#68-turn-68-react-and-vite-patch-updates-merged-to-main)
+69. [Turn 69: Health Check Retry and Rate-Limit Warnings](#69-turn-69-health-check-retry-and-rate-limit-warnings)
+70. [Turn 70: Health Check Retry Merged to Main](#70-turn-70-health-check-retry-merged-to-main)
+71. [Turn 71: Housekeeping (Node Types, Vite Config, Dev Port, Bun)](#71-turn-71-housekeeping-node-types-vite-config-dev-port-bun)
+72. [Turn 72: Housekeeping Merged to Main](#72-turn-72-housekeeping-merged-to-main)
+73. [Turn 73: Code Splitting](#73-turn-73-code-splitting)
+74. [Turn 74: Code Splitting Merged to Main](#74-turn-74-code-splitting-merged-to-main)
+75. [Turn 75: Branch Clean-Up, Session Archive, Health Email and Logging Rule](#75-turn-75-branch-clean-up-session-archive-health-email-and-logging-rule)
 ---
 
 ## 1. Initial Brief & Architecture
@@ -1254,6 +1266,29 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 
 ### Done:
 - Fast-forward merged `preview/code-splitting` (commit `8b96fa4`) into `main` and pushed. Production now loads each page as its own chunk.
+
+
+## 75. Turn 75: Branch Clean-Up, Session Archive, Health Email and Logging Rule
+
+**User Instructions:**
+> "merge main into codex/mobile-desktop-ux"
+> "delete the merged branches"
+> "check what's on claude/optimistic-khayyam-baeaf6"
+> "check if the session is still open in the app?"
+> "yes, archive it and delete all three"
+> "i got this email from github, please check."
+> "delete the preview/health-retry branch" (and later "yes, delete it" for `preview/react-vite-patch`, `preview/housekeeping` and `preview/code-splitting`)
+> "anything else i need to confirm?" (asked several times)
+> "make sure CHAT_COMMENTS_AND_INSTRUCTIONS.md is updated everytime."
+
+### Done:
+- Merged `main` into `codex/mobile-desktop-ux` (commit `7d0d0b9`) before it was merged to main; the log conflict was resolved by keeping Turns 63, 64 and 65 in order, and the branch's uncommitted Turn 63 notes were kept.
+- Deleted 19 branches already merged into main, locally and on GitHub (no open pull requests used them).
+- `claude/optimistic-khayyam-baeaf6`: its one commit (`cc7cdb4`) was the same change as main's `7f6caf5` (same parent, tree and patch). Its Claude session ("Fix incident corridor labels in Live Traffic Radar", PR #1 merged, idle since 5 October) was archived, then the worktree, local branch and GitHub branch were deleted.
+- GitHub "Run failed: Production health - main (f980544)" email: this was the manual test run after the bypass secret was added; PUB flood alerts were rate limited (HTTP 429) and that version had no retry. Fixed by Turn 69/70; later runs passed.
+- Deleted merged preview branches `preview/react-vite-patch`, `preview/health-retry`, `preview/housekeeping` and `preview/code-splitting`. The repository now has only `main`.
+- "Anything else" checks answered: Actions secret (then missing, now added), local `package-lock.json` (deleted), optional follow-ups (all done in Turns 71 and 73). Open idea: the Cameras page downloads the vehicle-counting model (about 3.7 MB compressed); counting could start only on request or on Wi-Fi.
+- From now on every turn, including questions, checks and branch deletions, gets an entry in this log, and the table of contents is kept up to date.
 
 ---
 
