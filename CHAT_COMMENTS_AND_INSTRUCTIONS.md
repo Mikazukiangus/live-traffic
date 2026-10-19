@@ -85,6 +85,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 78. [Turn 78: Environment Setup Confirmation](#78-turn-78-environment-setup-confirmation)
 79. [Turn 79: Validated Configuration and Environment Audit](#79-turn-79-validated-configuration-and-environment-audit)
 80. [Turn 80: Explicit Confirmation Rule](#80-turn-80-explicit-confirmation-rule)
+81. [Turn 81: Validated Configuration Merged to Main](#81-turn-81-validated-configuration-merged-to-main)
 
 ---
 
@@ -1407,6 +1408,20 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Explicitly ask for any required user confirmation; otherwise respond with "This is completed".
 - The configuration audit is implemented and pushed in draft PR #4: https://github.com/Mikazukiangus/live-traffic/pull/4. The pending decision is whether to merge it into `main`, which triggers the production deployment. The established preview-review workflow requires explicit merge approval.
 - This message does not authorize a merge. No application or environment settings were changed in this turn; only this log and its table of contents were updated for commit and push on the review branch.
+
+---
+
+## 81. Turn 81: Validated Configuration Merged to Main
+
+**User Instruction:**
+> "merge to main"
+
+### Done (19 October 2026, SGT):
+- Explicit merge approval received. Marked PR #4 ready and merged `codex/validated-config` into `main` as `79bdb0f`, preserving the reviewed configuration implementation and project history. PR: https://github.com/Mikazukiangus/live-traffic/pull/4.
+- Verified the exact PR head `797658f` was mergeable and its GitHub checks and Vercel preview passed before merging. The merge commit's main-branch Checks workflow also passed. Synced the local `main` checkout with GitHub via fast-forward.
+- Production deployment `dpl_FRGuDvXXBaTa9R8pQcuV8qaEwY4H` for `79bdb0f` is READY and assigned to https://live-traffic-carbon-bc04.vercel.app. Verified the production homepage and `/api/health` returned HTTP 200 using the authenticated Vercel connection.
+- At 14:40 SGT, health reported 13/15 UP with the LTA key configured. LTA's speed-band upstream returned HTTP 500, affecting `/api/trafficflow` and `/api/expresswayspeeds`; the remaining probes passed. These upstream errors were also observed before the merge and remain visible in the app.
+- No credentials or Vercel environment settings were changed or exposed. Recorded this turn and updated the table of contents for commit and push to `main` under the standing logging instruction.
 
 ---
 
