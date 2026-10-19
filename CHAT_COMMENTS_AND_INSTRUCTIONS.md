@@ -1200,6 +1200,15 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - `health.yml`: if any feed is down (or the site doesn't answer 200), wait 90 seconds and check again. Feeds still refused with HTTP 429 after the retry are reported as warnings, not failures; any other down feed still fails the run and emails the owner.
 - Tested the script locally with simulated responses: all up (pass, one request), 429 then recovered (pass), 429 persisting (pass with warning), 500 plus 429 (fail with error and warning).
 
+
+## 70. Turn 70: Health Check Retry Merged to Main
+
+**User Instruction:**
+> "merge to main"
+
+### Done:
+- Fast-forward merged `preview/health-retry` into `main` and pushed. The 07:30 SGT scheduled health check now retries after 90 seconds and reports upstream rate limits (HTTP 429) as warnings.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*
