@@ -1155,6 +1155,16 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Fast-forward merged `preview/deps-lockfile` (commit `3cefcfc`) into `main` and pushed.
 - Production now installs with `bun install --frozen-lockfile` from the committed `bun.lock`.
 
+
+## 66. Turn 66: Mobile and Desktop UX Merged to Main
+
+**User Instruction:**
+> "merge codex/mobile-desktop-ux to main"
+
+### Done:
+- Committed the branch's pending Turn 63 preview-check notes, then fast-forward merged `codex/mobile-desktop-ux` (already containing main's dependency lockfile work, merged in `7d0d0b9`) into `main` and pushed.
+- Camera layout, ERP cards and road search (Turn 63) now ship to production.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*
