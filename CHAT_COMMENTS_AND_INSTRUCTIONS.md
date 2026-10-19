@@ -1165,6 +1165,18 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Committed the branch's pending Turn 63 preview-check notes, then fast-forward merged `codex/mobile-desktop-ux` (already containing main's dependency lockfile work, merged in `7d0d0b9`) into `main` and pushed.
 - Camera layout, ERP cards and road search (Turn 63) now ship to production.
 
+
+## 67. Turn 67: React and Vite Patch Updates
+
+**User Instruction:**
+> "update the patch versions for react and vite"
+
+### Done (branch `preview/react-vite-patch`):
+- `react` and `react-dom` 19.3.0 → 19.3.1, `vite` 8.3.2 → 8.3.4 (with `bun update`; package.json floors raised to match, `bun.lock` updated).
+- Vite's own dependencies moved with it: `postcss` 8.5.28 → 8.5.31, `nanoid` 3.3.19 → 3.3.20. Nothing else changed.
+- Frozen install, type check, 26/26 tests and build pass. The production build (`vite preview`) renders Live Traffic and Cameras with no script errors.
+- LTA speed bands and PUB flood alerts were returning rate-limit errors at the time of testing; production on the old versions showed the same LTA quota error, so this is upstream, not the update.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*
