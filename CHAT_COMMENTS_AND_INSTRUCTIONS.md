@@ -2,6 +2,8 @@
 
 This document records all user instructions, feedback, technical inquiries, investigations, and engineering resolutions across the entire development and maintenance history of the **Live Traffic SG & Towing Dispatch** application.
 
+**Standing instruction:** Update this file and its table of contents on every project turn, including questions, checks and confirmations. Record the request, actions and outcomes, then commit and push the update to GitHub before responding. Implementation changes still require preview review and explicit approval before merging into `main`.
+
 ---
 
 ## Table of Contents
@@ -86,6 +88,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 79. [Turn 79: Validated Configuration and Environment Audit](#79-turn-79-validated-configuration-and-environment-audit)
 80. [Turn 80: Explicit Confirmation Rule](#80-turn-80-explicit-confirmation-rule)
 81. [Turn 81: Validated Configuration Merged to Main](#81-turn-81-validated-configuration-merged-to-main)
+82. [Turn 82: Reaffirm Mandatory Project Log Updates](#82-turn-82-reaffirm-mandatory-project-log-updates)
 
 ---
 
@@ -1422,6 +1425,18 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Production deployment `dpl_FRGuDvXXBaTa9R8pQcuV8qaEwY4H` for `79bdb0f` is READY and assigned to https://live-traffic-carbon-bc04.vercel.app. Verified the production homepage and `/api/health` returned HTTP 200 using the authenticated Vercel connection.
 - At 14:40 SGT, health reported 13/15 UP with the LTA key configured. LTA's speed-band upstream returned HTTP 500, affecting `/api/trafficflow` and `/api/expresswayspeeds`; the remaining probes passed. These upstream errors were also observed before the merge and remain visible in the app.
 - No credentials or Vercel environment settings were changed or exposed. Recorded this turn and updated the table of contents for commit and push to `main` under the standing logging instruction.
+
+---
+
+## 82. Turn 82: Reaffirm Mandatory Project Log Updates
+
+**User Instruction:**
+> "make sure CHAT_COMMENTS_AND_INSTRUCTIONS.md is updated everytime."
+
+### Done (19 October 2026, SGT):
+- Reaffirmed that every project turn must be recorded in this file, including questions, checks and confirmations, with the table of contents updated and the changes committed and pushed to GitHub.
+- Added a prominent standing instruction near the start of this document so future sessions can find the requirement immediately.
+- Recorded this request for commit and push to `main`. This is a documentation-only update; no application changes or additional live checks were needed.
 
 ---
 
