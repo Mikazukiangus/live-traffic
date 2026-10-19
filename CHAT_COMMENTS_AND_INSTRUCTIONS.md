@@ -1392,6 +1392,8 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Pushed implementation commit `a72d6f3` and opened draft PR #4: https://github.com/Mikazukiangus/live-traffic/pull/4.
 - The first Vercel preview build rejected three injected public platform metadata names (`VITE_VERCEL_PROJECT_ID`, `VITE_VERCEL_DEPLOYMENT_ID`, `VITE_VERCEL_OBSERVABILITY_CLIENT_CONFIG`). Added explicit safe platform metadata names to the validator and build tests; arbitrary names such as `VITE_VERCEL_GIT_SECRET` still fail validation. Re-ran type check, all 36 tests and the production build successfully.
 - The speed-summary warning was traced to an LTA upstream HTTP 500 at `$skip=1500`; the API returned an explicit 502 aggregation error. This was not the configured page-cap guard.
+- Corrected preview for `f885f6b` is READY: https://live-traffic-4u8t4g6eo-carbon-bc04.vercel.app. Its homepage, `/api/trafficimages` (8 cameras) and `/api/vms` (25 signs) returned HTTP 200.
+- Preview `/api/health` returned HTTP 200 with 12/15 UP: LTA's speed-band probes returned HTTP 500 and the 24-hour weather probe returned HTTP 429. The LTA key is configured; its value was not retrieved or printed. Live upstream failures remain visible in the app.
 
 ---
 

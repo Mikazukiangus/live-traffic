@@ -55,3 +55,5 @@ server key through its supported config entry point.
 Existing `.env.local` and `.venv/` remain ignored. No credentials were copied,
 changed or committed. Current Vercel environment values are not changed by this
 refactor; defaults keep the existing deployed behavior.
+
+Platform reference: [Vercel framework environment variables](https://vercel.com/docs/environment-variables/framework-environment-variables). The explicit compatibility list also includes public metadata observed in this project's build logs.
