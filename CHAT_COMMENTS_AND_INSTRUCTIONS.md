@@ -82,6 +82,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 75. [Turn 75: Branch Clean-Up, Session Archive, Health Email and Logging Rule](#75-turn-75-branch-clean-up-session-archive-health-email-and-logging-rule)
 76. [Turn 76: Project Status Review](#76-turn-76-project-status-review)
 77. [Turn 77: Local Python Virtual Environment](#77-turn-77-local-python-virtual-environment)
+78. [Turn 78: Environment Setup Confirmation](#78-turn-78-environment-setup-confirmation)
 
 ---
 
@@ -1352,6 +1353,17 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Ran `bun install --frozen-lockfile`: all existing app dependencies matched the lockfile, with no changes.
 - Local setup, documentation and ignore-rule changes only. App source, package manifests and lockfile are unchanged; application tests/build and live endpoint checks were not repeated for this setup.
 - The virtual environment stays local; the setup guide, ignore rule and this log entry are committed and pushed under the standing logging instruction.
+
+## 78. Turn 78: Environment Setup Confirmation
+
+**User Instruction:**
+> "anything else i need to confirm?"
+
+### Checked (19 October 2026, SGT):
+- No further user confirmation is required for the environment setup. The Python 3.12.14 virtual environment is ready and its interpreter isolation was rechecked.
+- Confirmed `.venv/` and `.env.local` remain ignored by Git. The setup guide and Turn 77 were already pushed as `a23084e`; there were no pending tracked changes before recording this check.
+- Bun dependencies were verified by the previous turn's frozen install. Python activation is only needed in terminals using Python helpers; the app continues to use Bun.
+- No application changes or live endpoint checks were needed. Logged this confirmation and updated the table of contents under the standing instruction to record and push every turn.
 
 ---
 
