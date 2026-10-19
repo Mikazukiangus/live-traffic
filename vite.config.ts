@@ -122,7 +122,11 @@ export default defineConfig(({ mode }) => {
             // ONNX Runtime re-loads its own chunk inside a Web Worker. Keep the bundler helpers
             // it shares with the app in a small chunk of their own, so the worker doesn't import
             // the whole app (which uses `document` and crashes there).
-            groups: [{ name: 'helpers', test: /^\0(rolldown\/runtime|vite\/preload-helper)/ }],
+            groups: [
+              { name: 'helpers', test: /^\0(rolldown\/runtime|vite\/preload-helper)/ },
+              // React rarely changes between deploys, so returning visitors keep it cached.
+              { name: 'react', test: /node_modules[\\/](react|react-dom|scheduler)[\\/]/ },
+            ],
           },
         },
       },

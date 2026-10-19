@@ -1231,6 +1231,21 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 ### Done:
 - Fast-forward merged `preview/housekeeping` (commit `2f06eac`) into `main` and pushed: `@types/node` 24, `import.meta.dirname` in the Vite config, and the dev server on port 3100.
 
+
+## 73. Turn 73: Code Splitting
+
+**User Instruction:**
+> "do the code splitting on a preview branch"
+
+### Done (branch `preview/code-splitting`):
+- The four pages (Live Traffic, Cameras, Breakdown Help, Drivers) are lazy-loaded chunks behind a "Loading…" fallback. The Live Traffic chunk carries the speed map and the OpenStreetMap base map, so the default Cameras page no longer downloads them.
+- React and React DOM are their own chunk, so returning visitors keep them cached across deploys.
+- Main JavaScript before: one 566 kB file (172 kB gzipped). Opening Cameras now: core 88 kB + React 219 kB + Cameras 34 kB + shared 6 kB (about 107 kB gzipped). Live Traffic is 187 kB (62 kB gzipped). The "chunks larger than 500 kB" build warning is gone.
+- About a second after the first page appears, the other pages download in the background, so switching pages is instant and the service worker caches them for offline use.
+- `#commute` links and "Add commute" now wait for the Live Traffic page to load before scrolling, instead of a fixed timer.
+- If a deploy happens while a tab is open and a page chunk is missing, the app reloads once to pick up the new build (guarded against reload loops).
+- Checked in the production build: Cameras loads only its own chunks; vehicle counting (ONNX worker) still works; Live Traffic opens instantly with the map; `#commute` scrolls correctly; the reload guard reloads once and not twice. Type check, 26/26 tests and build pass.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*

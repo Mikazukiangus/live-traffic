@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { TabType, Workshop, TriageSituation, ActiveDispatch } from './types/traffic';
 import {
   INITIAL_GNSS,
@@ -22,10 +22,6 @@ import { CallModal } from './components/CallModal';
 import { SlaModal } from './components/SlaModal';
 import { NotificationsDrawer } from './components/NotificationsDrawer';
 import { ApiHealthModal } from './components/ApiHealthModal';
-import { SosWorkshopsView } from './views/SosWorkshopsView';
-import { LiveRadarView } from './views/LiveRadarView';
-import { HighwayCamerasView } from './views/HighwayCamerasView';
-import { CourierHubView } from './views/CourierHubView';
 import { useUrlParam, writeParams } from './utils/urlState';
 import { commuteCodes, useCommuteAlerts, useCommutes } from './utils/commutes';
 import { requestRefresh, useShortcuts } from './utils/appEvents';
@@ -34,6 +30,42 @@ import { enterWallDisplay, exitWallDisplay, useWakeLock, useWallDisplay } from '
 import { BottomNav } from './components/BottomNav';
 import { PullToRefresh } from './components/PullToRefresh';
 import { ShortcutsHelp } from './components/ShortcutsHelp';
+
+// Each page is its own chunk, so the first visit only downloads the page it opens on
+// (the Live Traffic map and its base map stay out of the Cameras page, for example).
+const loadSos = () => import('./views/SosWorkshopsView');
+const loadRadar = () => import('./views/LiveRadarView');
+const loadCameras = () => import('./views/HighwayCamerasView');
+const loadCourier = () => import('./views/CourierHubView');
+const SosWorkshopsView = lazy(() => loadSos().then((m) => ({ default: m.SosWorkshopsView })));
+const LiveRadarView = lazy(() => loadRadar().then((m) => ({ default: m.LiveRadarView })));
+const HighwayCamerasView = lazy(() => loadCameras().then((m) => ({ default: m.HighwayCamerasView })));
+const CourierHubView = lazy(() => loadCourier().then((m) => ({ default: m.CourierHubView })));
+
+// Once the first page is up, fetch the other pages in the background: switching pages stays
+// instant, and the service worker caches them so every page also works offline.
+const preloadPages = () => {
+  const run = () => [loadSos, loadRadar, loadCameras, loadCourier].forEach((load) => load().catch(() => {}));
+  if ('requestIdleCallback' in window) window.requestIdleCallback(run, { timeout: 4000 });
+  else setTimeout(run, 2000);
+};
+
+// Scroll to a section once its page has loaded (a page may still be downloading on first use).
+const scrollToWhenShown = (id: string, behavior: ScrollBehavior) => {
+  const started = Date.now();
+  const tick = () => {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior, block: 'start' });
+    else if (Date.now() - started < 5000) setTimeout(tick, 100);
+  };
+  setTimeout(tick, 150);
+};
+
+const PageLoading: React.FC = () => (
+  <div className="flex-1 flex items-center justify-center py-24 text-slate-500 text-sm" role="status">
+    <span className="material-symbols-outlined animate-spin mr-2 text-base">progress_activity</span>Loading…
+  </div>
+);
 
 // Short page names for the address bar, e.g. ?page=radar
 const PAGE_SLUGS: Record<TabType, string> = {
@@ -77,6 +109,8 @@ export default function App() {
   const [keepAwake, setKeepAwake] = useState(true);
   const awake = useWakeLock(wall && keepAwake);
 
+  useEffect(preloadPages, []);
+
   // Home-screen shortcuts: ?near=1 finds the visitor straight away; #commute scrolls to My commute.
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get('near') === '1') {
@@ -84,12 +118,12 @@ export default function App() {
       locate();
     }
     if (window.location.hash === '#commute') {
-      setTimeout(() => document.getElementById('commute')?.scrollIntoView({ block: 'start' }), 300);
+      scrollToWhenShown('commute', 'auto');
     }
   }, []);
   const goToCommutes = () => {
     writeParams({ page: PAGE_SLUGS['live-traffic-radar'], tab: 'expressways', cam: null }, true);
-    setTimeout(() => document.getElementById('commute')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
+    scrollToWhenShown('commute', 'smooth');
   };
 
   // Show the page in the address from the first load, so it can be copied straight away.
@@ -272,6 +306,7 @@ export default function App() {
         />}
 
         {/* Tab Views */}
+        <Suspense fallback={<PageLoading />}>
         {activeTab === 'roadside-sos-workshops' && (
           <SosWorkshopsView
             currentMarker={currentMarker.marker}
@@ -318,6 +353,7 @@ export default function App() {
             onCallHotline={handleOpenCallModal}
           />
         )}
+        </Suspense>
       </main>
 
       {/* Footer */}
