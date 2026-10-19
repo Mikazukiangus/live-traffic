@@ -32,7 +32,39 @@ This document records all user instructions, feedback, technical inquiries, inve
 25. [Turn 25: Camera Page Tabs and Lighter Layout (Phase 1)](#25-turn-25-camera-page-tabs-and-lighter-layout-phase-1)
 26. [Turn 26: Jam Readings and Checkpoint Drive Times (Phases 2 and 3)](#26-turn-26-jam-readings-and-checkpoint-drive-times-phases-2-and-3)
 27. [Turn 27: In-Browser Vehicle Counts (YOLOX) and Browser Caching Fix](#27-turn-27-in-browser-vehicle-counts-yolox-and-browser-caching-fix)
-
+28. [Turn 28: Vehicle Counts Fixed on the Vercel Build](#28-turn-28-vehicle-counts-fixed-on-the-vercel-build)
+29. [Turn 29: Camera Page Changes Go Live](#29-turn-29-camera-page-changes-go-live)
+30. [Turn 30: Live Traffic Radar Tabs](#30-turn-30-live-traffic-radar-tabs)
+31. [Turn 31: Radar Tabs Go Live](#31-turn-31-radar-tabs-go-live)
+32. [Turn 32: Rain List No Longer Waits for LTA Speeds](#32-turn-32-rain-list-no-longer-waits-for-lta-speeds)
+33. [Turn 33: Rain List Fix Goes Live](#33-turn-33-rain-list-fix-goes-live)
+34. [Turn 34: "+ queue at checkpoint" on the Drive Time](#34-turn-34--queue-at-checkpoint-on-the-drive-time)
+35. [Turn 35: Checkpoint Queue Note Goes Live](#35-turn-35-checkpoint-queue-note-goes-live)
+36. [Turn 36: Wada Sanzo Colour Palette (Light Base)](#36-turn-36-wada-sanzo-colour-palette-light-base)
+37. [Turn 37: Wada Sanzo Palette Goes Live](#37-turn-37-wada-sanzo-palette-goes-live)
+38. [Turn 38: NEA PSI and PM2.5 Air Quality](#38-turn-38-nea-psi-and-pm25-air-quality)
+39. [Turn 39: Air Quality Goes Live](#39-turn-39-air-quality-goes-live)
+40. [Turn 40: Air Quality First on the Weather Tab](#40-turn-40-air-quality-first-on-the-weather-tab)
+41. [Turn 41: Air Quality Order Goes Live](#41-turn-41-air-quality-order-goes-live)
+42. [Turn 42: Suggested Improvements](#42-turn-42-suggested-improvements)
+43. [Turn 43: Links, Out-of-Date Warnings, Install & Offline, Near Me](#43-turn-43-links-out-of-date-warnings-install--offline-near-me)
+44. [Turn 44: Links, Warnings, Install & Near Me Go Live](#44-turn-44-links-warnings-install--near-me-go-live)
+45. [Turn 45: The Remaining Improvements](#45-turn-45-the-remaining-improvements)
+46. [Turn 46: LTA Key for Previews](#46-turn-46-lta-key-for-previews)
+47. [Turn 47: The Remaining Improvements Go Live](#47-turn-47-the-remaining-improvements-go-live)
+48. [Turn 48: Copyright Year & Logo](#48-turn-48-copyright-year--logo)
+49. [Turn 49: Copyright Year & Logo Go Live](#49-turn-49-copyright-year--logo-go-live)
+50. [Turn 50: Fourteen More Improvements](#50-turn-50-fourteen-more-improvements)
+51. [Turn 51: Hide Flood Alerts When There Are None](#51-turn-51-hide-flood-alerts-when-there-are-none)
+52. [Turn 52: Fourteen Improvements Merged to Main](#52-turn-52-fourteen-improvements-merged-to-main)
+53. [Turn 53: Wada Sanzo Plate 267 Colours](#53-turn-53-wada-sanzo-plate-267-colours)
+54. [Turn 54: A More Logical Layout](#54-turn-54-a-more-logical-layout)
+55. [Turn 55: Logical Layout Merged to Main](#55-turn-55-logical-layout-merged-to-main)
+56. [Turn 56: PSI First on the Weather Tab](#56-turn-56-psi-first-on-the-weather-tab)
+57. [Turn 57: Free Base Map Under the Speed Map](#57-turn-57-free-base-map-under-the-speed-map)
+58. [Turn 58: PSI First and Base Map Merged to Main](#58-turn-58-psi-first-and-base-map-merged-to-main)
+59. [Turn 59: Rain Below PSI](#59-turn-59-rain-below-psi)
+60. [Turn 60: Rain Below PSI Merged to Main](#60-turn-60-rain-below-psi-merged-to-main)
 61. [Turn 61: Review and Live Data Bug Fixes](#61-turn-61-review-and-live-data-bug-fixes)
 62. [Turn 62: Live Data Bug Fixes Merged to Main](#62-turn-62-live-data-bug-fixes-merged-to-main)
 63. [Turn 63: Mobile and Desktop UX Improvements](#63-turn-63-mobile-and-desktop-ux-improvements)
@@ -48,6 +80,8 @@ This document records all user instructions, feedback, technical inquiries, inve
 73. [Turn 73: Code Splitting](#73-turn-73-code-splitting)
 74. [Turn 74: Code Splitting Merged to Main](#74-turn-74-code-splitting-merged-to-main)
 75. [Turn 75: Branch Clean-Up, Session Archive, Health Email and Logging Rule](#75-turn-75-branch-clean-up-session-archive-health-email-and-logging-rule)
+76. [Turn 76: Project Status Review](#76-turn-76-project-status-review)
+
 ---
 
 ## 1. Initial Brief & Architecture
@@ -1289,6 +1323,20 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Deleted merged preview branches `preview/react-vite-patch`, `preview/health-retry`, `preview/housekeeping` and `preview/code-splitting`. The repository now has only `main`.
 - "Anything else" checks answered: Actions secret (then missing, now added), local `package-lock.json` (deleted), optional follow-ups (all done in Turns 71 and 73). Open idea: the Cameras page downloads the vehicle-counting model (about 3.7 MB compressed); counting could start only on request or on Wi-Fi.
 - From now on every turn, including questions, checks and branch deletions, gets an entry in this log, and the table of contents is kept up to date.
+
+## 76. Turn 76: Project Status Review
+
+**User Instruction:**
+> "read CHAT_COMMENTS_AND_INSTRUCTIONS.md to understand current status of project."
+
+### Reviewed (19 October 2026, SGT):
+- Read the project history and latest entries through Turn 75, and checked the current branch, recent commits, package configuration, Vercel install configuration and production-health workflow.
+- Fetched GitHub `main`; the local checkout matched `origin/main` at `e5966ef` before this documentation update. No tracked changes were present; `.claude/` remains untracked.
+- Completed work already merged to main includes the mobile/desktop camera layout, separate Road Signs view, functional road/camera search, vehicle-specific ERP cards/table, frozen Bun installs, React/Vite patch updates, health-check retries and per-page code splitting.
+- Current manifest: React/React DOM ^19.3.1, Vite ^8.3.4 and Node 24 types; the dev server uses port 3100 with `--strictPort`. Vercel installs with `bun install --frozen-lockfile`.
+- The daily health workflow is configured for 07:30 SGT, retries after 90 seconds, and treats persistent upstream HTTP 429 responses as warnings. This review did not re-run tests, check current Actions runs or verify the deployed runtime; the latest recorded verification was 26 passing tests, type check and build.
+- Remaining recorded idea: make the browser vehicle-counting model load on request or on Wi-Fi to reduce the initial download. No implementation was requested in this turn.
+- Updated the table of contents to include all recorded turns. Continue logging every turn and pushing it to GitHub; implementation changes require preview review and explicit main-merge approval.
 
 ---
 
