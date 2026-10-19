@@ -1222,6 +1222,15 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Frozen install, type check, 26/26 tests and build pass. Dev server on 3100 renders Live Traffic; LTA speeds load. PUB flood alerts were rate limited (HTTP 429) upstream during the check.
 - Bun 1.4.1 installed for the local user (not part of the branch).
 
+
+## 72. Turn 72: Housekeeping Merged to Main
+
+**User Instruction:**
+> "merge to main"
+
+### Done:
+- Fast-forward merged `preview/housekeeping` (commit `2f06eac`) into `main` and pushed: `@types/node` 24, `import.meta.dirname` in the Vite config, and the dev server on port 3100.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*
