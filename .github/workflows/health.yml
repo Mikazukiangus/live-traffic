@@ -1,7 +1,7 @@
 # Daily health check of the production site. A failed run means a feed is down; GitHub emails
 # the repository owner about failed scheduled runs (Settings → Notifications → Actions).
 #
-# If anything is down, the check waits 90 seconds and asks again, so a brief blip doesn't fail it.
+# If anything is down, the check waits 90 seconds by default and asks again, so a brief blip doesn't fail it.
 # A feed still refused for calling too often (HTTP 429, e.g. data.gov.sg rate limits) shows as a
 # warning, not a failure: the app keeps its last data and the feed recovers on its own.
 #
@@ -21,21 +21,35 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Read validated health settings
+        id: settings
+        env:
+          VITE_SITE_URL: ${{ vars.VITE_SITE_URL }}
+          PRODUCTION_HEALTH_URL: ${{ vars.PRODUCTION_HEALTH_URL }}
+          HEALTHCHECK_RETRY_DELAY_MS: ${{ vars.HEALTHCHECK_RETRY_DELAY_MS }}
+          HEALTHCHECK_TIMEOUT_MS: ${{ vars.HEALTHCHECK_TIMEOUT_MS }}
+        run: node scripts/health-config.ts
       - name: Check /api/health
         env:
           BYPASS: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
-          URL: https://live-traffic-carbon-bc04.vercel.app/api/health
+          URL: ${{ steps.settings.outputs.url }}
+          RETRY_SECONDS: ${{ steps.settings.outputs.retrySeconds }}
+          TIMEOUT_SECONDS: ${{ steps.settings.outputs.timeoutSeconds }}
         run: |
           if [ -z "$BYPASS" ]; then
             echo "::notice::Skipped: add the VERCEL_AUTOMATION_BYPASS_SECRET repository secret to enable the daily health check."
             exit 0
           fi
-          fetch() { curl -s -o health.json -w '%{http_code}' -m 60 -H "x-vercel-protection-bypass: $BYPASS" "$URL"; }
+          fetch() { curl -s -o health.json -w '%{http_code}' -m "$TIMEOUT_SECONDS" -H "x-vercel-protection-bypass: $BYPASS" "$URL"; }
           all_up() { [ "$code" = "200" ] && [ "$(jq '[.endpoints[] | select(.status != "UP")] | length' health.json)" = "0" ]; }
           code=$(fetch)
           if ! all_up; then
-            echo "Not all feeds are up (HTTP $code); checking again in 90 seconds."
-            sleep 90
+            echo "Not all feeds are up (HTTP $code); checking again in $RETRY_SECONDS seconds."
+            sleep "$RETRY_SECONDS"
             code=$(fetch)
           fi
           if [ "$code" != "200" ]; then

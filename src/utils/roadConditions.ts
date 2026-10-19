@@ -1,3 +1,4 @@
+import { config } from '../../config/client';
 import { usePolledJson } from './usePolledJson';
 
 export interface RoadWork {
@@ -25,7 +26,7 @@ export interface RoadConditions {
 
 /** Road works in progress on each expressway, and faulty traffic lights (LTA). */
 export function useRoadConditions() {
-  return usePolledJson<RoadConditions>('/api/live?feed=roadconditions', 5 * 60_000, (d) => !!d?.roadWorks && !!d.faultyLights, (d) => Array.isArray(d?.roadWorks) || Array.isArray(d?.faultyLights));
+  return usePolledJson<RoadConditions>('/api/live?feed=roadconditions', config.poll.roadConditions, (d) => !!d?.roadWorks && !!d.faultyLights, (d) => Array.isArray(d?.roadWorks) || Array.isArray(d?.faultyLights));
 }
 
 export const roadWorksByCode = (works: RoadWork[] | null | undefined) => {

@@ -1,3 +1,4 @@
+import { config } from '../../config/client';
 /**
  * Maps LTA DataMall TrafficIncidents records into IncidentAlert objects.
  *
@@ -181,7 +182,7 @@ export interface IncidentFeed {
 }
 
 // LTA updates incidents every couple of minutes; /api/traffic is CDN-cached for 30s.
-const INCIDENT_POLL_MS = 60_000;
+const INCIDENT_POLL_MS = config.poll.live;
 
 /**
  * Live LTA TrafficIncidents. No sample data: until the first response the list is empty

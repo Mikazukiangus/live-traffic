@@ -1,3 +1,4 @@
+import { config } from '../../config/client';
 import { useMemo } from 'react';
 import { parseSgt, useNow } from './freshness';
 import { usePolledJson } from './usePolledJson';
@@ -33,7 +34,7 @@ export function unexpiredFloodAlerts(alerts: FloodAlert[], now: number): FloodAl
 
 /** PUB flood alerts, checked every 2 minutes. */
 export function useFloodAlerts() {
-  const feed = usePolledJson<FloodAlerts>('/api/live?feed=floods', 2 * 60_000, (d) => Array.isArray(d?.alerts));
+  const feed = usePolledJson<FloodAlerts>('/api/live?feed=floods', config.poll.nearbyFeeds, (d) => Array.isArray(d?.alerts));
   const now = useNow();
   const data = useMemo(() => feed.data ? { ...feed.data, alerts: unexpiredFloodAlerts(feed.data.alerts, now) } : null, [feed.data, now]);
   return { ...feed, data };

@@ -1,8 +1,9 @@
+import { config } from '../../config/client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchFeed } from './feedResponse';
 import { useRefreshRequests } from './appEvents';
 
-const RETRY_MS = 30_000;
+const RETRY_MS = config.poll.retry;
 
 export interface Polled<T> {
   data: T | null;

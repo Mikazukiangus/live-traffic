@@ -1,3 +1,4 @@
+import { config } from '../../config/client';
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { EXPRESSWAY_CORRIDORS } from '../data/mockData';
 import { CongestionStatus } from '../types/traffic';
@@ -49,7 +50,7 @@ interface ExpresswaySpeedSummary {
 }
 
 // LTA speed bands refresh every 5 minutes; the endpoint is CDN-cached, so polling each minute is cheap.
-const SPEED_BANDS_POLL_MS = 60_000;
+const SPEED_BANDS_POLL_MS = config.poll.live;
 // Speed bar scale; LTA's top speed band is 70+ km/h and most expressways are signed 80–90 km/h.
 const SPEED_BAR_MAX_KMH = 90;
 
@@ -78,11 +79,11 @@ const RADAR_TABS: RadarTab[] = ['expressways', 'incidents', 'weather', 'erp'];
 const isRadarTab = (t: string | null): t is RadarTab => RADAR_TABS.includes(t as RadarTab);
 
 // LTA publishes speed bands every 5 minutes; three missed updates means the feed has stalled.
-const SPEEDS_STALE_MS = 15 * 60_000;
+const SPEEDS_STALE_MS = config.freshness.speeds;
 // NEA publishes PSI hourly.
-const AIR_STALE_MS = 3 * 60 * 60_000;
+const AIR_STALE_MS = config.freshness.air;
 // NEA lightning observations come every few minutes.
-const LIGHTNING_STALE_MS = 30 * 60_000;
+const LIGHTNING_STALE_MS = config.freshness.lightning;
 
 const TAB_STORAGE_KEY = 'trafficpulse.radarTab';
 const LAYERS_STORAGE_KEY = 'trafficpulse.mapLayers';
@@ -401,7 +402,7 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
             </span>
             <span
               className="material-symbols-outlined text-base text-slate-400 cursor-help"
-              title={`LTA DataMall speed bands, travel times and incidents for all 10 expressways, refreshed every minute.${
+              title={`LTA DataMall speed bands, travel times and incidents for all 10 expressways, speeds and incidents refreshed every ${Math.round(config.poll.live / 1000)} seconds; travel times every ${Math.round(config.poll.travelTimes / 1000)} seconds.${
                 rainForecast ? ` Rain: NEA 2-hour forecast, ${rainForecast.validPeriod.text}.` : ''
               }`}
             >
@@ -414,7 +415,7 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
           <button
             onClick={enterWallDisplay}
             aria-label="Wall display"
-            title="Wall display: full screen, no menus, tabs change every 30 seconds (W)"
+            title={`Wall display: full screen, no menus, tabs change every ${Math.round(config.wallCycleMs / 1000)} seconds (W)`}
             className="hidden lg:flex w-10 h-10 rounded-full bg-white border border-slate-200 hover:bg-slate-100 text-slate-600 items-center justify-center cursor-pointer shadow-xs"
           >
             <span className="material-symbols-outlined text-xl">tv</span>
@@ -1138,7 +1139,7 @@ export const LiveRadarView: React.FC<LiveRadarViewProps> = ({
                 {incidentStatus === 'loading'
                   ? 'Loading LTA incidents…'
                   : incidentStatus === 'error' && incidents.length === 0
-                  ? 'LTA incident feed unavailable. Retrying every minute.'
+                  ? 'LTA incident feed unavailable. Retrying automatically.'
                   : incidents.length === 0
                   ? 'No active incidents reported by LTA.'
                   : 'No incidents match the selected filter.'}

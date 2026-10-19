@@ -1,3 +1,4 @@
+import { config } from '../../config/client';
 import { usePolledJson } from './usePolledJson';
 
 export type AirRegion = 'north' | 'south' | 'east' | 'west' | 'central';
@@ -67,7 +68,7 @@ export function nearestRegion(lat: number, lon: number, air: AirQuality): Region
 export const sgtHour = (timestamp: string | null) => timestamp?.slice(11, 16) ?? null;
 
 // NEA updates hourly; the endpoint is CDN-cached for 5 minutes.
-const AIR_POLL_MS = 10 * 60_000;
+const AIR_POLL_MS = config.poll.air;
 export function useAirQuality(): AirQuality | null {
   return usePolledJson<AirQuality>('/api/airquality', AIR_POLL_MS, (d) => Array.isArray(d?.regions) && d.regions.length > 0).data;
 }

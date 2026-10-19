@@ -1,10 +1,11 @@
+import { config } from '../../config/client';
 /**
  * The last good /api/expresswayspeeds answer, kept in this browser so the map and speeds can still
  * be shown (clearly marked with their time) while LTA's speed band feed is down.
  */
 const KEY = 'trafficpulse.lastSpeeds';
 // Older than this is no use even as a fallback.
-const MAX_AGE_MS = 24 * 60 * 60_000;
+const MAX_AGE_MS = config.freshness.speedSnapshot;
 
 export interface SpeedSnapshot {
   savedAt: number;

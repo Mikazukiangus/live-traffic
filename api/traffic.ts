@@ -1,3 +1,4 @@
+import { config } from '../config/server.ts';
 /**
  * LTA DataMall Traffic Incidents Serverless Endpoint
  * Upstream: https://datamall2.mytransport.sg/ltaodataservice/TrafficIncidents
@@ -5,7 +6,7 @@
  */
 import { handleLtaRequest } from './_client.ts';
 
-const LTA_TRAFFIC_INCIDENTS_ENDPOINT = 'https://datamall2.mytransport.sg/ltaodataservice/TrafficIncidents';
+const LTA_TRAFFIC_INCIDENTS_ENDPOINT = config.server.upstreams.incidents;
 
 export default async function handler(req: any, res?: any) {
   return handleLtaRequest(LTA_TRAFFIC_INCIDENTS_ENDPOINT, req, res);

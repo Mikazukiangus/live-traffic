@@ -1,3 +1,4 @@
+import { config } from '../config/server.ts';
 /**
  * PUB flood alerts (keyless), via data.gov.sg.
  * Upstream: https://api-open.data.gov.sg/v2/real-time/api/weather/flood-alerts?date=YYYY-MM-DD
@@ -9,8 +10,8 @@
  */
 import { NO_STORE, fetchDataGovV2, handlePreflight, liveCacheHeaders, sendJson } from './_client.ts';
 
-const FLOOD_URL = 'https://api-open.data.gov.sg/v2/real-time/api/weather/flood-alerts';
-const CACHE = liveCacheHeaders(120, 300);
+const FLOOD_URL = config.server.upstreams.floods;
+const CACHE = liveCacheHeaders(...config.server.cache.weatherAlerts);
 // An alert lasts up to an hour, so records from the last 75 minutes are enough; two pages cover it.
 const LOOKBACK_MS = 75 * 60_000;
 const MAX_PAGES = 2;

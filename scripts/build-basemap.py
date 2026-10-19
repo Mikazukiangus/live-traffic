@@ -4,11 +4,23 @@ ten expressways and town names from OpenStreetMap (© OpenStreetMap contributors
 Pre-projected into the speed map's frame (MAP_BOUNDS in SpeedBandMap.tsx) and simplified, so it
 ships with the app and needs no tile server at run time.
 
-Run: python3 scripts/build-basemap.py   (fetches from the Overpass API, about a minute)
+Run: python3 scripts/build-basemap.py   (Bun required for config; fetches from Overpass, about a minute)
 """
 import json, math, sys, time, urllib.parse, urllib.request
+import pathlib, subprocess
 
-OVERPASS = 'https://overpass-api.de/api/interpreter'
+# Use the same validated configuration as the app. Bun loads local .env files; the helper
+# prints only its explicit, non-secret projection. No Python packages are required.
+PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent
+try:
+    _result = subprocess.run(['bun', 'run', 'scripts/helper-config.ts'], cwd=PROJECT_ROOT,
+                             capture_output=True, text=True)
+except FileNotFoundError:
+    sys.exit('Bun must be available on PATH to load the validated base-map configuration.')
+if _result.returncode:
+    sys.exit('Base-map configuration could not be loaded. Check Bun and environment settings.\n' + _result.stderr)
+_config = json.loads(_result.stdout)
+OVERPASS = _config['url']
 UA = 'TrafficPulse-map-build/1.0 (github.com/Mikazukiangus/live-traffic)'
 QUERIES = {
     'coast': '[out:json][timeout:120];way["natural"="coastline"](1.00,103.20,1.75,104.45);out geom;',
@@ -17,15 +29,15 @@ QUERIES = {
 }
 
 def overpass(query):
-    for attempt in range(4):
+    for attempt in range(_config['attempts']):
         req = urllib.request.Request(OVERPASS, data=urllib.parse.urlencode({'data': query}).encode(),
                                      headers={'User-Agent': UA, 'Accept': 'application/json'})
         try:
-            with urllib.request.urlopen(req, timeout=180) as r:
+            with urllib.request.urlopen(req, timeout=_config['timeoutMs'] / 1000) as r:
                 return json.load(r)['elements']
         except Exception as e:  # Overpass is often busy; wait and retry
             print('Overpass busy, retrying:', e, file=sys.stderr)
-            time.sleep(20 * (attempt + 1))
+            time.sleep(_config['retryMs'] / 1000 * (attempt + 1))
     sys.exit('Overpass did not answer')
 
 B=dict(minLon=103.615,maxLon=104.0,minLat=1.25,maxLat=1.465); S=1000
@@ -104,5 +116,5 @@ ts = (
     f'export const BASEMAP_ROADS: Record<string, string> = {json.dumps(out["roads"], indent=2)};\n\n'
     f'export const BASEMAP_PLACES: [name: string, x: number, y: number][] = {json.dumps(out["places"])};\n'
 )
-open('src/data/basemap.ts', 'w').write(ts)
+open(PROJECT_ROOT / 'src/data/basemap.ts', 'w').write(ts)
 print('land rings', len(land), 'bytes', len(ts))

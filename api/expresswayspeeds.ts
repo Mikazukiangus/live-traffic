@@ -1,3 +1,4 @@
+import { config } from '../config/server.ts';
 /**
  * Expressway Speed Summary Serverless Endpoint
  * Aggregates LTA DataMall v4/TrafficSpeedBands (~140k road links, 500 per page) into
@@ -8,12 +9,12 @@
  */
 import { NO_STORE, getLtaAccountKey, liveCacheHeaders, setCorsHeaders, setHeaders } from './_client.ts';
 
-const SPEED_BANDS_ENDPOINT = 'https://datamall2.mytransport.sg/ltaodataservice/v4/TrafficSpeedBands';
+const SPEED_BANDS_ENDPOINT = config.server.upstreams.speedBands;
 const PAGE_SIZE = 500;
-const CONCURRENCY = 10; // LTA returns HTTP 500 when hit with ~30 parallel requests
-const MAX_ATTEMPTS = 4;
-const MAX_PAGES = 600; // safety stop (~300k links)
-const CACHE_TTL_MS = 5 * 60 * 1000;
+const CONCURRENCY = config.server.speeds.concurrency; // LTA returns HTTP 500 when hit with ~30 parallel requests
+const MAX_ATTEMPTS = config.server.speeds.attempts;
+const MAX_PAGES = config.server.speeds.maxPages; // safety stop (~300k links)
+const CACHE_TTL_MS = config.server.speeds.cacheTtlMs;
 
 // LTA road names (RoadCategory 1) -> expressway code
 const EXPRESSWAY_ROAD_NAMES: Record<string, string> = {
@@ -180,7 +181,7 @@ async function fetchPage(skip: number, accountKey: string): Promise<{ value: any
     try {
       const response = await fetch(`${SPEED_BANDS_ENDPOINT}?$skip=${skip}`, {
         headers: { AccountKey: accountKey, accept: 'application/json' },
-        signal: AbortSignal.timeout(15000),
+        signal: AbortSignal.timeout(config.server.requestTimeoutMs),
       });
       if (response.ok) {
         const data = await response.json();
@@ -191,7 +192,7 @@ async function fetchPage(skip: number, accountKey: string): Promise<{ value: any
       lastError = err?.message || `Network error at $skip=${skip}`;
     }
     // Back off before retrying; LTA throttles bursts.
-    if (attempt < MAX_ATTEMPTS) await new Promise((r) => setTimeout(r, 400 * attempt));
+    if (attempt < MAX_ATTEMPTS) await new Promise((r) => setTimeout(r, config.server.lta.retryDelayMs * attempt));
   }
   throw new Error(lastError);
 }
@@ -214,7 +215,7 @@ async function buildSummary(accountKey: string) {
 
   // Total page count isn't advertised, so fetch in parallel waves until a short page appears.
   for (let wave = 0; !done && wave * CONCURRENCY < MAX_PAGES; wave++) {
-    const skips = Array.from({ length: CONCURRENCY }, (_, i) => (wave * CONCURRENCY + i) * PAGE_SIZE);
+    const skips = Array.from({ length: Math.min(CONCURRENCY, MAX_PAGES - wave * CONCURRENCY) }, (_, i) => (wave * CONCURRENCY + i) * PAGE_SIZE);
     const pages = await Promise.all(skips.map((skip) => fetchPage(skip, accountKey)));
 
     for (const page of pages) {
@@ -242,6 +243,8 @@ async function buildSummary(accountKey: string) {
       }
     }
   }
+
+  if (!done) throw new Error('Speed dataset exceeds configured SPEED_MAX_PAGES; refusing a partial result');
 
   const expressways: ExpresswaySpeedSummary[] = Object.entries(bandsByCode).map(([code, bands]) => {
     const bandCounts: Record<string, number> = {};
@@ -295,7 +298,7 @@ export default async function handler(req: any, res?: any) {
     }
     return new Response(JSON.stringify(body), {
       status,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', ...cache },
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': config.server.corsOrigin, ...cache },
     });
   };
 
@@ -310,7 +313,7 @@ export default async function handler(req: any, res?: any) {
       cache = { expiresAt: Date.now() + CACHE_TTL_MS, payload, segments };
     }
     const body = wantsSegments(req) ? { ...cache.payload, segments: cache.segments } : cache.payload;
-    return send(200, body, liveCacheHeaders(300, 600));
+    return send(200, body, liveCacheHeaders(...config.server.cache.speeds));
   } catch (err: any) {
     return send(502, { success: false, error: 'Failed to aggregate LTA speed bands', message: err?.message }, NO_STORE);
   }

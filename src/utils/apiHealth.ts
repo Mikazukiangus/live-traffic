@@ -1,3 +1,4 @@
+import { config } from '../../config/client';
 import { useSyncExternalStore } from 'react';
 
 export interface EndpointHealth {
@@ -45,7 +46,7 @@ export function refreshApiHealth(): Promise<void> {
   pending = (async () => {
     const start = performance.now();
     try {
-      const res = await fetch('/api/health', { cache: 'no-store', signal: AbortSignal.timeout(15_000) });
+      const res = await fetch('/api/health', { cache: 'no-store', signal: AbortSignal.timeout(config.healthTimeoutMs) });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data: unknown = await res.json();
       if (!isHealthData(data)) throw new Error('Unexpected health response');

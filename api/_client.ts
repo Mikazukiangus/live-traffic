@@ -1,3 +1,4 @@
+import { config } from '../config/server.ts';
 /**
  * LTA DataMall Serverless Client Helper
  * Handles authentication, proxying, query params, and CORS for LTA DataMall OData APIs.
@@ -9,13 +10,8 @@ export interface LtaRequestOptions {
 }
 
 export function getLtaAccountKey(req?: any): string | null {
-  // Check environment variables first
-  if (process.env.LTA_ACCOUNT_KEY && process.env.LTA_ACCOUNT_KEY.trim() !== '') {
-    return process.env.LTA_ACCOUNT_KEY.trim();
-  }
-  if (process.env.LTA_API_KEY && process.env.LTA_API_KEY.trim() !== '') {
-    return process.env.LTA_API_KEY.trim();
-  }
+  // Every handler uses the same validated key and legacy-alias precedence.
+  if (config.server.accountKey) return config.server.accountKey;
 
   // Check incoming request headers if passed by client
   if (req && req.headers) {
@@ -34,7 +30,7 @@ export function getLtaAccountKey(req?: any): string | null {
 
 export function setCorsHeaders(res: any) {
   if (res && typeof res.setHeader === 'function') {
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Origin', config.server.corsOrigin);
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, AccountKey, Authorization, x-account-key');
   }
@@ -60,7 +56,7 @@ export function setHeaders(res: any, headers: Record<string, string>) {
 }
 
 // LTA DataMall incidents, VMS and travel times refresh every 1-5 minutes.
-const LTA_PROXY_CACHE = liveCacheHeaders(30, 60);
+const LTA_PROXY_CACHE = liveCacheHeaders(...config.server.cache.proxy);
 
 /**
  * Universal Serverless Handler for LTA DataMall endpoints.
@@ -80,7 +76,7 @@ export async function handleLtaRequest(
     return new Response(null, {
       status: 204,
       headers: {
-        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Origin': config.server.corsOrigin,
         'Access-Control-Allow-Methods': 'GET, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, AccountKey, Authorization, x-account-key',
       },
@@ -109,7 +105,7 @@ export async function handleLtaRequest(
       status: 401,
       headers: {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Origin': config.server.corsOrigin,
       },
     });
   }
@@ -136,6 +132,7 @@ export async function handleLtaRequest(
 
     const response = await fetch(urlObj.toString(), {
       method: 'GET',
+      signal: AbortSignal.timeout(config.server.requestTimeoutMs),
       headers: {
         AccountKey: accountKey,
         accept: 'application/json',
@@ -167,7 +164,7 @@ export async function handleLtaRequest(
       status: response.status,
       headers: {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Origin': config.server.corsOrigin,
         ...cache,
       },
     });
@@ -189,7 +186,7 @@ export async function handleLtaRequest(
       status: 502,
       headers: {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Origin': config.server.corsOrigin,
       },
     });
   }
@@ -205,7 +202,7 @@ export function sendJson(res: any, status: number, body: unknown, cache: Record<
   }
   return new Response(JSON.stringify(body), {
     status,
-    headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', ...cache },
+    headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': config.server.corsOrigin, ...cache },
   });
 }
 
@@ -225,35 +222,35 @@ const LTA_PAGE_SIZE = 500;
  * Every record of a paged LTA DataMall dataset (500 per page). LTA doesn't say how many pages
  * there are, so pages are fetched in parallel waves until a short page comes back.
  */
-export async function fetchLtaAll(url: string, accountKey: string, { wave = 6, maxPages = 40 } = {}): Promise<any[]> {
+export async function fetchLtaAll(url: string, accountKey: string, { wave = config.server.lta.concurrency, maxPages = config.server.lta.maxPages } = {}): Promise<any[]> {
   const page = async (skip: number): Promise<any[]> => {
     for (let attempt = 1; ; attempt++) {
       const response = await fetch(`${url}?$skip=${skip}`, {
         headers: { AccountKey: accountKey, accept: 'application/json' },
-        signal: AbortSignal.timeout(15_000),
+        signal: AbortSignal.timeout(config.server.requestTimeoutMs),
       });
       if (response.ok) return (await response.json()).value || [];
       // LTA throttles bursts; back off and try twice more.
-      if (attempt >= 3) throw new Error(`LTA responded ${response.status} at $skip=${skip}`);
-      await new Promise((r) => setTimeout(r, 400 * attempt));
+      if (attempt >= config.server.lta.attempts) throw new Error(`LTA responded ${response.status} at $skip=${skip}`);
+      await new Promise((r) => setTimeout(r, config.server.lta.retryDelayMs * attempt));
     }
   };
   const records: any[] = [];
   for (let start = 0; start < maxPages; start += wave) {
-    const pages = await Promise.all(Array.from({ length: wave }, (_, i) => page((start + i) * LTA_PAGE_SIZE)));
+    const pages = await Promise.all(Array.from({ length: Math.min(wave, maxPages - start) }, (_, i) => page((start + i) * LTA_PAGE_SIZE)));
     for (const p of pages) records.push(...p);
-    if (pages.some((p) => p.length < LTA_PAGE_SIZE)) break;
+    if (pages.some((p) => p.length < LTA_PAGE_SIZE)) return records;
   }
-  return records;
+  throw new Error('LTA dataset exceeds configured LTA_MAX_PAGES; refusing a partial result');
 }
 
 /** Fetches a data.gov.sg v2 real-time feed (wrapped { code, errorMsg, data }), retrying once on 429. */
 export async function fetchDataGovV2(url: string): Promise<any> {
-  const get = () => fetch(url, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(10_000) });
+  const get = () => fetch(url, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(config.server.weatherTimeoutMs) });
   let response = await get();
   // data.gov.sg rate-limits keyless calls in short bursts; one retry usually gets through.
   if (response.status === 429) {
-    await new Promise((r) => setTimeout(r, 1500));
+    await new Promise((r) => setTimeout(r, config.server.weatherRetryDelayMs));
     response = await get();
   }
   if (!response.ok) throw new Error(`Upstream responded ${response.status}`);

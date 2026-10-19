@@ -1,3 +1,4 @@
+import { config } from '../../config/client';
 import { useMemo } from 'react';
 import { usePolledJson } from './usePolledJson';
 import { parseSgt, useNow } from './freshness';
@@ -11,7 +12,7 @@ export interface ExpresswaySpeed {
 }
 
 // LTA speed bands refresh every 5 minutes; /api/expresswayspeeds is CDN-cached for that window.
-const SPEEDS_POLL_MS = 60_000;
+const SPEEDS_POLL_MS = config.poll.live;
 
 /** Live LTA average speed per expressway (summary only, without map segments). */
 export function useExpresswaySpeeds() {
@@ -19,7 +20,7 @@ export function useExpresswaySpeeds() {
   const byCode = useMemo(() => Object.fromEntries((feed.data?.expressways || []).map((e) => [e.code, e])), [feed.data]);
   const now = useNow();
   const updatedAt = parseSgt(feed.data?.lastUpdatedTime);
-  const stale = updatedAt != null && now - updatedAt > 15 * 60_000;
+  const stale = updatedAt != null && now - updatedAt > config.freshness.speeds;
   return { byCode, status: feed.status, stale };
 }
 

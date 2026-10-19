@@ -1,19 +1,20 @@
+import { config } from '../config/server.ts';
 /**
  * Health check & diagnostic endpoint for TrafficPulse LTA DataMall serverless connection.
  * Each endpoint's status comes from a live probe of its upstream source, not a static flag.
  */
 import { getLtaAccountKey, liveCacheHeaders, setCorsHeaders, setHeaders } from './_client.ts';
 
-const LTA_BASE = 'https://datamall2.mytransport.sg/ltaodataservice';
-const DATA_GOV_TRAFFIC_IMAGES = 'https://api.data.gov.sg/v1/transport/traffic-images';
-const NEA_TWO_HR_FORECAST = 'https://api-open.data.gov.sg/v2/real-time/api/two-hr-forecast';
-const NEA_24_HR_FORECAST = 'https://api-open.data.gov.sg/v2/real-time/api/twenty-four-hr-forecast';
-const NEA_PSI = 'https://api-open.data.gov.sg/v2/real-time/api/psi';
-const NEA_PM25 = 'https://api-open.data.gov.sg/v2/real-time/api/pm25';
-const NEA_LIGHTNING = 'https://api-open.data.gov.sg/v2/real-time/api/weather?api=lightning';
-const NEA_WBGT = 'https://api-open.data.gov.sg/v2/real-time/api/weather?api=wbgt';
-const PUB_FLOOD_ALERTS = 'https://api-open.data.gov.sg/v2/real-time/api/weather/flood-alerts';
-const PROBE_TIMEOUT_MS = 8000;
+const LTA_BASE = config.server.upstreams.ltaBase;
+const DATA_GOV_TRAFFIC_IMAGES = config.trafficImagesUrl;
+const NEA_TWO_HR_FORECAST = config.server.upstreams.rain;
+const NEA_24_HR_FORECAST = config.server.upstreams.forecast24h;
+const NEA_PSI = config.server.upstreams.psi;
+const NEA_PM25 = config.server.upstreams.pm25;
+const NEA_LIGHTNING = config.server.upstreams.lightning;
+const NEA_WBGT = config.server.upstreams.wbgt;
+const PUB_FLOOD_ALERTS = config.server.upstreams.floods;
+const PROBE_TIMEOUT_MS = config.server.probeTimeoutMs;
 
 interface ProbeResult {
   status: 'UP' | 'DOWN';
@@ -240,7 +241,7 @@ export default async function handler(req: any, res?: any) {
     version: '2.4.0',
     timestamp: new Date().toISOString(),
     uptimeSeconds: Math.floor(process.uptime ? process.uptime() : 0),
-    environment: process.env.NODE_ENV || 'production',
+    environment: config.server.environment,
     ltaKeyConfigured: !!accountKey,
     providerMode: accountKey
       ? 'Official LTA DataMall Direct'
@@ -250,7 +251,7 @@ export default async function handler(req: any, res?: any) {
   };
 
   // Short CDN cache so page loads don't each fan out seven upstream requests.
-  const cache = liveCacheHeaders(30, 30);
+  const cache = liveCacheHeaders(...config.server.cache.health);
 
   if (res && typeof res.status === 'function') {
     setCorsHeaders(res);
@@ -263,7 +264,7 @@ export default async function handler(req: any, res?: any) {
     status: 200,
     headers: {
       'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': config.server.corsOrigin,
       ...cache,
     },
   });
