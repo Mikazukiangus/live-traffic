@@ -89,6 +89,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 80. [Turn 80: Explicit Confirmation Rule](#80-turn-80-explicit-confirmation-rule)
 81. [Turn 81: Validated Configuration Merged to Main](#81-turn-81-validated-configuration-merged-to-main)
 82. [Turn 82: Reaffirm Mandatory Project Log Updates](#82-turn-82-reaffirm-mandatory-project-log-updates)
+83. [Turn 83: Secret History Scan and Safe Logging Guide](#83-turn-83-secret-history-scan-and-safe-logging-guide)
 
 ---
 
@@ -1437,6 +1438,23 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Reaffirmed that every project turn must be recorded in this file, including questions, checks and confirmations, with the table of contents updated and the changes committed and pushed to GitHub.
 - Added a prominent standing instruction near the start of this document so future sessions can find the requirement immediately.
 - Recorded this request for commit and push to `main`. This is a documentation-only update; no application changes or additional live checks were needed.
+
+---
+
+## 83. Turn 83: Secret History Scan and Safe Logging Guide
+
+**User Instruction:**
+> "scan my code and git history for leaked secrets, then show me how to store them safely and redact them in logs and error output."
+
+### Done (19 October 2026, SGT):
+- Fetched remote branches/tags and checked the non-shallow clone: 90 reachable commits, with no extra commits from local reflogs. Ran official, checksum-verified Gitleaks 8.30.1 against 131 tracked/non-ignored working files, all available history (86 commits with patches), and all 90 commit metadata records. Used built-in rules plus a quoted LTA-key literal rule, full redaction and bounded decoding/archive checks.
+- No confirmed credentials detected. Built-in rules found none; additional LTA-rule candidates were an old template placeholder and an intentional browser-isolation test fixture. GitHub secret scanning and push protection are enabled and reported zero alerts; non-provider pattern scanning is disabled.
+- Independently checked 452 historical text blobs and all commit metadata for the configured local LTA key without printing its value or fragments. No exact matches or matching masked-fragment candidates were found; existing local build artifacts also contained no exact match. `.env.local` is ignored/untracked but has mode 0644; the guide gives commands for owner-only 0600 permissions.
+- Found current disclosure paths: several API handlers forward raw exception messages, the LTA proxy relays upstream error bodies, the development middleware logs original errors, and the health workflow includes raw errors in summaries/annotations. Two synthetic local checks confirmed a fake credential reaches API JSON via a thrown error and a non-success upstream body. These are demonstrated risks, not evidence of an actual leaked key.
+- Historical health code returned key fragments through `keyMasked` in `1e0fca4`; `fd3aa65` removed it. No actual key/fragments were found in that source history. Hosted logs, previous deployments, forks, deleted remote refs, other clones and remote secret values were outside this scan.
+- Added `SECRETS_AND_LOGGING.md` with scope/findings, local/Vercel/GitHub storage instructions, exact code locations, fixed public error output, selective diagnostic logging, whole-value redaction and rotation/history-cleanup guidance. Linked it from `DEVELOPMENT.md`. Verified current Vercel Secret-type and build-log masking guidance; the local LTA key is below the documented 32-character build masking threshold, so platform masking must not be relied on.
+- Extracted the documented TypeScript example and passed eight synthetic-only checks for omitted error/header/URL/stack/cause data, literal/URI-encoded redaction, timeouts and invalid metadata. No real-key network tests were performed. Application source, credentials, local file permissions and remote security settings were not changed; runtime integration is a follow-up implementation requiring the established preview/merge workflow.
+- Updated this log and table of contents for commit/push under the standing instruction. This is a documentation-only change; application build/tests and production endpoint checks were not repeated.
 
 ---
 

@@ -137,3 +137,6 @@ repository **variables**, and `VERCEL_AUTOMATION_BYPASS_SECRET` from repository
 SGT schedule remains a versioned workflow setting.
 
 See `CONFIGURATION_AUDIT.md` for scope and settings deliberately kept in code.
+
+See [SECRETS_AND_LOGGING.md](SECRETS_AND_LOGGING.md) for the credential/history scan,
+private env-file permissions, secret storage and tested safe-logging examples.
