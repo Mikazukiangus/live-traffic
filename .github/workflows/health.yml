@@ -1,6 +1,10 @@
 # Daily health check of the production site. A failed run means a feed is down; GitHub emails
 # the repository owner about failed scheduled runs (Settings → Notifications → Actions).
 #
+# If anything is down, the check waits 90 seconds and asks again, so a brief blip doesn't fail it.
+# A feed still refused for calling too often (HTTP 429, e.g. data.gov.sg rate limits) shows as a
+# warning, not a failure: the app keeps its last data and the feed recovers on its own.
+#
 # Production is behind Vercel Authentication, so the check needs Vercel's "Protection Bypass for
 # Automation" secret, stored in this repository as the Actions secret VERCEL_AUTOMATION_BYPASS_SECRET.
 # Until that secret exists the check is skipped with a notice rather than failing.
@@ -26,7 +30,14 @@ jobs:
             echo "::notice::Skipped: add the VERCEL_AUTOMATION_BYPASS_SECRET repository secret to enable the daily health check."
             exit 0
           fi
-          code=$(curl -s -o health.json -w '%{http_code}' -m 60 -H "x-vercel-protection-bypass: $BYPASS" "$URL")
+          fetch() { curl -s -o health.json -w '%{http_code}' -m 60 -H "x-vercel-protection-bypass: $BYPASS" "$URL"; }
+          all_up() { [ "$code" = "200" ] && [ "$(jq '[.endpoints[] | select(.status != "UP")] | length' health.json)" = "0" ]; }
+          code=$(fetch)
+          if ! all_up; then
+            echo "Not all feeds are up (HTTP $code); checking again in 90 seconds."
+            sleep 90
+            code=$(fetch)
+          fi
           if [ "$code" != "200" ]; then
             echo "::error::$URL answered HTTP $code"
             exit 1
@@ -35,9 +46,17 @@ jobs:
           echo "### TrafficPulse health: $up of $total feeds up" >> "$GITHUB_STEP_SUMMARY"
           jq -r '.endpoints[] | "| \(.status) | \(.name) | \(.path) | \(.error // "") |"' health.json \
             | (echo "| Status | Feed | Path | Error |"; echo "|---|---|---|---|"; cat) >> "$GITHUB_STEP_SUMMARY"
-          down=$(jq -r '.endpoints[] | select(.status != "UP") | "\(.name) (\(.path)): \(.error // "down")"' health.json)
+          limited=$(jq -r '.endpoints[] | select(.status != "UP" and .httpCode == 429) | "\(.name) (\(.path)): rate limited upstream (HTTP 429)"' health.json)
+          down=$(jq -r '.endpoints[] | select(.status != "UP" and .httpCode != 429) | "\(.name) (\(.path)): \(.error // "down")"' health.json)
+          if [ -n "$limited" ]; then
+            echo "$limited" | while read -r line; do echo "::warning::$line"; done
+          fi
           if [ -n "$down" ]; then
             echo "$down" | while read -r line; do echo "::error::$line"; done
             exit 1
           fi
-          echo "All $total feeds are up."
+          if [ -n "$limited" ]; then
+            echo "No feeds are down; $(echo "$limited" | wc -l | tr -d ' ') rate limited (see warnings)."
+          else
+            echo "All $total feeds are up."
+          fi

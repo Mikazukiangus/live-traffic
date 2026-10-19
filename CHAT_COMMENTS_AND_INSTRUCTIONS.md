@@ -1186,6 +1186,20 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 ### Done:
 - Fast-forward merged `preview/react-vite-patch` (commit `0c5a101`) into `main` and pushed. Production now runs React 19.3.1 and Vite 8.3.4.
 
+
+## 69. Turn 69: Health Check Retry and Rate-Limit Warnings
+
+**User Instructions:**
+> "yes, delete package-lock.json. What is this repository secret?"
+> "added repository secret already, please check"
+> "yes, do it on a preview branch"
+
+### Done (branch `preview/health-retry`):
+- Deleted the leftover local `package-lock.json` (ignored, never tracked).
+- Confirmed the `VERCEL_AUTOMATION_BYPASS_SECRET` Actions secret works: a manual run got through Vercel Authentication and read the real health report (14/15 up; PUB Flood Alerts rate limited with HTTP 429).
+- `health.yml`: if any feed is down (or the site doesn't answer 200), wait 90 seconds and check again. Feeds still refused with HTTP 429 after the retry are reported as warnings, not failures; any other down feed still fails the run and emails the owner.
+- Tested the script locally with simulated responses: all up (pass, one request), 429 then recovered (pass), 429 persisting (pass with warning), 500 plus 429 (fail with error and warning).
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*
