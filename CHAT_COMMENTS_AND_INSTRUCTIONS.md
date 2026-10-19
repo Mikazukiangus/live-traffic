@@ -81,6 +81,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 74. [Turn 74: Code Splitting Merged to Main](#74-turn-74-code-splitting-merged-to-main)
 75. [Turn 75: Branch Clean-Up, Session Archive, Health Email and Logging Rule](#75-turn-75-branch-clean-up-session-archive-health-email-and-logging-rule)
 76. [Turn 76: Project Status Review](#76-turn-76-project-status-review)
+77. [Turn 77: Local Python Virtual Environment](#77-turn-77-local-python-virtual-environment)
 
 ---
 
@@ -1337,6 +1338,20 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - The daily health workflow is configured for 07:30 SGT, retries after 90 seconds, and treats persistent upstream HTTP 429 responses as warnings. This review did not re-run tests, check current Actions runs or verify the deployed runtime; the latest recorded verification was 26 passing tests, type check and build.
 - Remaining recorded idea: make the browser vehicle-counting model load on request or on Wi-Fi to reduce the initial download. No implementation was requested in this turn.
 - Updated the table of contents to include all recorded turns. Continue logging every turn and pushing it to GitHub; implementation changes require preview review and explicit main-merge approval.
+
+## 77. Turn 77: Local Python Virtual Environment
+
+**User Instruction:**
+> "Setup a virtual environment for this project and show me how to activate it and install packages into it."
+
+### Done (19 October 2026, SGT):
+- Created local `.venv/` using the already available Codex-bundled Python 3.12.14. It includes pip 25.0.1 and is intended for Python helper packages; the React/TypeScript app continues to use Bun and project-local `node_modules/`.
+- Added `.venv/` to `.gitignore`. Verified that both the virtual environment and `.env.local` are ignored. No credentials were read or exposed.
+- Added `DEVELOPMENT.md` with activation (`source .venv/bin/activate`), Python package installation (`python -m pip install pypdf` as an optional example), listing/freezing/restoring packages, deactivation and Bun app commands. Activation applies to each terminal separately. No optional Python package was installed; the current base-map helper uses only the standard library.
+- Verified activation resolves Python and pip inside this project's `.venv/`, the environment has a separate package directory, and `python -m pip check` reports no broken requirements. The sandbox disabled the default pip cache because its user-cache directory is not writable in this session; isolation checks completed successfully.
+- Ran `bun install --frozen-lockfile`: all existing app dependencies matched the lockfile, with no changes.
+- Local setup, documentation and ignore-rule changes only. App source, package manifests and lockfile are unchanged; application tests/build and live endpoint checks were not repeated for this setup.
+- The virtual environment stays local; the setup guide, ignore rule and this log entry are committed and pushed under the standing logging instruction.
 
 ---
 

@@ -9,3 +9,6 @@ coverage/
 
 # Dependencies are locked by bun.lock (Vercel and CI install with bun --frozen-lockfile)
 package-lock.json
+
+# Local Python helper environment
+.venv/
