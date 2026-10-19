@@ -84,6 +84,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 77. [Turn 77: Local Python Virtual Environment](#77-turn-77-local-python-virtual-environment)
 78. [Turn 78: Environment Setup Confirmation](#78-turn-78-environment-setup-confirmation)
 79. [Turn 79: Validated Configuration and Environment Audit](#79-turn-79-validated-configuration-and-environment-audit)
+80. [Turn 80: Explicit Confirmation Rule](#80-turn-80-explicit-confirmation-rule)
 
 ---
 
@@ -1394,6 +1395,18 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - The speed-summary warning was traced to an LTA upstream HTTP 500 at `$skip=1500`; the API returned an explicit 502 aggregation error. This was not the configured page-cap guard.
 - Corrected preview for `f885f6b` is READY: https://live-traffic-4u8t4g6eo-carbon-bc04.vercel.app. Its homepage, `/api/trafficimages` (8 cameras) and `/api/vms` (25 signs) returned HTTP 200.
 - Preview `/api/health` returned HTTP 200 with 12/15 UP: LTA's speed-band probes returned HTTP 500 and the 24-hour weather probe returned HTTP 429. The LTA key is configured; its value was not retrieved or printed. Live upstream failures remain visible in the app.
+
+---
+
+## 80. Turn 80: Explicit Confirmation Rule
+
+**User Instruction:**
+> "if there is anything that needs me to confirm, explicitly ask me for this or if there is nothing to confirm, jut say 'This is completed'"
+
+### Recorded (19 October 2026, SGT):
+- Explicitly ask for any required user confirmation; otherwise respond with "This is completed".
+- The configuration audit is implemented and pushed in draft PR #4: https://github.com/Mikazukiangus/live-traffic/pull/4. The pending decision is whether to merge it into `main`, which triggers the production deployment. The established preview-review workflow requires explicit merge approval.
+- This message does not authorize a merge. No application or environment settings were changed in this turn; only this log and its table of contents were updated for commit and push on the review branch.
 
 ---
 
