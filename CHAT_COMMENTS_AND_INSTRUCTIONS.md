@@ -1100,6 +1100,21 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Production site: https://live-traffic-carbon-bc04.vercel.app
 - Direct runtime checks remain blocked: the Vercel connector returned HTTP 403 for team `carbon-bc04`. Deployment completion is confirmed; live endpoint health was not verified in this turn.
 
+
+## 64. Turn 64: Dependency Lockfile and Unused Packages
+
+**User Instructions:**
+> "check my dependency setup: am i locking exact versions, and are any of my packages unmaintained or risky?"
+> "yes, build it on a preview branch"
+
+### Done (branch `preview/deps-lockfile`):
+- Found three different installs: Vercel used the stale committed `bun.lock` (missing `onnxruntime-web`, so its dependencies were resolved fresh each build), CI ran `npm install` with no lockfile, and local used an uncommitted `package-lock.json`.
+- Removed eight packages nothing imports (AI Studio template leftovers): `@google/genai`, `express`, `dotenv`, `motion`, `lucide-react`, `autoprefixer`, `esbuild`, `@types/express`. The lockfile drops from 309 to 161 packages.
+- Regenerated `bun.lock` with Bun 1.4.1 (the version Vercel uses). Versions are unchanged from what production already runs; `onnxruntime-web` 1.30.0 and its dependencies are now locked.
+- New `vercel.json` sets the install command to `bun install --frozen-lockfile`; CI installs the same way via `oven-sh/setup-bun`. A `package.json` change without an updated `bun.lock` now fails the build instead of drifting.
+- `package-lock.json` is ignored.
+- `npm audit` found 0 vulnerabilities; all direct dependencies are actively maintained. Type check, 22/22 tests and build pass.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*
