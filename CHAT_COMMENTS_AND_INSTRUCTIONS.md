@@ -1177,6 +1177,15 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Frozen install, type check, 26/26 tests and build pass. The production build (`vite preview`) renders Live Traffic and Cameras with no script errors.
 - LTA speed bands and PUB flood alerts were returning rate-limit errors at the time of testing; production on the old versions showed the same LTA quota error, so this is upstream, not the update.
 
+
+## 68. Turn 68: React and Vite Patch Updates Merged to Main
+
+**User Instruction:**
+> "merge to main"
+
+### Done:
+- Fast-forward merged `preview/react-vite-patch` (commit `0c5a101`) into `main` and pushed. Production now runs React 19.3.1 and Vite 8.3.4.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*
