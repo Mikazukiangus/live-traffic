@@ -2,9 +2,9 @@
 
 Audited on **19 October 2026 (SGT)** against `main` at `c34987a`.
 This report and the examples below contain no actual credential values or fragments.
-The original findings below describe that audit baseline. Logging/error safeguards are
-now implemented on preview branch `codex/safe-error-logging`; production requires
-explicit merge approval. The local file-permission recommendation remains a manual step.
+The original findings below describe that audit baseline. Logging/error safeguards
+were merged into `main` through PR #5 on 19 October 2026 and verified in production.
+The local file-permission recommendation remains a manual step.
 
 ## Scan result
 

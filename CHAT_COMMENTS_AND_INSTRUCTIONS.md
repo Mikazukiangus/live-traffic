@@ -92,6 +92,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 83. [Turn 83: Secret History Scan and Safe Logging Guide](#83-turn-83-secret-history-scan-and-safe-logging-guide)
 84. [Turn 84: Implement Safe Logging on a Preview Branch](#84-turn-84-implement-safe-logging-on-a-preview-branch)
 85. [Turn 85: Continue and Verify Logging Safeguards](#85-turn-85-continue-and-verify-logging-safeguards)
+86. [Turn 86: Logging Safeguards Merged to Main](#86-turn-86-logging-safeguards-merged-to-main)
 
 ---
 
@@ -1488,6 +1489,20 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Preview deployment `dpl_24VWFFAeF4rcdYD98vFrhT5zZLeK` is READY: https://live-traffic-qvqx3cmmv-carbon-bc04.vercel.app. The homepage returned 200. An invalid-image request returned 502 with fixed `UPSTREAM_FAILURE` JSON, omitted the supplied value and had `Cache-Control: no-store`.
 - Preview cameras returned 200 with three cameras from LTA DataMall. Health returned 200 with the key configured and 14/15 UP; the only failed probe was the 24-hour forecast (upstream HTTP 429). This external rate limit remains visible through safe status/error text.
 - Before publishing, a changed-file Gitleaks scan found no candidates and an exact local-key comparison found no matches. No key values/fragments or signed camera URLs were printed. The isolated local server was stopped. The preview result and this log update are pushed on the review branch; `main` has not been merged.
+
+---
+
+## 86. Turn 86: Logging Safeguards Merged to Main
+
+**User Instruction:**
+> "merge to main"
+
+### Done (19 October 2026, SGT):
+- Received explicit approval, marked PR #5 ready and merged `codex/safe-error-logging` into `main` as `c8c9603`. The exact reviewed head `e4d79d4` was mergeable and all GitHub/Vercel checks passed before merging. PR: https://github.com/Mikazukiangus/live-traffic/pull/5.
+- Synced local `main` via fast-forward. The merge commit's main-branch Checks workflow passed. Production deployment `dpl_kHhJxF4u9yWxHXHa6cz9eYdYzudy` is READY and assigned to https://live-traffic-carbon-bc04.vercel.app.
+- Verified the production homepage returned 200. An invalid-image request returned fixed 502 `UPSTREAM_FAILURE` JSON, omitted the supplied value and included `Cache-Control: no-store`. The camera endpoint returned 200 with eight LTA DataMall cameras. Health returned 200 with 15/15 UP and the LTA key configured.
+- Updated `SECRETS_AND_LOGGING.md` to reflect that the safeguards are released. Credentials, local env-file permissions, remote environment/security settings and published history were not changed. No credential values/fragments or signed camera links were printed.
+- Updated this log and table of contents for commit/push to `main` under the standing instruction. No further approval is required for this completed merge.
 
 ---
 
