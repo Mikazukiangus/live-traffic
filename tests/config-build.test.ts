@@ -12,7 +12,8 @@ test('real production build applies public overrides while excluding private key
   const directory = await mkdtemp(path.join(tmpdir(), 'trafficpulse-config-build-'));
   try {
     execFileSync(process.execPath, ['node_modules/vite/bin/vite.js', 'build', '--outDir', directory], {
-      cwd: root, env: { ...process.env, LTA_ACCOUNT_KEY: sentinel, VITE_SITE_URL: 'https://config-test.example', VITE_CAMERA_POLL_MS: '45678' },
+      cwd: root, env: { ...process.env, LTA_ACCOUNT_KEY: sentinel, VITE_SITE_URL: 'https://config-test.example', VITE_CAMERA_POLL_MS: '45678',
+        VITE_VERCEL_PROJECT_ID: 'platform-project', VITE_VERCEL_DEPLOYMENT_ID: 'platform-deployment', VITE_VERCEL_OBSERVABILITY_CLIENT_CONFIG: '{}' },
       stdio: 'pipe', timeout: 30000,
     });
     const html = await readFile(path.join(directory, 'index.html'), 'utf8');

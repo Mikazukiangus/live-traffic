@@ -26,8 +26,10 @@ once per process. Restart after environment changes.
 
 The committed `.env.example` lists every schema setting, its scope, meaning and
 default. `bun run config:example` regenerates it. Regression tests compare the
-committed template with the generator to catch drift. Platform-owned `NODE_ENV`
-and the GitHub-only automation bypass secret are documented separately.
+committed template with the generator to catch drift. Platform-owned `NODE_ENV`, Vercel-injected public metadata
+and the GitHub-only automation bypass secret are documented separately. Explicit
+platform metadata names are accepted without treating arbitrary `VITE_VERCEL_*`
+variables as safe.
 
 Malformed settings fail before serving/building. URLs require HTTPS, with HTTP
 allowed only for loopback fixture servers. URL credentials, query strings and

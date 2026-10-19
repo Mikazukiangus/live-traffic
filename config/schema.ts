@@ -106,11 +106,22 @@ export type EnvKey = keyof typeof ENV_SCHEMA;
 type Values = { [K in EnvKey]: ReturnType<typeof ENV_SCHEMA[K]['parse']> };
 export const ENV_KEYS = Object.keys(ENV_SCHEMA) as EnvKey[];
 
+// Vercel injects these public platform values for Vite. They are not app settings.
+// Keep this explicit so a secret hidden under an arbitrary VITE_VERCEL_* name is rejected.
+const PLATFORM_PUBLIC_KEYS = new Set([
+  'VITE_VERCEL_ENV', 'VITE_VERCEL_TARGET_ENV', 'VITE_VERCEL_URL', 'VITE_VERCEL_BRANCH_URL',
+  'VITE_VERCEL_PROJECT_PRODUCTION_URL', 'VITE_VERCEL_REGION', 'VITE_VERCEL_PROJECT_ID',
+  'VITE_VERCEL_DEPLOYMENT_ID', 'VITE_VERCEL_OBSERVABILITY_CLIENT_CONFIG',
+  ...['PROVIDER', 'REPO_SLUG', 'REPO_OWNER', 'REPO_ID', 'COMMIT_REF', 'COMMIT_SHA',
+    'COMMIT_MESSAGE', 'COMMIT_AUTHOR_LOGIN', 'COMMIT_AUTHOR_NAME', 'PREVIOUS_SHA', 'PULL_REQUEST_ID']
+    .map((name) => `VITE_VERCEL_GIT_${name}`),
+]);
+
 function read(env: Environment, scopes: Scope[]): Values {
   const result: Partial<Values> = {};
   const errors: string[] = [];
   for (const key of Object.keys(env)) {
-    if (key.startsWith('VITE_') && !Object.hasOwn(ENV_SCHEMA, key) && !/^VITE_VERCEL_(?:ENV|TARGET_ENV|URL|PROJECT_PRODUCTION_URL|BRANCH_URL|REGION|GIT_[A-Z_]+)$/.test(key)) errors.push(`${key}: unknown public setting; secrets must never use VITE_`);
+    if (key.startsWith('VITE_') && !Object.hasOwn(ENV_SCHEMA, key) && !PLATFORM_PUBLIC_KEYS.has(key)) errors.push(`${key}: unknown public setting; secrets must never use VITE_`);
   }
   for (const key of ENV_KEYS) {
     const spec = ENV_SCHEMA[key];
@@ -197,6 +208,7 @@ export function environmentExample(): string {
     lines.push(`# ${spec.description}`, `${key}=${spec.default}`);
   }
   lines.push('', '# Platform-owned: NODE_ENV is set by Vite/Node; do not copy it into local overrides.',
+    '# Vercel also injects public VITE_VERCEL_* deployment/Git/observability metadata; no local assignments are needed.',
     '# CI ONLY: add VERCEL_AUTOMATION_BYPASS_SECRET as a GitHub Actions secret. It is never app/browser config.',
     '# Health variables above are GitHub Actions repository variables when used by the scheduled workflow.', '');
   return lines.join('\n');

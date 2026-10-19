@@ -44,7 +44,7 @@ test('invalid settings fail with setting names and no supplied values', () => {
     { HEALTHCHECK_RETRY_DELAY_MS: '120000', HEALTHCHECK_TIMEOUT_MS: '120000' },
     { LTA_BASE_URL: 'http://untrusted.example.test' }, { LTA_BASE_URL: 'https://user:private-marker@example.test' },
     { VITE_SITE_URL: 'https://example.test/subpath' }, { API_CORS_ORIGIN: 'https://a.test,https://b.test' },
-    { VITE_LTA_ACCOUNT_KEY: 'private-marker' }, { LTA_ACCOUNT_KEY: 'YOUR_API_KEY' },
+    { VITE_LTA_ACCOUNT_KEY: 'private-marker' }, { VITE_VERCEL_GIT_SECRET: 'private-marker' }, { LTA_ACCOUNT_KEY: 'YOUR_API_KEY' },
   ]) {
     assert.throws(() => createConfig(env), (err: unknown) => {
       assert.ok(err instanceof Error);
@@ -57,7 +57,8 @@ test('invalid settings fail with setting names and no supplied values', () => {
 
 test('browser projection ignores private environment settings and contains no server config', () => {
   const c = createPublicConfig({ LTA_ACCOUNT_KEY: 'server-secret-marker', LTA_BASE_URL: 'bad-private-url',
-    VITE_CAMERA_POLL_MS: '45000', VITE_VERCEL_ENV: 'preview' });
+    VITE_CAMERA_POLL_MS: '45000', VITE_VERCEL_ENV: 'preview', VITE_VERCEL_PROJECT_ID: 'platform-project',
+    VITE_VERCEL_DEPLOYMENT_ID: 'platform-deployment', VITE_VERCEL_OBSERVABILITY_CLIENT_CONFIG: '{}' });
   assert.equal(c.poll.cameras, 45000);
   assert.ok(!('server' in c));
   assert.ok(!('dev' in c));

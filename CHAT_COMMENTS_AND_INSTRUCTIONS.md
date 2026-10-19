@@ -1388,6 +1388,11 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - A credential-like literal scan of tracked non-test text found no candidates; no credential values were printed. This was a focused configuration audit, not a comprehensive security audit.
 - Changes and this log are pushed for preview review. Main merge requires explicit user direction.
 
+### Preview deployment follow-up:
+- Pushed implementation commit `a72d6f3` and opened draft PR #4: https://github.com/Mikazukiangus/live-traffic/pull/4.
+- The first Vercel preview build rejected three injected public platform metadata names (`VITE_VERCEL_PROJECT_ID`, `VITE_VERCEL_DEPLOYMENT_ID`, `VITE_VERCEL_OBSERVABILITY_CLIENT_CONFIG`). Added explicit safe platform metadata names to the validator and build tests; arbitrary names such as `VITE_VERCEL_GIT_SECRET` still fail validation. Re-ran type check, all 36 tests and the production build successfully.
+- The speed-summary warning was traced to an LTA upstream HTTP 500 at `$skip=1500`; the API returned an explicit 502 aggregation error. This was not the configured page-cap guard.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*
