@@ -1,4 +1,6 @@
-import { safeFailure } from '../shared/diagnostics.ts';
+import { probe, missingKey } from '../server/healthProbes.ts';
+import { healthEndpoints } from '../server/healthCatalogue.ts';
+
 import { config } from '../config/server.ts';
 /**
  * Health check & diagnostic endpoint for TrafficPulse LTA DataMall serverless connection.
@@ -15,43 +17,6 @@ const NEA_PM25 = config.server.upstreams.pm25;
 const NEA_LIGHTNING = config.server.upstreams.lightning;
 const NEA_WBGT = config.server.upstreams.wbgt;
 const PUB_FLOOD_ALERTS = config.server.upstreams.floods;
-const PROBE_TIMEOUT_MS = config.server.probeTimeoutMs;
-
-interface ProbeResult {
-  status: 'UP' | 'DOWN';
-  httpCode: number;
-  latencyMs: number;
-  error?: string;
-}
-
-async function probe(url: string, headers: Record<string, string> = {}): Promise<ProbeResult> {
-  const start = Date.now();
-  try {
-    const response = await fetch(url, {
-      headers: { accept: 'application/json', ...headers },
-      signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
-    });
-    // Drain the body so the connection is released.
-    await response.arrayBuffer().catch(() => undefined);
-    return {
-      status: response.ok ? 'UP' : 'DOWN',
-      httpCode: response.status,
-      latencyMs: Date.now() - start,
-      ...(response.ok ? {} : { error: `Upstream responded ${response.status}` }),
-    };
-  } catch (err: any) {
-    return {
-      status: 'DOWN',
-      httpCode: 0,
-      latencyMs: Date.now() - start,
-      error: safeFailure('gateway', err).body.error,
-    };
-  }
-}
-
-function missingKey(): ProbeResult {
-  return { status: 'DOWN', httpCode: 401, latencyMs: 0, error: 'LTA_ACCOUNT_KEY not configured' };
-}
 
 export default async function handler(req: any, res?: any) {
   if (req && req.method === 'OPTIONS') {
@@ -65,12 +30,26 @@ export default async function handler(req: any, res?: any) {
   // Only the server-side environment key is checked; the key value is never echoed back.
   const accountKey = getLtaAccountKey();
   const ltaHeaders: Record<string, string> = accountKey ? { AccountKey: accountKey } : {};
-  const ltaProbe = (path: string) => (accountKey ? probe(`${LTA_BASE}/${path}`, ltaHeaders) : Promise.resolve(missingKey()));
+  const ltaProbe = (path: string) =>
+    accountKey ? probe(`${LTA_BASE}/${path}`, ltaHeaders) : Promise.resolve(missingKey());
 
   const startTime = Date.now();
   const [
-    incidents, images, speedBands, vms, travelTimes, rainForecast, forecast24h, psi, pm25,
-    roadWorks, faultyLights, carParks, lightning, wbgt, floods,
+    incidents,
+    images,
+    speedBands,
+    vms,
+    travelTimes,
+    rainForecast,
+    forecast24h,
+    psi,
+    pm25,
+    roadWorks,
+    faultyLights,
+    carParks,
+    lightning,
+    wbgt,
+    floods,
   ] = await Promise.all([
     ltaProbe('TrafficIncidents'),
     accountKey ? probe(`${LTA_BASE}/Traffic-Imagesv2`, ltaHeaders) : probe(DATA_GOV_TRAFFIC_IMAGES),
@@ -90,146 +69,23 @@ export default async function handler(req: any, res?: any) {
     probe(PUB_FLOOD_ALERTS),
   ]);
 
-  // /api/airquality serves whichever of PSI and PM2.5 answers, so it is UP if either is.
-  const airQuality: ProbeResult = psi.status === 'UP' || pm25.status === 'UP'
-    ? { status: 'UP', httpCode: 200, latencyMs: Math.max(psi.latencyMs, pm25.latencyMs) }
-    : { ...psi, error: `PSI: ${psi.error}; PM2.5: ${pm25.error}` };
-
-  // Endpoints that combine two feeds serve whichever answers, so they are UP if either is.
-  const either = (a: ProbeResult, b: ProbeResult, names: [string, string]): ProbeResult =>
-    a.status === 'UP' || b.status === 'UP'
-      ? { status: 'UP', httpCode: 200, latencyMs: Math.max(a.latencyMs, b.latencyMs) }
-      : { ...a, error: `${names[0]}: ${a.error}; ${names[1]}: ${b.error}` };
-
-  const endpoints = [
-    {
-      path: '/api/health',
-      name: 'Gateway Health & Diagnostics',
-      method: 'GET',
-      purpose: 'Real-time telemetry and gateway credentials validation',
-      upstream: 'Internal Gateway',
-      status: 'UP',
-      httpCode: 200,
-      latencyMs: 0,
-    },
-    {
-      path: '/api/traffic',
-      name: 'LTA Traffic Incidents',
-      method: 'GET',
-      purpose: 'Expressway accidents, breakdowns, flash floods, and obstacles',
-      upstream: 'LTA DataMall TrafficIncidents',
-      ...incidents,
-    },
-    {
-      path: '/api/trafficimages',
-      name: 'Traffic CCTV Surveillance Images',
-      method: 'GET',
-      purpose: 'Expressway highway surveillance live camera snapshots',
-      upstream: accountKey ? 'LTA DataMall Traffic-Imagesv2' : 'LTA Data.gov.sg Live Feed',
-      ...images,
-    },
-    {
-      path: '/api/trafficflow',
-      name: 'Expressway Flow & Speed Bands',
-      method: 'GET',
-      purpose: 'Live expressway average sensor loop speeds and congestion',
-      upstream: 'LTA DataMall v4/TrafficSpeedBands',
-      ...speedBands,
-    },
-    {
-      // Aggregates the same speed bands feed, so it shares that upstream probe.
-      path: '/api/expresswayspeeds',
-      name: 'Expressway Speed Summary',
-      method: 'GET',
-      purpose: 'Average speed and congestion per expressway for Live Traffic Radar',
-      upstream: 'LTA DataMall v4/TrafficSpeedBands (aggregated)',
-      ...speedBands,
-    },
-    {
-      path: '/api/vms',
-      name: 'EMAS Variable Message Signs',
-      method: 'GET',
-      purpose: 'Overhead highway LED electronic advisory gantries',
-      upstream: 'LTA DataMall VMS',
-      ...vms,
-    },
-    {
-      path: '/api/traveltimes',
-      name: 'Estimated Expressway Travel Times',
-      method: 'GET',
-      purpose: 'Origin to destination expressway travel duration estimates',
-      upstream: 'LTA DataMall EstTravelTimes',
-      ...travelTimes,
-    },
-    {
-      path: '/api/rainforecast',
-      name: 'NEA 2-Hour Rain Forecast',
-      method: 'GET',
-      purpose: 'Rain and thunderstorm outlook for 47 areas along the expressways',
-      upstream: 'data.gov.sg v2 two-hr-forecast',
-      ...rainForecast,
-    },
-    {
-      path: '/api/forecast24h',
-      name: 'NEA 24-Hour Weather Forecast',
-      method: 'GET',
-      purpose: 'Island-wide and regional weather outlook for the next 24 hours',
-      upstream: 'data.gov.sg v2 twenty-four-hr-forecast',
-      ...forecast24h,
-    },
-    {
-      path: '/api/airquality',
-      name: 'NEA Air Quality (PSI & PM2.5)',
-      method: 'GET',
-      purpose: '24-hour PSI and 1-hour PM2.5 for the five regions',
-      upstream: 'data.gov.sg v2 psi + pm25',
-      ...airQuality,
-    },
-    {
-      path: '/api/live?feed=roadconditions',
-      name: 'Road Works & Faulty Traffic Lights',
-      method: 'GET',
-      purpose: 'Road works in progress on each expressway, and traffic light faults',
-      upstream: 'LTA DataMall RoadWorks + FaultyTrafficLights',
-      ...either(roadWorks, faultyLights, ['RoadWorks', 'FaultyTrafficLights']),
-    },
-    {
-      path: '/api/live?feed=carparks',
-      name: 'Car Park Availability',
-      method: 'GET',
-      purpose: 'Available car, motorcycle and heavy vehicle lots at LTA, HDB and URA car parks',
-      upstream: 'LTA DataMall CarParkAvailabilityv2',
-      ...carParks,
-    },
-    {
-      path: '/api/live?feed=weatheralerts',
-      name: 'NEA Lightning & Heat Stress',
-      method: 'GET',
-      purpose: 'Recent lightning strikes and WBGT heat stress by station',
-      upstream: 'data.gov.sg v2 weather lightning + wbgt',
-      ...either(lightning, wbgt, ['Lightning', 'WBGT']),
-    },
-    {
-      path: '/api/live?feed=floods',
-      name: 'PUB Flood Alerts',
-      method: 'GET',
-      purpose: 'Active flood alerts and the area each one covers',
-      upstream: 'data.gov.sg v2 weather flood-alerts',
-      ...floods,
-    },
-    {
-      // The proxy only relays camera image links, so it is as healthy as the images feed.
-      path: '/api/imageproxy',
-      name: 'High-Throughput CCTV Image Proxy',
-      method: 'GET',
-      purpose: 'Bypasses browser octet-stream/nosniff MIME blocking',
-      upstream: 'LTA Images CDN Proxy',
-      status: images.status,
-      httpCode: images.httpCode,
-      latencyMs: images.latencyMs,
-      ...(images.error ? { error: `Depends on images feed: ${images.error}` } : {}),
-    },
-  ];
+  const endpoints = healthEndpoints(!!accountKey, {
+    incidents,
+    images,
+    speedBands,
+    vms,
+    travelTimes,
+    rainForecast,
+    forecast24h,
+    psi,
+    pm25,
+    roadWorks,
+    faultyLights,
+    carParks,
+    lightning,
+    wbgt,
+    floods,
+  });
 
   const upCount = endpoints.filter((ep) => ep.status === 'UP').length;
 
@@ -244,9 +100,7 @@ export default async function handler(req: any, res?: any) {
     uptimeSeconds: Math.floor(process.uptime ? process.uptime() : 0),
     environment: config.server.environment,
     ltaKeyConfigured: !!accountKey,
-    providerMode: accountKey
-      ? 'Official LTA DataMall Direct'
-      : 'Open Transport DataMall & Public Real-time API',
+    providerMode: accountKey ? 'Official LTA DataMall Direct' : 'Open Transport DataMall & Public Real-time API',
     probeLatencyMs: Date.now() - startTime,
     endpoints,
   };

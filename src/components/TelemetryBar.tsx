@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ALTERNATE_MARKERS } from '../data/mockData';
+import { ALTERNATE_MARKERS } from '../data/demoData';
 import { GnssMarker } from '../types/traffic';
 import { IncidentFeed } from '../utils/ltaIncidents';
 
@@ -77,21 +77,29 @@ export const TelemetryBar: React.FC<TelemetryBarProps> = ({
           <div className="flex items-center gap-1">
             <span
               className={`material-symbols-outlined text-sm ${
-                incidentFeed.status === 'live' ? 'text-emerald-600' : incidentFeed.status === 'error' ? 'text-amber-600' : 'text-slate-400'
+                incidentFeed.status === 'live'
+                  ? 'text-emerald-600'
+                  : incidentFeed.status === 'error'
+                    ? 'text-amber-600'
+                    : 'text-slate-400'
               }`}
             >
               {incidentFeed.status === 'error' ? 'warning' : 'check_circle'}
             </span>
             <span
               className={`text-[11px] font-bold ${
-                incidentFeed.status === 'live' ? 'text-emerald-700' : incidentFeed.status === 'error' ? 'text-amber-700' : 'text-slate-500'
+                incidentFeed.status === 'live'
+                  ? 'text-emerald-700'
+                  : incidentFeed.status === 'error'
+                    ? 'text-amber-700'
+                    : 'text-slate-500'
               }`}
             >
               {incidentFeed.status === 'loading'
                 ? 'LTA incident feed: loading'
                 : incidentFeed.status === 'error'
-                ? 'LTA incident feed: unavailable'
-                : `LTA incident feed: live • ${incidentFeed.incidents.length} active`}
+                  ? 'LTA incident feed: unavailable'
+                  : `LTA incident feed: live • ${incidentFeed.incidents.length} active`}
             </span>
           </div>
           <div className="hidden sm:flex items-center gap-1">

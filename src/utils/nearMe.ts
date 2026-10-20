@@ -1,5 +1,5 @@
 import { useEffect, useSyncExternalStore } from 'react';
-import type { SpeedSegment } from '../components/SpeedBandMap';
+import type { SpeedSegment } from '../../shared/traffic/types';
 
 /**
  * The visitor's location for "Near me", shared by every view. It is only requested when they tap
@@ -55,7 +55,7 @@ export function locate() {
         }
       }
     },
-    { enableHighAccuracy: false, timeout: 15_000, maximumAge: 2 * 60_000 }
+    { enableHighAccuracy: false, timeout: 15_000, maximumAge: 2 * 60_000 },
   );
 }
 
@@ -89,13 +89,20 @@ export function kmBetween(lat1: number, lon1: number, lat2: number, lon2: number
 }
 
 /** The expressway with a speed band link nearest the point, and how far away it is. */
-export function nearestExpressway(lat: number, lon: number, segments: SpeedSegment[]): { code: string; km: number } | null {
+export function nearestExpressway(
+  lat: number,
+  lon: number,
+  segments: SpeedSegment[],
+): { code: string; km: number } | null {
   let best: { code: string; km: number } | null = null;
   for (const [code, , sLon, sLat, eLon, eLat] of segments) {
     // Distance to the link as a line, in a local flat frame (degrees of latitude).
-    const ax = (sLon - lon) * COS_LAT, ay = sLat - lat;
-    const bx = (eLon - lon) * COS_LAT, by = eLat - lat;
-    const dx = bx - ax, dy = by - ay;
+    const ax = (sLon - lon) * COS_LAT,
+      ay = sLat - lat;
+    const bx = (eLon - lon) * COS_LAT,
+      by = eLat - lat;
+    const dx = bx - ax,
+      dy = by - ay;
     const len2 = dx * dx + dy * dy;
     const t = len2 ? Math.max(0, Math.min(1, -(ax * dx + ay * dy) / len2)) : 0;
     const km = Math.hypot(ax + t * dx, ay + t * dy) * KM_PER_DEG;
@@ -105,4 +112,5 @@ export function nearestExpressway(lat: number, lon: number, segments: SpeedSegme
 }
 
 /** "350 m" or "2.4 km" */
-export const formatKm = (km: number) => (km < 1 ? `${Math.max(50, Math.round((km * 1000) / 50) * 50)} m` : `${km.toFixed(1)} km`);
+export const formatKm = (km: number) =>
+  km < 1 ? `${Math.max(50, Math.round((km * 1000) / 50) * 50)} m` : `${km.toFixed(1)} km`;

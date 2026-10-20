@@ -1,9 +1,10 @@
+import { BAND_SPEED_KMH, inBoothZone } from '../../shared/traffic/rules';
 import { config } from '../../config/client';
 import { useMemo } from 'react';
-import { usePolledJson } from './usePolledJson';
+import { useSpeedFeed } from '../features/traffic/useSpeedFeed';
 import { parseSgt, useNow } from './freshness';
 import { CongestionStatus } from '../types/traffic';
-import type { SpeedSegment } from '../components/SpeedBandMap';
+import { SpeedSegment } from '../../shared/traffic/types';
 
 export interface ExpresswaySpeed {
   code: string;
@@ -12,11 +13,10 @@ export interface ExpresswaySpeed {
 }
 
 // LTA speed bands refresh every 5 minutes; /api/expresswayspeeds is CDN-cached for that window.
-const SPEEDS_POLL_MS = config.poll.live;
 
 /** Live LTA average speed per expressway (summary only, without map segments). */
 export function useExpresswaySpeeds() {
-  const feed = usePolledJson<{ expressways: ExpresswaySpeed[]; lastUpdatedTime?: string }>('/api/expresswayspeeds', SPEEDS_POLL_MS, (d) => Array.isArray(d?.expressways) && d.expressways.length > 0);
+  const feed = useSpeedFeed('summary');
   const byCode = useMemo(() => Object.fromEntries((feed.data?.expressways || []).map((e) => [e.code, e])), [feed.data]);
   const now = useNow();
   const updatedAt = parseSgt(feed.data?.lastUpdatedTime);
@@ -25,14 +25,17 @@ export function useExpresswaySpeeds() {
 }
 
 /** Last received speeds stay useful, with an explicit failure/age label. */
-export function describeExpresswaySpeed(speeds: { byCode: Record<string, ExpresswaySpeed>; status: 'loading' | 'live' | 'error'; stale?: boolean }, code: string): string {
+export function describeExpresswaySpeed(
+  speeds: { byCode: Record<string, ExpresswaySpeed>; status: 'loading' | 'live' | 'error'; stale?: boolean },
+  code: string,
+): string {
   const s = speeds.byCode[code];
-  if (s) return `${s.avgSpeedKmH} km/h • ${s.status}${speeds.status === 'error' ? ' (last received; refresh failed)' : speeds.stale ? ' (outdated)' : ''}`;
+  if (s)
+    return `${s.avgSpeedKmH} km/h • ${s.status}${speeds.status === 'error' ? ' (last received; refresh failed)' : speeds.stale ? ' (outdated)' : ''}`;
   return speeds.status === 'loading' ? 'Loading LTA speed…' : 'LTA speed unavailable';
 }
 
 // ---- Traffic around a point (e.g. a camera), from LTA speed band links ----
-
 
 export type JamLevel = 'Smooth' | 'Busy' | 'Jam' | 'Massive jam';
 
@@ -47,17 +50,14 @@ export const jamLevel = (kmh: number): JamLevel =>
   kmh >= 60 ? 'Smooth' : kmh >= 40 ? 'Busy' : kmh >= 20 ? 'Jam' : 'Massive jam';
 
 // Typical km/h per LTA speed band (band 8 is 70 and above).
-const BAND_KMH: Record<number, number> = { 1: 5, 2: 15, 3: 25, 4: 35, 5: 45, 6: 55, 7: 65, 8: 80 };
+const BAND_KMH = BAND_SPEED_KMH;
 const NEAR_METRES = 400;
 const COS_LAT = Math.cos((1.35 * Math.PI) / 180);
 
 // The AYE ends inside Tuas Checkpoint, where links through the immigration booths always read
 // 0-20 km/h because every vehicle stops. Leave them out so empty roads aren't shown as jammed.
 // Keep in sync with api/expresswayspeeds.ts.
-export const CHECKPOINT_BOOTH_ZONES = [{ name: 'Tuas Checkpoint', minLat: 1.3463, maxLat: 1.35, minLon: 103.634, maxLon: 103.6385 }];
-
-export const inBoothZone = (lat: number, lon: number) =>
-  CHECKPOINT_BOOTH_ZONES.some((z) => lat >= z.minLat && lat <= z.maxLat && lon >= z.minLon && lon <= z.maxLon);
+export { CHECKPOINT_BOOTH_ZONES, inBoothZone } from '../../shared/traffic/rules';
 
 export interface NearbyTraffic {
   speedKmH: number;
@@ -80,7 +80,10 @@ export function trafficNear(lat: number, lon: number, segments: SpeedSegment[]):
 
   const vector = ([, , sLon, sLat, eLon, eLat]: SpeedSegment) => [(eLon - sLon) * COS_LAT, eLat - sLat];
   const [rx, ry] = vector(near[0]);
-  const groups: [number, number][] = [[0, 0], [0, 0]]; // [km, hours] per direction
+  const groups: [number, number][] = [
+    [0, 0],
+    [0, 0],
+  ]; // [km, hours] per direction
   for (const seg of near) {
     const [vx, vy] = vector(seg);
     const km = Math.hypot(vx, vy) * 111.32;

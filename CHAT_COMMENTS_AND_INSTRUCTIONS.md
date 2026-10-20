@@ -94,6 +94,8 @@ This document records all user instructions, feedback, technical inquiries, inve
 85. [Turn 85: Continue and Verify Logging Safeguards](#85-turn-85-continue-and-verify-logging-safeguards)
 86. [Turn 86: Logging Safeguards Merged to Main](#86-turn-86-logging-safeguards-merged-to-main)
 87. [Turn 87: Modularity and Responsibility Review](#87-turn-87-modularity-and-responsibility-review)
+88. [Turn 88: Implement Modularity Recommendations on Preview](#88-turn-88-implement-modularity-recommendations-on-preview)
+89. [Turn 89: Continue and Verify the Modularity Refactor](#89-turn-89-continue-and-verify-the-modularity-refactor)
 
 ---
 
@@ -1519,6 +1521,43 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Distinguished existing same-URL in-flight request deduplication from shared polling/state; recommended a shared typed resource with explicit summary/geometry demand. Preserved the distinction between corridor averages, nearby traffic calculations and route estimates. Config validation and safe diagnostics are cohesive and should retain their current boundaries.
 - This is a review and documentation update only. No refactoring, credential changes, new dependencies or live provider requests were performed. Existing tests were inspected, not rerun; the review does not claim newly reproduced runtime bugs. Implementation remains a preview-branch follow-up requiring explicit main-merge approval.
 - Updated this log and table of contents for commit and push to `main` under the standing logging instruction.
+
+---
+
+## 88. Turn 88: Implement Modularity Recommendations on Preview
+
+**User Instruction:**
+> "proceed with your recommendation."
+
+### Implemented on `codex/modular-traffic-features` (19–20 October 2026, SGT):
+- Established one typed browser speed resource for app summaries, cameras, radar and VMS geometry. It owns validation, demand-aware payload size, pending requests, refresh scheduling/listener, retained data and offline state. Summary-only consumers avoid a geometry download; geometry-only consumers stop polling when geometry is available; simultaneous summary/full consumers coalesce or serialize one full upgrade.
+- Extracted shared speed/segment/checkpoint contracts, band values and checkpoint booth zones. Kept corridor averages, nearby directional averages and route estimates as separate algorithms. A newer summary cannot relabel old segment speeds as current; retained geometry still supports VMS location matching. Offline answers do not extend the saved snapshot's lifetime.
+- Separated camera transport/fallback, normalization, polling, navigation, readings, image handling, checkpoint summaries, tiles and modal focus. Extracted radar source composition, pure selectors, navigation, tab panels, corridor cards and selected map. Mounted tab behavior, URL/history controls, current-image count matching, stale labels and lazy model/page loading are retained. Shared image handling resets failed-image visibility for a new image URL.
+- Separated LTA and data.gov.sg clients from HTTP/CORS/cache response helpers. The speed endpoint now composes a service/cache, page fetcher, pure aggregation and checkpoint tracer. Concurrent server aggregations share pending work; page limits still refuse incomplete datasets. Existing API entry points and compatibility exports remain available.
+- Extracted commute summaries/history/card/editor/leg editor/sparkline; app navigation/wall controls; pickup readings and demo dispatch state/fixture; VMS transformations/location rendering; and vehicle inference versus React scheduling. Separated real expressway reference data and emergency contacts from demo fixtures. Shared trusted health identities between server diagnostics and the CI reporter while retaining static-label output validation.
+- Added `ARCHITECTURE.md` and linked the implementation from `MODULARITY_REVIEW.md`. No package manifest, Bun lockfile, credential or remote environment changes are required. Implementation remains on the preview branch pending explicit approval to merge to `main`.
+
+---
+
+## 89. Turn 89: Continue and Verify the Modularity Refactor
+
+**User Instruction:**
+> "continue from last action"
+
+### Continued and checked (20 October 2026, SGT):
+- Continued from the final speed-payload validation change. Type check, including an extra unused-local check, all 64 tests and the production build passed. Thirteen new synthetic-fixture tests cover resource sharing/timing/disposal, summary-to-full upgrades, saved/offline data age, stale geometry separation, backend aggregation sharing, checkpoint coverage/booth exclusions, camera fallback/count matching, all unique VMS messages/locations and commute summaries.
+- Browser checks on the isolated local server verified live camera rendering, opening/next/Escape and focus restoration, seven unique VMS messages across 25 signs with coordinates, radar cards/map, weather/incidents/ERP tabs and the commute editor. Tested 390-pixel mobile and 1,440-pixel desktop layouts without horizontal overflow at those checks. No commute was saved and no real call/dispatch was submitted.
+- Initial source moves briefly interrupted Vite hot reload; reloading restored the app. Live upstream availability varied during checks and the existing health/freshness warnings remained visible. This is separate from the passing refactor tests/build.
+- The previous local verification server ended when the session resumed; restarted the isolated server for the final browser check. No user server was stopped or replaced. No secret values/fragments or signed camera URLs were printed.
+- Updated this log and table of contents for commit/push on the preview branch. Preview deployment and CI results are recorded below after publication; `main` merge requires explicit approval under the standing workflow.
+- A redacted Gitleaks scan of the 80 changed/new review files found no candidates. Package manifests and `bun.lock` remain unchanged. Reusable module ownership is documented in `ARCHITECTURE.md`.
+
+### Preview deployment follow-up:
+- Pushed implementation commit `7c14c50` and created draft PR #6: https://github.com/Mikazukiangus/live-traffic/pull/6. The PR is mergeable; branch/PR GitHub Checks and Vercel checks all passed.
+- Exact-commit preview deployment `dpl_7vyKumjSxsPrZWN3WPjkPKcTFyN2` is READY: https://live-traffic-9sj62pftj-carbon-bc04.vercel.app. Authenticated checks returned 200 for the homepage, eight LTA cameras, 25 VMS signs, a full speed payload with ten expressways/4,044 segments/two checkpoints, and health with 15/15 UP.
+- A non-camera host was rejected with 403. A malformed image URL returned fixed 502 `UPSTREAM_FAILURE` JSON, omitted the supplied value and used `Cache-Control: no-store`. Successful camera signatures were not printed.
+- The final local application render, including SOS pickup readings, had no captured uncaught/reference/type/update-depth errors. Restored the browser viewport override and stopped the isolated verification server after checking.
+- Radar view composition is now 307 lines (from 1,311), camera view composition 357 (from 928), `App.tsx` 264 (from 410), and the speed HTTP entry point 56 (from 327), with their responsibilities documented under their new owners. The preview and log are pushed for review; explicit approval is still required before merging to `main`.
 
 ---
 

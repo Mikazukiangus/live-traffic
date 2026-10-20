@@ -116,3 +116,7 @@ More valuable than moving JSX: move totals, estimated-time flags, weather severi
 Each implementation should be a reviewable preview change with unchanged API/UI behavior, passing the relevant tests, type check and production build, followed by explicit approval to merge. Existing tests cover diagnostics, parsers, configuration and several live-data edge cases; the current suite has no direct `traceCheckpoint` or VMS-grouping tests. Add these focused checks when extracting those responsibilities.
 
 This review used source and test inspection. No runtime tests or live provider calls were needed for the documentation-only change, and no new runtime bugs are claimed as reproduced here.
+
+## Implementation follow-up
+
+The recommended responsibility splits are implemented on `codex/modular-traffic-features`. See [ARCHITECTURE.md](ARCHITECTURE.md) for the current owners, speed subscription modes and import boundaries. Compatibility entry points preserve existing callers. Validation and preview results are recorded in Turns 88 and 89 of the project log; production merge requires explicit approval.

@@ -2,7 +2,8 @@ import React, { useMemo } from 'react';
 import { BASEMAP_LAND, BASEMAP_PLACES, BASEMAP_ROADS } from '../data/basemap';
 
 // [code, band, startLon, startLat, endLon, endLat] as returned by /api/expresswayspeeds?include=segments
-export type SpeedSegment = [string, number, number, number, number, number];
+import type { SpeedSegment } from '../../shared/traffic/types';
+export type { SpeedSegment } from '../../shared/traffic/types';
 
 // LTA speed bands: 1-7 are 10 km/h ranges, 8 is 70 km/h and above.
 // Red through deepening Yellow Orange and Cream Yellow to Benzol Green (plate 267), brightened for the dark map.
@@ -62,7 +63,9 @@ export const SpeedBandMap: React.FC<SpeedBandMapProps> = ({ segments, selectedCo
     for (const [code, band, sLon, sLat, eLon, eLat] of segments) {
       const key = `${code}-${band}`;
       if (!grouped.has(key)) grouped.set(key, { code, band, d: [] });
-      grouped.get(key)!.d.push(`M${x(sLon).toFixed(1)} ${y(sLat).toFixed(1)}L${x(eLon).toFixed(1)} ${y(eLat).toFixed(1)}`);
+      grouped
+        .get(key)!
+        .d.push(`M${x(sLon).toFixed(1)} ${y(sLat).toFixed(1)}L${x(eLon).toFixed(1)} ${y(eLat).toFixed(1)}`);
     }
 
     const width = (MAP_BOUNDS.maxLon - MAP_BOUNDS.minLon) * SCALE;
@@ -75,12 +78,18 @@ export const SpeedBandMap: React.FC<SpeedBandMapProps> = ({ segments, selectedCo
 
   // Other expressways are drawn first and dimmed; the selected one sits on top.
   const ordered = [...paths].sort(
-    (a, b) => Number(a.code === selectedCode) - Number(b.code === selectedCode) || a.band - b.band
+    (a, b) => Number(a.code === selectedCode) - Number(b.code === selectedCode) || a.band - b.band,
   );
   // Lightning underneath, then floods, then incidents (most severe on top).
   const RANK: Record<MapMarkerKind, number> = { lightning: 0, flood: 1, incident: 2, critical: 3 };
   const shown = markers
-    .filter((m) => m.lon >= MAP_BOUNDS.minLon && m.lon <= MAP_BOUNDS.maxLon && m.lat >= MAP_BOUNDS.minLat && m.lat <= MAP_BOUNDS.maxLat)
+    .filter(
+      (m) =>
+        m.lon >= MAP_BOUNDS.minLon &&
+        m.lon <= MAP_BOUNDS.maxLon &&
+        m.lat >= MAP_BOUNDS.minLat &&
+        m.lat <= MAP_BOUNDS.maxLat,
+    )
     .sort((a, b) => RANK[a.kind] - RANK[b.kind]);
 
   return (
@@ -112,7 +121,14 @@ export const SpeedBandMap: React.FC<SpeedBandMapProps> = ({ segments, selectedCo
           </path>
         );
       })}
-      <g className="max-sm:hidden" fill="#7d8890" fontSize={4.6} textAnchor="middle" style={{ fontFamily: 'inherit' }} aria-hidden="true">
+      <g
+        className="max-sm:hidden"
+        fill="#7d8890"
+        fontSize={4.6}
+        textAnchor="middle"
+        style={{ fontFamily: 'inherit' }}
+        aria-hidden="true"
+      >
         {BASEMAP_PLACES.map(([name, px, py]) => (
           <text key={name} x={px} y={py}>
             {name}
@@ -140,12 +156,26 @@ export const SpeedBandMap: React.FC<SpeedBandMapProps> = ({ segments, selectedCo
       })}
       {shown.map((m) => {
         const style = MARKER_STYLE[m.kind];
-        const cx = x(m.lon), cy = y(m.lat);
+        const cx = x(m.lon),
+          cy = y(m.lat);
         return (
-          <g key={m.id} className={onSelect && m.code ? 'cursor-pointer' : undefined} onClick={onSelect && m.code ? () => onSelect(m.code!) : undefined}>
+          <g
+            key={m.id}
+            className={onSelect && m.code ? 'cursor-pointer' : undefined}
+            onClick={onSelect && m.code ? () => onSelect(m.code!) : undefined}
+          >
             <title>{m.label}</title>
             {m.kind === 'flood' && m.radiusKm ? (
-              <circle cx={cx} cy={cy} r={m.radiusKm / KM_PER_UNIT} fill={style.fill} fillOpacity={0.18} stroke={style.fill} strokeDasharray="3 3" vectorEffect="non-scaling-stroke" />
+              <circle
+                cx={cx}
+                cy={cy}
+                r={m.radiusKm / KM_PER_UNIT}
+                fill={style.fill}
+                fillOpacity={0.18}
+                stroke={style.fill}
+                strokeDasharray="3 3"
+                vectorEffect="non-scaling-stroke"
+              />
             ) : null}
             <circle
               cx={cx}
@@ -176,19 +206,26 @@ export const MapLayerToggles: React.FC<{
   ];
   return (
     <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Map layers">
-      {items.filter((it) => it.id !== 'floods' || counts.floods > 0).map((it) => (
-        <button
-          key={it.id}
-          onClick={() => onToggle(it.id)}
-          aria-pressed={layers[it.id]}
-          className={`h-7 px-2.5 rounded-full border text-[11px] font-semibold flex items-center gap-1.5 cursor-pointer ${
-            layers[it.id] ? 'bg-white border-slate-300 text-slate-800' : 'bg-transparent border-slate-200 text-slate-400'
-          }`}
-        >
-          <span className="w-2.5 h-2.5 rounded-full border border-slate-900/40" style={{ backgroundColor: layers[it.id] ? it.colour : 'transparent' }}></span>
-          {it.label} ({counts[it.id]})
-        </button>
-      ))}
+      {items
+        .filter((it) => it.id !== 'floods' || counts.floods > 0)
+        .map((it) => (
+          <button
+            key={it.id}
+            onClick={() => onToggle(it.id)}
+            aria-pressed={layers[it.id]}
+            className={`h-7 px-2.5 rounded-full border text-[11px] font-semibold flex items-center gap-1.5 cursor-pointer ${
+              layers[it.id]
+                ? 'bg-white border-slate-300 text-slate-800'
+                : 'bg-transparent border-slate-200 text-slate-400'
+            }`}
+          >
+            <span
+              className="w-2.5 h-2.5 rounded-full border border-slate-900/40"
+              style={{ backgroundColor: layers[it.id] ? it.colour : 'transparent' }}
+            ></span>
+            {it.label} ({counts[it.id]})
+          </button>
+        ))}
     </div>
   );
 };
