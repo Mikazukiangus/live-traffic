@@ -101,6 +101,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 90. [Turn 90: Modularity Refactor Merged to Main](#90-turn-90-modularity-refactor-merged-to-main)
 91. [Turn 91: Restore Normal Summaries and Discuss Next Options](#91-turn-91-restore-normal-summaries-and-discuss-next-options)
 92. [Turn 92: Weather Feed Reliability on Preview](#92-turn-92-weather-feed-reliability-on-preview)
+93. [Turn 93: Weather Reliability Merged to Main](#93-turn-93-weather-reliability-merged-to-main)
 
 ---
 
@@ -1618,6 +1619,21 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - The preview health endpoint returned 200 with 15/15 UP, the LTA key configured, and a measured 12,985 ms probe batch. This point-in-time result does not guarantee future provider availability. The process-local quota limitation remains documented.
 - Controlled camera/weather warning checks captured no uncaught/reference/type/update-depth errors. Temporary local previews and their fixture are closed after verification. Production remains on main; explicit user approval is required to merge PR #7.
 
+
+---
+
+## 93. Turn 93: Weather Reliability Merged to Main
+
+**User Instruction:**
+> "merge to main"
+
+### Done (20 October 2026, SGT):
+- Received explicit approval to merge PR #7. Confirmed the exact reviewed head `fd6aa0f` was mergeable and all GitHub/Vercel checks passed, marked it ready and merged it into `main` as `de20d72`. PR: https://github.com/Mikazukiangus/live-traffic/pull/7. Retained the review branch and fast-forwarded the local main checkout.
+- Main-branch Checks workflow `39356306787` passed for the merge commit. The released implementation includes the previously passing 77 tests, type check and production build; no new application changes were needed during this merge.
+- Production deployment `dpl_DNjn9f92JNvbfuu2VJiDoxK88eai` for the merge commit is READY and assigned to https://live-traffic-carbon-bc04.vercel.app. Authenticated production homepage and rain requests returned 200. Rain contained 47 forecast areas, current delivery metadata, the original 09:30–11:30 SGT validity and browser revalidation headers.
+- Production health returned 200 with 15/15 UP and the LTA key configured. The paced probe batch measured 12,918 ms. These are point-in-time checks; the documented instance-local limiter cannot eliminate provider rate limits across separate instances.
+- No credentials, environment settings, dependencies or lockfiles were changed. No key values/fragments or signed camera links were printed. The pre-existing untracked `.claude/` directory remains untouched.
+- Updated this log and table of contents for commit and push to main under the standing instruction. The approved merge is complete; no further confirmation is needed.
 
 ---
 
