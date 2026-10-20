@@ -4,6 +4,8 @@ This document records all user instructions, feedback, technical inquiries, inve
 
 **Standing instruction:** Update this file and its table of contents on every project turn, including questions, checks and confirmations. Record the request, actions and outcomes, then commit and push the update to GitHub before responding. Implementation changes still require preview review and explicit approval before merging into `main`.
 
+**Response preference (Turn 91):** Use normal, concise completion summaries explaining the result and any relevant next steps. The fixed completion-phrase instruction from Turn 80 has been revoked. Ask explicitly when user confirmation is actually required.
+
 ---
 
 ## Table of Contents
@@ -97,6 +99,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 88. [Turn 88: Implement Modularity Recommendations on Preview](#88-turn-88-implement-modularity-recommendations-on-preview)
 89. [Turn 89: Continue and Verify the Modularity Refactor](#89-turn-89-continue-and-verify-the-modularity-refactor)
 90. [Turn 90: Modularity Refactor Merged to Main](#90-turn-90-modularity-refactor-merged-to-main)
+91. [Turn 91: Restore Normal Summaries and Discuss Next Options](#91-turn-91-restore-normal-summaries-and-discuss-next-options)
 
 ---
 
@@ -1416,7 +1419,7 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 > "if there is anything that needs me to confirm, explicitly ask me for this or if there is nothing to confirm, jut say 'This is completed'"
 
 ### Recorded (19 October 2026, SGT):
-- Explicitly ask for any required user confirmation; otherwise respond with "This is completed".
+- Historical instruction, superseded by Turn 91: the fixed completion phrase is no longer required. Normal completion summaries apply; explicitly ask for any required user confirmation.
 - The configuration audit is implemented and pushed in draft PR #4: https://github.com/Mikazukiangus/live-traffic/pull/4. The pending decision is whether to merge it into `main`, which triggers the production deployment. The established preview-review workflow requires explicit merge approval.
 - This message does not authorize a merge. No application or environment settings were changed in this turn; only this log and its table of contents were updated for commit and push on the review branch.
 
@@ -1574,6 +1577,19 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Production health returned 200 with 14/15 UP. The only failed probe was `/api/rainforecast`, whose data.gov.sg upstream returned HTTP 429. The other probes passed. This provider rate limit remains visible through the established health/freshness behavior.
 - A malformed image URL returned fixed 502 `UPSTREAM_FAILURE` JSON with `Cache-Control: no-store` and omitted the supplied input. No credentials, credential fragments or signed camera links were printed. No environment settings or dependencies were changed.
 - Updated `MODULARITY_REVIEW.md` to reflect the release and recorded this turn/table of contents for commit and push to `main` under the standing logging instruction.
+
+---
+
+## 91. Turn 91: Restore Normal Summaries and Discuss Next Options
+
+**User Instruction:**
+> "remove the rule on 'This is completed' when the task is complete, and back to your usual. what are my options after 'Continue from last action'"
+
+### Done and discussed (20 October 2026, SGT):
+- Revoked the fixed completion-phrase requirement, marked Turn 80 superseded and recorded the current response preference near the top of this document. Future replies use normal concise summaries, with explicit questions only when confirmation is required. The historical user quotation remains as history.
+- Reviewed the recorded continuation and release: the requested modularity work was completed, merged through PR #6, and verified in production. No implementation from that request is waiting to be resumed.
+- Suggested next project choices: investigate weather-provider rate limits and retry/cache behavior; reduce mobile download/CPU cost by making vehicle counting optional; add automated browser/accessibility checks; or add a chosen user-facing feature such as saved camera favourites. Recommended investigating the rate limits first because the last production check recorded an upstream 429 for the two-hour rain forecast; no claim is made about its present availability.
+- Only project instructions/history were changed in this turn. No new feature work, provider requests, environment changes or application tests were needed. Updated this table of contents for commit and push under the standing logging instruction.
 
 ---
 
