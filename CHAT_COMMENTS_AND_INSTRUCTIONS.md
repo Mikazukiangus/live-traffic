@@ -100,6 +100,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 89. [Turn 89: Continue and Verify the Modularity Refactor](#89-turn-89-continue-and-verify-the-modularity-refactor)
 90. [Turn 90: Modularity Refactor Merged to Main](#90-turn-90-modularity-refactor-merged-to-main)
 91. [Turn 91: Restore Normal Summaries and Discuss Next Options](#91-turn-91-restore-normal-summaries-and-discuss-next-options)
+92. [Turn 92: Weather Feed Reliability on Preview](#92-turn-92-weather-feed-reliability-on-preview)
 
 ---
 
@@ -1590,6 +1591,33 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Reviewed the recorded continuation and release: the requested modularity work was completed, merged through PR #6, and verified in production. No implementation from that request is waiting to be resumed.
 - Suggested next project choices: investigate weather-provider rate limits and retry/cache behavior; reduce mobile download/CPU cost by making vehicle counting optional; add automated browser/accessibility checks; or add a chosen user-facing feature such as saved camera favourites. Recommended investigating the rate limits first because the last production check recorded an upstream 429 for the two-hour rain forecast; no claim is made about its present availability.
 - Only project instructions/history were changed in this turn. No new feature work, provider requests, environment changes or application tests were needed. Updated this table of contents for commit and push under the standing logging instruction.
+
+---
+
+## 92. Turn 92: Weather Feed Reliability on Preview
+
+**User Instruction:**
+> "go with recommendations"
+
+### Implemented on `codex/weather-feed-reliability` (20 October 2026, SGT):
+- Started with the recommended weather-provider reliability work from Turn 91. Rain and the 24-hour forecast now use the shared wrapped data.gov.sg client; air quality uses that client instead of its separate fixed-delay retry. Matching in-flight requests coalesce, request starts are paced by 2.1 seconds, and 429s establish an instance cooldown. One bounded retry respects Retry-After; absent guidance uses ten seconds plus jitter. Long deadlines fail promptly instead of holding the request open. Diagnostics preserve only safe status/numeric timing metadata.
+- Paced the seven keyless weather health probes through that client, without retries or cached-success substitution. data.gov.sg documents six keyless real-time requests per ten seconds; the previous concurrent seven-probe burst could contribute to 429s. The browser health timeout is now thirty seconds to allow pacing. This is an instance-local mitigation, not a distributed quota or a guarantee against upstream rate limits.
+- Added a validated two-hour forecast service with shared pending work and a five-minute fresh cache. Failed refreshes can retain a previous forecast for up to thirty minutes after receipt only while its published validity remains active. Original issue/update/validity and received timestamps are preserved. Explicit retained responses and failures use no-store; generated retry timing is safe numeric metadata. Successful rain CDN lifetime is capped by remaining freshness/validity, without a stale refresh window.
+- Added one browser rain resource shared across pickup, camera and radar consumers. It owns polling, manual refresh, retries, cooldowns, retained age and offline provenance, and removes scheduled work after the last subscriber leaves. Camera/radar notices identify retained or unavailable forecasts. Expired forecasts are removed from current readings; pickup text explicitly labels retained data.
+- Added four validated server settings, changed the retry and browser health-timeout defaults, regenerated `.env.example`, and documented behavior/limits in `WEATHER_FEEDS.md`, `ARCHITECTURE.md` and `CONFIGURATION_AUDIT.md`. No credentials, remote environment settings, dependencies or lockfiles were changed. No mobile counting option, browser automation suite or unrelated feature was implemented in this turn.
+
+### Verification before publication:
+- Type checking with an unused-local check, all 77 tests and the production build passed. Thirteen new synthetic tests cover seven-request pacing, duplicate requests, Retry-After parsing, bounded retries/long cooldowns, malformed payloads, fresh/retained cache age and expiry, Node/Web headers, health failure visibility, browser sharing/disposal/offline handling and recovery. Existing safe-diagnostic/configuration checks passed.
+- The isolated local live preview displayed current forecasts for 47 areas and measured 15/15 health. A separate loopback-only fixture verified that a controlled 429 retains valid rain data with a visible warning in both weather and camera views. The fixture is not production data. Temporary vehicle-counting disablement applied only to these verification processes.
+- A redacted scan of the 32 changed/new files found one existing synthetic configuration-test fixture and no real credential findings. No key values/fragments or signed camera links were printed.
+- Reviewed the changed React composition for stable subscriptions, shared listeners/polling, existing tab behavior and conditional expiry notices. Preview deployment and CI results are recorded below after publication. Main merge still requires explicit approval under the standing preview workflow.
+
+### Published preview:
+- Pushed implementation `aa46675` and opened draft PR #7: https://github.com/Mikazukiangus/live-traffic/pull/7. Branch/PR GitHub checks and Vercel checks passed; the PR is mergeable. Attached the PR to this chat.
+- Exact implementation deployment `dpl_8DRdZ54zsxqbRbT8f9xu8LsbHfUH` is READY: https://live-traffic-hoov8gtkh-carbon-bc04.vercel.app. Authenticated homepage and rain requests returned 200. The rain payload contained 47 areas, current delivery metadata and the original 09:30–11:30 SGT validity; browser cache headers require revalidation.
+- The preview health endpoint returned 200 with 15/15 UP, the LTA key configured, and a measured 12,985 ms probe batch. This point-in-time result does not guarantee future provider availability. The process-local quota limitation remains documented.
+- Controlled camera/weather warning checks captured no uncaught/reference/type/update-depth errors. Temporary local previews and their fixture are closed after verification. Production remains on main; explicit user approval is required to merge PR #7.
+
 
 ---
 

@@ -1,4 +1,4 @@
-import { probe, missingKey } from '../server/healthProbes.ts';
+import { probe, probeDataGov, missingKey } from '../server/healthProbes.ts';
 import { healthEndpoints } from '../server/healthCatalogue.ts';
 
 import { config } from '../config/server.ts';
@@ -57,16 +57,16 @@ export default async function handler(req: any, res?: any) {
     ltaProbe('VMS'),
     ltaProbe('EstTravelTimes'),
     // Keyless, so probed whether or not an LTA key is configured.
-    probe(NEA_TWO_HR_FORECAST),
-    probe(NEA_24_HR_FORECAST),
-    probe(NEA_PSI),
-    probe(NEA_PM25),
+    probeDataGov(NEA_TWO_HR_FORECAST),
+    probeDataGov(NEA_24_HR_FORECAST),
+    probeDataGov(NEA_PSI),
+    probeDataGov(NEA_PM25),
     ltaProbe('RoadWorks'),
     ltaProbe('FaultyTrafficLights'),
     ltaProbe('CarParkAvailabilityv2'),
-    probe(NEA_LIGHTNING),
-    probe(NEA_WBGT),
-    probe(PUB_FLOOD_ALERTS),
+    probeDataGov(NEA_LIGHTNING),
+    probeDataGov(NEA_WBGT),
+    probeDataGov(PUB_FLOOD_ALERTS),
   ]);
 
   const endpoints = healthEndpoints(!!accountKey, {

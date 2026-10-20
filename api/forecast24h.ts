@@ -1,11 +1,11 @@
-import { reportFailure, UpstreamHttpError } from '../shared/diagnostics.ts';
+import { reportFailure } from '../shared/diagnostics.ts';
 import { config } from '../config/server.ts';
 /**
  * NEA 24-Hour Weather Forecast Serverless Endpoint (keyless)
  * Upstream: https://api-open.data.gov.sg/v2/real-time/api/twenty-four-hr-forecast
  * Returns the island-wide outlook and the forecast for each region over the next three periods.
  */
-import { NO_STORE, liveCacheHeaders, setCorsHeaders, setHeaders } from './_client.ts';
+import { fetchDataGovV2, NO_STORE, liveCacheHeaders, setCorsHeaders, setHeaders } from './_client.ts';
 
 const TWENTY_FOUR_HR_FORECAST = config.server.upstreams.forecast24h;
 // NEA reissues this a few times a day.
@@ -35,17 +35,9 @@ export default async function handler(req: any, res?: any) {
   }
 
   try {
-    const response = await fetch(TWENTY_FOUR_HR_FORECAST, {
-      headers: { accept: 'application/json' },
-      signal: AbortSignal.timeout(config.server.weatherTimeoutMs),
-    });
-    if (!response.ok) throw new UpstreamHttpError(response.status);
+    const data = await fetchDataGovV2(TWENTY_FOUR_HR_FORECAST);
 
-    // v2 responses are wrapped: { code, errorMsg, data: { records } }
-    const json = await response.json();
-    if (json?.code !== 0 || !json?.data) throw new Error('Unexpected forecast payload');
-
-    const record = json.data.records?.[0];
+    const record = data.records?.[0];
     if (!record?.general) throw new Error('No forecast issued');
     const { general } = record;
 
@@ -75,7 +67,7 @@ export default async function handler(req: any, res?: any) {
           regions: Object.fromEntries(REGIONS.map((r) => [r, p.regions?.[r]?.text || null])),
         })),
       },
-      CACHE
+      CACHE,
     );
   } catch (error: any) {
     return send(res, 502, reportFailure('nea', error));

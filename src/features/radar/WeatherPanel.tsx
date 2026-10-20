@@ -10,6 +10,7 @@ type Props = {
   readings: Pick<
     RadarReadings,
     | 'rainForecast'
+    | 'rainFeed'
     | 'airQuality'
     | 'weatherAlerts'
     | 'floodFeed'
@@ -22,8 +23,17 @@ type Props = {
   navigation: Pick<ReturnType<typeof useRadarNavigation>, 'corridors' | 'activeTab'>;
 };
 export function WeatherPanel({ readings, navigation }: Props) {
-  const { rainForecast, airQuality, weatherAlerts, floodFeed, floodAlerts, lightningByCode, floodsByCode, rainByCode } =
-    readings;
+  const {
+    rainForecast,
+    rainFeed,
+    airQuality,
+    weatherAlerts,
+    floodFeed,
+    floodAlerts,
+    lightningByCode,
+    floodsByCode,
+    rainByCode,
+  } = readings;
   const { corridors, activeTab } = navigation;
 
   return (
@@ -90,7 +100,9 @@ export function WeatherPanel({ readings, navigation }: Props) {
           {rainForecast && <span className="text-xs text-slate-500 font-mono">{rainForecast.validPeriod.text}</span>}
         </div>
         {Object.keys(rainByCode).length === 0 ? (
-          <div className="text-xs text-slate-400">Loading NEA rain forecast…</div>
+          <div className="text-xs text-slate-400">
+            {rainFeed.status === 'loading' ? 'Loading NEA rain forecast…' : 'Rain forecast unavailable; retrying…'}
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             {corridors.map((corridor) => {

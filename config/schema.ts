@@ -46,7 +46,11 @@ export const ENV_SCHEMA = {
   SPEED_MAX_ATTEMPTS: integer('server', 'Attempts per speed-band page.', 4, 1, 5),
   SPEED_MAX_PAGES: integer('server', 'Safety cap for the complete speed-band dataset.', 600, 1, 2000),
   SPEED_CACHE_TTL_MS: integer('server', 'In-process speed cache lifetime in milliseconds; CDN profile follows it.', 300000, 1000, 3600000),
-  DATA_GOV_RETRY_DELAY_MS: integer('server', 'Delay before the single retry on a weather HTTP 429.', 1500, 0, 30000),
+  DATA_GOV_RETRY_DELAY_MS: integer('server', 'Fallback delay for a single weather HTTP 429 retry when Retry-After is absent.', 10000, 0, 60000),
+  DATA_GOV_MIN_INTERVAL_MS: integer('server', 'Minimum spacing of keyless weather requests within one server instance. Zero disables pacing for isolated tests.', 2100, 0, 30000),
+  DATA_GOV_MAX_RETRY_WAIT_MS: integer('server', 'Maximum inline Retry-After wait; longer cooldowns fail promptly and retain valid forecasts.', 12000, 0, 60000),
+  RAIN_CACHE_TTL_MS: integer('server', 'In-instance two-hour forecast cache lifetime; never extends the provider validity period.', 300000, 0, 3600000),
+  RAIN_MAX_RETAINED_MS: integer('server', 'Maximum age since receiving a rain forecast that may be retained after a refresh failure; validity still applies.', 1800000, 1000, 7200000),
   CDN_CACHE_MULTIPLIER: field('server', 'Scale live-feed CDN cache/stale windows; 0 disables CDN reuse. Default 1 preserves existing profiles.', '1', (v) => {
     if (!/^\d+(\.\d+)?$/.test(v) || !Number.isFinite(Number(v)) || Number(v) > 12) throw new Error('must be a number from 0 to 12');
     return Number(v);
@@ -75,7 +79,7 @@ export const ENV_SCHEMA = {
   VITE_NEARBY_FEEDS_POLL_MS: poll('Car park and flood-alert refresh interval in milliseconds.', 120000),
   VITE_FEED_RETRY_MS: poll('Retry interval for feeds without a complete initial answer.', 30000),
   VITE_HEALTH_POLL_MS: poll('Shared footer/modal health refresh interval.', 300000),
-  VITE_HEALTH_TIMEOUT_MS: integer('public', 'Browser health request timeout; must exceed the server probe timeout.', 15000, 100, 180000),
+  VITE_HEALTH_TIMEOUT_MS: integer('public', 'Browser health request timeout; includes paced weather probes.', 30000, 100, 180000),
   VITE_SPEED_STALE_MS: poll('Speed readings older than this are labelled stale.', 900000),
   VITE_CAMERA_STALE_MS: poll('Camera captures older than this are labelled delayed.', 900000),
   VITE_AIR_STALE_MS: poll('Air-quality readings older than this are labelled stale.', 10800000),
@@ -164,7 +168,7 @@ export function createPublicConfig(env: Environment = {}) { return freeze(public
 export function createConfig(env: Environment = {}) {
   const v = read(env, ['public', 'server', 'development', 'tools', 'ci']);
   if (v.SPEED_MAX_PAGES < v.SPEED_PAGE_CONCURRENCY) throw new Error('Invalid configuration: SPEED_MAX_PAGES must be at least SPEED_PAGE_CONCURRENCY');
-  if (v.VITE_HEALTH_TIMEOUT_MS <= v.HEALTH_PROBE_TIMEOUT_MS) throw new Error('Invalid configuration: VITE_HEALTH_TIMEOUT_MS must exceed HEALTH_PROBE_TIMEOUT_MS');
+  if (v.VITE_HEALTH_TIMEOUT_MS <= v.HEALTH_PROBE_TIMEOUT_MS + 6 * v.DATA_GOV_MIN_INTERVAL_MS) throw new Error('Invalid configuration: VITE_HEALTH_TIMEOUT_MS must exceed HEALTH_PROBE_TIMEOUT_MS plus six paced weather intervals');
   if (v.HEALTHCHECK_RETRY_DELAY_MS + 2 * v.HEALTHCHECK_TIMEOUT_MS > 240000)
     throw new Error('Invalid configuration: HEALTHCHECK_RETRY_DELAY_MS and HEALTHCHECK_TIMEOUT_MS must leave setup time in the five-minute workflow');
   const environment = typeof env.NODE_ENV === 'string' && env.NODE_ENV ? env.NODE_ENV : 'production';
@@ -185,6 +189,8 @@ export function createConfig(env: Environment = {}) {
       lta: { concurrency: v.LTA_PAGE_CONCURRENCY, maxPages: v.LTA_MAX_PAGES, attempts: v.LTA_MAX_ATTEMPTS, retryDelayMs: v.LTA_RETRY_DELAY_MS },
       speeds: { concurrency: v.SPEED_PAGE_CONCURRENCY, maxPages: v.SPEED_MAX_PAGES, attempts: v.SPEED_MAX_ATTEMPTS, cacheTtlMs: v.SPEED_CACHE_TTL_MS },
       weatherRetryDelayMs: v.DATA_GOV_RETRY_DELAY_MS,
+      weather: { minIntervalMs: v.DATA_GOV_MIN_INTERVAL_MS, maxRetryWaitMs: v.DATA_GOV_MAX_RETRY_WAIT_MS,
+        rainCacheTtlMs: v.RAIN_CACHE_TTL_MS, rainMaxRetainedMs: v.RAIN_MAX_RETAINED_MS },
       imageCacheSeconds: v.IMAGE_CACHE_SECONDS,
       cache: { proxy: cache(30, 60), health: cache(30, 30), weather: cache(300, 600), forecast24h: cache(900, 1800),
         weatherAlerts: cache(120, 300), roadConditions: cache(300, 900), carParks: cache(60, 120),

@@ -10,7 +10,9 @@ import React, { useMemo } from 'react';
 
 import { LiveVmsBoards } from '../components/LiveVmsBoards';
 
-import { useRainForecast } from '../utils/rainForecast';
+import { useRainFeed } from '../features/weather/useRainFeed';
+import { rainNotice } from '../features/weather/rainFreshness';
+import { rainIsValid } from '../../shared/weather/rain';
 import { useAirQuality } from '../utils/airQuality';
 import { NearbyTraffic, trafficNear } from '../utils/expresswaySpeeds';
 import { SpeedSegment } from '../components/SpeedBandMap';
@@ -59,7 +61,8 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
   const now = useNow();
   const travelTimes = useLtaTravelTimes();
   // All cameras grid: which cameras to show (?cams=2701,4703); all of them when not set
-  const rainForecast = useRainForecast();
+  const rainFeed = useRainFeed();
+  const rainForecast = rainFeed.data && rainIsValid(rainFeed.data, now) ? rainFeed.data : null;
   const airQuality = useAirQuality();
   const online = useOnline();
   const { refreshing, feedFailed, latestCapture, liveSourceDesc } = cameraFeed;
@@ -110,7 +113,8 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
   const { counts: vehicleCounts } = useVehicleCounts(countQueue);
 
   const cameraLevel = (cam: CameraCard) => cameraLevelReading(cam, nearbyTraffic[cam.id], vehicleCounts);
-  const staleFeeds: StaleFeed[] = [];
+  const rainWarning = rainNotice(rainFeed, now);
+  const staleFeeds: StaleFeed[] = rainWarning ? [rainWarning] : [];
   const speedsAt = parseSgt(speedsUpdated);
   if (speedsFailed || (speedsAt && now - speedsAt > SPEEDS_STALE_MS)) {
     staleFeeds.push({

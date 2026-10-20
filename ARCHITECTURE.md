@@ -21,6 +21,7 @@ flowchart LR
 | `src/views/` | Page composition and cross-feature actions |
 | `src/features/traffic/speedResource.ts` | Speed-feed validation, subscriber demand, coalesced requests, one refresh listener/timer, retained data and offline provenance |
 | `src/features/traffic/useSpeedFeed.ts` | React subscription and browser adapters for that resource |
+| `src/features/weather/` | Shared rain polling/state, Retry-After cooldowns and retained/expired forecast notices |
 | `src/utils/speedSnapshot.ts` | Local snapshot persistence and age limit |
 | `src/features/cameras/cameraClient.ts` / `useCameraFeed.ts` | Provider fallback and camera refresh lifecycle |
 | `src/features/cameras/normalizeCameraFeed.ts` / `cameraReadings.ts` | Camera normalization, traffic/count interpretation, weather enrichment and checkpoint summaries |
@@ -48,7 +49,9 @@ A newer summary does not relabel retained segment speeds as current: current seg
 |---|---|
 | `server/http/responses.ts` | Node/Web JSON responses, CORS, preflight and cache headers |
 | `server/providers/lta.ts` | LTA credential resolution, proxy transport and general paginated datasets |
-| `server/providers/dataGov.ts` | Wrapped data.gov.sg v2 transport and rate-limit retry |
+| `server/providers/dataGov.ts` / `dataGovClient.ts` | Wrapped v2 transport, pending-request sharing, instance-local pacing/cooldown and bounded rate-limit retry |
+| `server/weather/rainService.ts` | Validated forecasts, fresh cache, pending refreshes and validity/age-limited retention |
+| `shared/weather/rain.ts` / `shared/time.ts` / `shared/httpRetry.ts` | Cross-runtime forecast validation, Singapore timestamp parsing and safe retry timing |
 | `server/providers/ltaSpeedPages.ts` | Speed-page retries, timeout and source timestamp metadata |
 | `server/traffic/aggregateSpeeds.ts` | Incremental, pure speed summaries and geometry normalization |
 | `server/traffic/traceCheckpoint.ts` | Pure directional route tracing, coverage and travel-time estimates |
@@ -70,3 +73,5 @@ The specialized speed fetcher retains its source timestamps and retry behavior. 
 - Keep lazy page imports and lazy model loading. Tabs retain mounted content so switching views preserves data and state.
 
 Run `bun run lint`, `bun run test` and `bun run build` before publishing an implementation. `tests/modularity.test.ts` covers the new ownership boundaries with synthetic fixtures; the existing diagnostics/configuration/parser checks remain required.
+
+Weather retry/cache behavior and its per-instance limits are documented in [WEATHER_FEEDS.md](WEATHER_FEEDS.md). `tests/weather-reliability.test.ts` covers pacing, provider cooldowns, cache age/expiry, retained response headers and shared browser polling.

@@ -12,6 +12,8 @@ import { join } from 'node:path';
 const secret = 'audit-only-fixture/with+symbols=';
 process.env.LTA_ACCOUNT_KEY = secret;
 process.env.LTA_MAX_ATTEMPTS = '1';
+process.env.DATA_GOV_MIN_INTERVAL_MS = '0';
+process.env.DATA_GOV_RETRY_DELAY_MS = '0';
 process.env.SPEED_MAX_ATTEMPTS = '1';
 process.env.SPEED_PAGE_CONCURRENCY = '1';
 process.env.SPEED_MAX_PAGES = '1';

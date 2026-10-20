@@ -1,17 +1,15 @@
 import { useEffect, useState } from 'react';
 
-/** Milliseconds for an LTA/NEA timestamp, e.g. "2026-10-07 14:05:00" (SGT) or "2026-10-07T14:00:00+08:00". */
-export function parseSgt(timestamp: string | null | undefined): number | null {
-  if (!timestamp) return null;
-  let iso = timestamp.trim().replace(' ', 'T');
-  if (!/(Z|[+-]\d{2}:?\d{2})$/.test(iso)) iso += '+08:00';
-  const ms = Date.parse(iso);
-  return Number.isNaN(ms) ? null : ms;
-}
+export { parseSgt } from '../../shared/time';
 
 /** "14:05" in Singapore time. */
 export const sgtClock = (ms: number) =>
-  new Date(ms).toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Singapore' });
+  new Date(ms).toLocaleTimeString('en-SG', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: 'Asia/Singapore',
+  });
 
 /** The current time, ticking every `everyMs`, so ages and staleness re-evaluate on their own. */
 export function useNow(everyMs = 30_000) {
