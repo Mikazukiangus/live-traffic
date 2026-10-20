@@ -108,6 +108,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 97. [Turn 97: Hazard Geography Merged to Main](#97-turn-97-hazard-geography-merged-to-main)
 98. [Turn 98: Validate LTA Incident and Camera Responses](#98-turn-98-validate-lta-incident-and-camera-responses)
 99. [Turn 99: LTA Response Validation Merged to Main](#99-turn-99-lta-response-validation-merged-to-main)
+100. [Turn 100: SQL Query Requirements and Database Discovery](#100-turn-100-sql-query-requirements-and-database-discovery)
 
 ---
 
@@ -1744,6 +1745,18 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Authenticated production homepage, incident and camera requests returned HTTP 200. Incidents contained four records; cameras contained eight DataMall records with matching count/total. Production health returned HTTP 200 with 15/15 UP and a measured 12,885 ms batch; incident and camera probes both reported UP/HTTP 200 under the new validators. These are point-in-time results, not a guarantee of future provider availability, source completeness or pixel freshness.
 - The approved merge is complete. No further confirmation is required. This log update is committed and pushed to main; it contains no additional application changes.
 - No credentials, environment settings, dependencies or lockfiles were changed. No real key values/fragments or signed camera URLs were printed. Pre-existing untracked .claude/ remains untouched. Updated this log and table of contents for commit and push to main under the standing instruction.
+
+---
+
+## 100. Turn 100: SQL Query Requirements and Database Discovery
+
+**User Instruction:**
+> "write the SQL to get what i want from my database, and explain the query and any indexes it needs."
+
+### Investigated (20 October 2026, SGT):
+- Inspected tracked project files, dependency/configuration documentation, API/server/shared source and schema/migration filenames. Found no SQL schema, migrations, SQL database driver or configured database integration in this repository. Current traffic data is acquired from external APIs; preferences, saved commutes and snapshots use browser localStorage. This repository inspection does not establish whether the user has a separate database elsewhere.
+- Asked for the desired result, database engine and relevant table/column definitions (CREATE TABLE statements or a schema screenshot), plus requested filters/grouping. Asked the user to omit passwords and connection strings. The request does not yet identify a result, database dialect or tables, so a correct query and index recommendation require that clarification.
+- Did not invent tables or issue SQL against any database. No application, dependency, credential or environment changes were made. No tests/build were needed for this documentation-only investigation. Recorded this turn/table of contents for commit and push under the standing instruction; SQL implementation and explanation await the requested details.
 
 ---
 
