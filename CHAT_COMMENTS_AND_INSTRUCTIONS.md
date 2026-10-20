@@ -109,6 +109,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 98. [Turn 98: Validate LTA Incident and Camera Responses](#98-turn-98-validate-lta-incident-and-camera-responses)
 99. [Turn 99: LTA Response Validation Merged to Main](#99-turn-99-lta-response-validation-merged-to-main)
 100. [Turn 100: SQL Query Requirements and Database Discovery](#100-turn-100-sql-query-requirements-and-database-discovery)
+101. [Turn 101: Check Whether TrafficPulse Has a Database](#101-turn-101-check-whether-trafficpulse-has-a-database)
 
 ---
 
@@ -1757,6 +1758,20 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Inspected tracked project files, dependency/configuration documentation, API/server/shared source and schema/migration filenames. Found no SQL schema, migrations, SQL database driver or configured database integration in this repository. Current traffic data is acquired from external APIs; preferences, saved commutes and snapshots use browser localStorage. This repository inspection does not establish whether the user has a separate database elsewhere.
 - Asked for the desired result, database engine and relevant table/column definitions (CREATE TABLE statements or a schema screenshot), plus requested filters/grouping. Asked the user to omit passwords and connection strings. The request does not yet identify a result, database dialect or tables, so a correct query and index recommendation require that clarification.
 - Did not invent tables or issue SQL against any database. No application, dependency, credential or environment changes were made. No tests/build were needed for this documentation-only investigation. Recorded this turn/table of contents for commit and push under the standing instruction; SQL implementation and explanation await the requested details.
+
+---
+
+## 101. Turn 101: Check Whether TrafficPulse Has a Database
+
+**User Instruction:**
+> "i am not sure, can you check?" (reply to the database/query requirements question)
+
+### Checked (20 October 2026, SGT):
+- Continued repository discovery and inspected the linked Vercel project plus installed integration metadata through the working connector. Read only environment-variable names/scopes with decrypt explicitly false; no credential value was decrypted, printed or stored in the log.
+- Vercel project live-traffic has one visible environment-variable name, LTA_ACCOUNT_KEY, and zero hidden production environment variables. No database connection-variable names were present. The Carbon team has a Neon Marketplace integration, but its configuration reports projectSelection selected and an empty projects list; it is not linked to TrafficPulse. An installed integration alone does not establish that a database was provisioned, and this inspection does not rule out databases elsewhere in the user's accounts.
+- Confirmed current data paths: external LTA/NEA/PUB HTTP feeds; instance-local weather/speed caches; browser localStorage for saved commutes, short commute history and speed snapshots; service-worker Cache Storage for offline copies; demo dispatch state in React memory. Found no application database schema, migrations, SQL dependency or SQL read/write path.
+- Conclusion: no SQL database is currently connected to TrafficPulse, so there are no verified application tables/indexes against which to write the requested query. Historical incident/camera/travel-time reporting would first need a chosen report and an approved persistence design. A separate database's schema would also allow targeted SQL if one exists outside this project.
+- No database, integration, paid resource, environment variable or application code was created or changed, and no SQL was executed. No tests/build were required for read-only discovery and this documentation update. Updated this log/table of contents for commit and push under the standing instruction. Next clarification can focus on the report the user wants rather than asking them to supply unknown technical details.
 
 ---
 
