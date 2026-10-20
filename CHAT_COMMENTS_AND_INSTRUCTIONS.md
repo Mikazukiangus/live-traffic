@@ -1552,6 +1552,13 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Updated this log and table of contents for commit/push on the preview branch. Preview deployment and CI results are recorded below after publication; `main` merge requires explicit approval under the standing workflow.
 - A redacted Gitleaks scan of the 80 changed/new review files found no candidates. Package manifests and `bun.lock` remain unchanged. Reusable module ownership is documented in `ARCHITECTURE.md`.
 
+### Preview deployment follow-up:
+- Pushed implementation commit `7c14c50` and created draft PR #6: https://github.com/Mikazukiangus/live-traffic/pull/6. The PR is mergeable; branch/PR GitHub Checks and Vercel checks all passed.
+- Exact-commit preview deployment `dpl_7vyKumjSxsPrZWN3WPjkPKcTFyN2` is READY: https://live-traffic-9sj62pftj-carbon-bc04.vercel.app. Authenticated checks returned 200 for the homepage, eight LTA cameras, 25 VMS signs, a full speed payload with ten expressways/4,044 segments/two checkpoints, and health with 15/15 UP.
+- A non-camera host was rejected with 403. A malformed image URL returned fixed 502 `UPSTREAM_FAILURE` JSON, omitted the supplied value and used `Cache-Control: no-store`. Successful camera signatures were not printed.
+- The final local application render, including SOS pickup readings, had no captured uncaught/reference/type/update-depth errors. Restored the browser viewport override and stopped the isolated verification server after checking.
+- Radar view composition is now 307 lines (from 1,311), camera view composition 357 (from 928), `App.tsx` 264 (from 410), and the speed HTTP entry point 56 (from 327), with their responsibilities documented under their new owners. The preview and log are pushed for review; explicit approval is still required before merging to `main`.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*
