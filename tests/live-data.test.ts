@@ -9,7 +9,9 @@ import { describe, erpCalendar, erpOn } from '../src/utils/erp.ts';
 import { ERP_EXPRESSWAY_GANTRIES } from '../src/data/erpRates.ts';
 import { currentVehicleCount } from '../src/utils/vehicleDetection.ts';
 import { describeExpresswaySpeed } from '../src/utils/expresswaySpeeds.ts';
-import { recordSample, trendOf } from '../src/utils/commuteHistory.ts';
+import { trendOf } from '../src/utils/commuteHistory.ts';
+import { createCommuteRepository } from '../src/features/commutes/commuteRepository.ts';
+import { commuteRouteKey } from '../shared/commutes/model.ts';
 import { fetchFeed } from '../src/utils/feedResponse.ts';
 import { getHealthSnapshot, isHealthData, refreshApiHealth } from '../src/utils/apiHealth.ts';
 
@@ -83,21 +85,37 @@ test('ERP holidays, substitute Mondays and designated eves use Singapore dates',
 
 test('steady commute updates build history while duplicate update times do not', () => {
   const storage = new Map<string, string>();
-  const original = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
-  Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: { getItem: (k: string) => storage.get(k) ?? null, setItem: (k: string, v: string) => storage.set(k, v) } });
-  try {
-    const start = at('2026-10-10T08:00:00');
-    recordSample('commute', 20, start);
-    recordSample('commute', 20, start);
-    let samples = recordSample('commute', 20, start + 5 * 60_000);
-    assert.equal(samples.length, 2);
-    for (let minutes = 10; minutes <= 30; minutes += 5) samples = recordSample('commute', 20, start + minutes * 60_000);
-    assert.equal(samples.length, 7);
-    assert.equal(trendOf(samples, start + 30 * 60_000)?.direction, 'steady');
-  } finally {
-    if (original) Object.defineProperty(globalThis, 'localStorage', original);
-    else delete (globalThis as { localStorage?: unknown }).localStorage;
+  const start = at('2026-10-10T08:00:00');
+  let now = start;
+  const repo = createCommuteRepository(
+    () => ({
+      getItem: (k) => storage.get(k) ?? null,
+      setItem: (k, v) => {
+        storage.set(k, v);
+      },
+    }),
+    new Set(['KPE']),
+    () => now,
+  );
+  const commute = {
+    id: 'commute',
+    name: 'Fixture',
+    alerts: false,
+    legs: [{ code: 'KPE', direction: 0, from: '', to: '' }],
+  };
+  repo.save(commute);
+  const key = commuteRouteKey(commute);
+  repo.record('commute', key, 20, start);
+  repo.record('commute', key, 20, start);
+  now = start + 5 * 60_000;
+  let samples = repo.record('commute', key, 20, now);
+  assert.equal(samples.length, 2);
+  for (let minutes = 10; minutes <= 30; minutes += 5) {
+    now = start + minutes * 60_000;
+    samples = repo.record('commute', key, 20, now);
   }
+  assert.equal(samples.length, 7);
+  assert.equal(trendOf(samples, now)?.direction, 'steady');
 });
 
 test('shared fetch distinguishes offline cache age, coalesces requests and rejects HTTP errors', async () => {

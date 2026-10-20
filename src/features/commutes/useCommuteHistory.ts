@@ -1,21 +1,24 @@
-import { useState, useEffect } from 'react';
-import { recordSample, trendOf, type Sample } from '../../utils/commuteHistory';
+import { useEffect, useSyncExternalStore } from 'react';
+import { recordSample, trendOf } from '../../utils/commuteHistory';
+import { getCommuteRepository } from './commuteStorage';
+
 export function useCommuteHistory(
   id: string,
+  routeKey: string,
   total: number | null,
   anyEstimated: boolean,
   travelStatus: 'loading' | 'live' | 'error',
   travelFetchedAt: number | null,
   now: number,
 ) {
-  // Travel time history for the trend; only LTA times count (estimates move with speed, not time).
-  const [samples, setSamples] = useState<Sample[]>([]);
+  const repository = getCommuteRepository();
+  useSyncExternalStore(repository.subscribe, repository.getSnapshot);
+  // Always select from the current route, even before effects or while feeds are unavailable.
+  const samples = repository.samples(id, routeKey);
   useEffect(() => {
     if (travelStatus === 'live' && travelFetchedAt != null && total != null && !anyEstimated) {
-      setSamples(recordSample(id, total, travelFetchedAt));
+      recordSample(id, routeKey, total, travelFetchedAt);
     }
-  }, [id, total, anyEstimated, travelFetchedAt, travelStatus]);
-  const trend = trendOf(samples, now);
-
-  return { samples, trend };
+  }, [id, routeKey, total, anyEstimated, travelFetchedAt, travelStatus]);
+  return { samples, trend: trendOf(samples, now) };
 }

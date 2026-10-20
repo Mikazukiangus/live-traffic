@@ -1,14 +1,20 @@
 import React, { useState } from 'react';
-import { Commute, MAX_COMMUTES, useCommutes } from '../../utils/commutes';
+import { Commute, MAX_COMMUTES, useCommutes, useCommuteStorageNotice } from '../../utils/commutes';
 import { MyCommuteProps } from './types';
 import { CommuteCard } from './CommuteCard';
 import { CommuteEditor } from './CommuteEditor';
 export const MyCommute: React.FC<MyCommuteProps> = (props) => {
   const commutes = useCommutes();
+  const storageNotice = useCommuteStorageNotice();
   const [editing, setEditing] = useState<Commute | null>(null);
 
   return (
     <section id="commute" aria-label="My commute" className="flex flex-col gap-3 scroll-mt-24">
+      {storageNotice && (
+        <p role="status" className="text-xs text-amber-800 bg-amber-50 rounded-lg px-3 py-2">
+          {storageNotice}
+        </p>
+      )}
       {commutes.map((c) => (
         <CommuteCard key={c.id} commute={c} {...props} onEdit={() => setEditing(c)} />
       ))}

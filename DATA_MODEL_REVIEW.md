@@ -12,7 +12,7 @@ TrafficPulse has no connected SQL database according to the repository and Verce
 
 ### 1. P2 — A commute's identity survives a route edit, but its history has no route revision
 
-**Evidence:** [editor save](src/features/commutes/CommuteEditor.tsx#L24), [saveCommute](src/utils/commutes.ts#L55), [history shape and key](src/utils/commuteHistory.ts#L11), [history hook](src/features/commutes/useCommuteHistory.ts#L3), [card wiring](src/features/commutes/CommuteCard.tsx#L41).
+**Evidence:** [editor save](https://github.com/Mikazukiangus/live-traffic/blob/a08c607197aa1a6f5d38f188ea49026721827503/src/features/commutes/CommuteEditor.tsx#L24), [saveCommute](https://github.com/Mikazukiangus/live-traffic/blob/a08c607197aa1a6f5d38f188ea49026721827503/src/utils/commutes.ts#L55), [history shape and key](https://github.com/Mikazukiangus/live-traffic/blob/a08c607197aa1a6f5d38f188ea49026721827503/src/utils/commuteHistory.ts#L11), [history hook](https://github.com/Mikazukiangus/live-traffic/blob/a08c607197aa1a6f5d38f188ea49026721827503/src/features/commutes/useCommuteHistory.ts#L3), [card wiring](https://github.com/Mikazukiangus/live-traffic/blob/a08c607197aa1a6f5d38f188ea49026721827503/src/features/commutes/CommuteCard.tsx#L41).
 
 `Commute` owns `legs`, but `History` is keyed only by `commuteId`. Saving changed legs preserves that ID and does not clear or version samples. Each sample has only `[at, minutes]`; there is no record of the route it measured. The hook/card also retain their sample state across an edit of the same ID.
 
@@ -22,7 +22,7 @@ TrafficPulse has no connected SQL database according to the repository and Verce
 
 ### 2. P2 — Saved records have no validated, versioned storage contract
 
-**Evidence:** [commute read](src/utils/commutes.ts#L28), [history read](src/utils/commuteHistory.ts#L14), [history use](src/utils/commuteHistory.ts#L24), [commute traversal](src/utils/commutes.ts#L58).
+**Evidence:** [commute read](https://github.com/Mikazukiangus/live-traffic/blob/a08c607197aa1a6f5d38f188ea49026721827503/src/utils/commutes.ts#L28), [history read](https://github.com/Mikazukiangus/live-traffic/blob/a08c607197aa1a6f5d38f188ea49026721827503/src/utils/commuteHistory.ts#L14), [history use](https://github.com/Mikazukiangus/live-traffic/blob/a08c607197aa1a6f5d38f188ea49026721827503/src/utils/commuteHistory.ts#L24), [commute traversal](https://github.com/Mikazukiangus/live-traffic/blob/a08c607197aa1a6f5d38f188ea49026721827503/src/utils/commutes.ts#L58).
 
 The commute loader checks only `Array.isArray`. The history loader accepts any non-null object, including arrays and values whose entries are not sample arrays. TypeScript interfaces do not validate JSON loaded from an older app version or modified browser storage. Parse errors are caught, but valid JSON with the wrong shape reaches later code.
 
@@ -32,7 +32,7 @@ The commute loader checks only `Array.isArray`. The history loader accepts any n
 
 ### 3. P2 — Route connectivity is implied by names and response order
 
-**Evidence:** [CommuteLeg](src/utils/commutes.ts#L10), [TravelRoute](src/utils/ltaTravelTimes.ts#L19), [groupStretches](src/utils/ltaTravelTimes.ts#L43), [minutesBetween](src/utils/ltaTravelTimes.ts#L55), [editor completeness](src/features/commutes/CommuteEditor.tsx#L21).
+**Evidence:** [CommuteLeg](https://github.com/Mikazukiangus/live-traffic/blob/a08c607197aa1a6f5d38f188ea49026721827503/src/utils/commutes.ts#L10), [TravelRoute](https://github.com/Mikazukiangus/live-traffic/blob/a08c607197aa1a6f5d38f188ea49026721827503/src/utils/ltaTravelTimes.ts#L19), [groupStretches](https://github.com/Mikazukiangus/live-traffic/blob/a08c607197aa1a6f5d38f188ea49026721827503/src/utils/ltaTravelTimes.ts#L43), [minutesBetween](https://github.com/Mikazukiangus/live-traffic/blob/a08c607197aa1a6f5d38f188ea49026721827503/src/utils/ltaTravelTimes.ts#L55), [editor completeness](https://github.com/Mikazukiangus/live-traffic/blob/a08c607197aa1a6f5d38f188ea49026721827503/src/features/commutes/CommuteEditor.tsx#L21).
 
 Saved endpoints are formatted place-name strings. `groupStretches` keeps provider row order inside each direction. `minutesBetween` finds a start, sums subsequent rows and stops when an end name matches, without checking that each preceding `to` equals the next `from`. `direction: number` also represents both real directions and the `0` sentinel for an estimated whole-road leg.
 
@@ -44,7 +44,7 @@ Use a discriminated leg type: `published-route` with direction/endpoints versus 
 
 ### 4. P2 before real dispatch — One object combines a request, provider, customer vehicle and assignment
 
-**Evidence:** [ActiveDispatch](src/types/traffic.ts#L65), [booking state and builder](src/components/BookingModal.tsx#L21), [demo builder](src/features/sos/demoDispatch.ts#L2), [dispatch lifecycle state](src/features/sos/useDemoDispatch.ts#L4).
+**Evidence:** [ActiveDispatch](https://github.com/Mikazukiangus/live-traffic/blob/a08c607197aa1a6f5d38f188ea49026721827503/src/types/traffic.ts#L65), [booking state and builder](https://github.com/Mikazukiangus/live-traffic/blob/a08c607197aa1a6f5d38f188ea49026721827503/src/components/BookingModal.tsx#L21), [demo builder](https://github.com/Mikazukiangus/live-traffic/blob/a08c607197aa1a6f5d38f188ea49026721827503/src/features/sos/demoDispatch.ts#L2), [dispatch lifecycle state](https://github.com/Mikazukiangus/live-traffic/blob/a08c607197aa1a6f5d38f188ea49026721827503/src/features/sos/useDemoDispatch.ts#L4).
 
 There are no `workshopId`, `customerVehicleId`, `driverId`, `towUnitId` or assignment/event links. Names, phones and plates are copied into each dispatch. Some copies should eventually be immutable booking snapshots; others identify current entities. The model does not distinguish those uses.
 
@@ -60,7 +60,7 @@ Concrete issues:
 
 ### 5. P2 before historical incident reporting — Incident content identity and event identity are conflated
 
-**Evidence:** [raw incident contract](shared/traffic/incidents.ts#L3), [parsed timestamp](src/utils/ltaIncidents.ts#L76), [fingerprint](src/utils/ltaIncidents.ts#L124), [mapped alert](src/utils/ltaIncidents.ts#L133), [IncidentAlert](src/types/traffic.ts#L92).
+**Evidence:** [raw incident contract](https://github.com/Mikazukiangus/live-traffic/blob/a08c607197aa1a6f5d38f188ea49026721827503/shared/traffic/incidents.ts#L3), [parsed timestamp](https://github.com/Mikazukiangus/live-traffic/blob/a08c607197aa1a6f5d38f188ea49026721827503/src/utils/ltaIncidents.ts#L76), [fingerprint](https://github.com/Mikazukiangus/live-traffic/blob/a08c607197aa1a6f5d38f188ea49026721827503/src/utils/ltaIncidents.ts#L124), [mapped alert](https://github.com/Mikazukiangus/live-traffic/blob/a08c607197aa1a6f5d38f188ea49026721827503/src/utils/ltaIncidents.ts#L133), [IncidentAlert](https://github.com/Mikazukiangus/live-traffic/blob/a08c607197aa1a6f5d38f188ea49026721827503/src/types/traffic.ts#L92).
 
 The provider supplies no incident ID. Current IDs hash type, coordinates and the entire message into 32 bits. They correctly survive response reordering, but an edited message creates a new identity. A synthetic lane-text edit changed the ID. The parsed `reportedAt` is dropped from `IncidentAlert`, which retains a preformatted `timeAgo` instead. That label is computed when the mapping runs; it is not a durable observation time.
 
@@ -68,7 +68,7 @@ The provider supplies no incident ID. Current IDs hash type, coordinates and the
 
 ### 6. P2 before frame history — A signed URL identifies a transport location, not a camera observation
 
-**Evidence:** [normalized contract](shared/traffic/cameras.ts#L4), [capture-time fallback](shared/traffic/cameras.ts#L124), [camera view model](src/features/cameras/normalizeCameraFeed.ts#L9), [vehicle result identity](src/features/vehicle-counting/useVehicleCounts.ts#L4), [stale display](src/features/cameras/CameraTile.tsx#L16).
+**Evidence:** [normalized contract](https://github.com/Mikazukiangus/live-traffic/blob/a08c607197aa1a6f5d38f188ea49026721827503/shared/traffic/cameras.ts#L4), [capture-time fallback](https://github.com/Mikazukiangus/live-traffic/blob/a08c607197aa1a6f5d38f188ea49026721827503/shared/traffic/cameras.ts#L124), [camera view model](https://github.com/Mikazukiangus/live-traffic/blob/a08c607197aa1a6f5d38f188ea49026721827503/src/features/cameras/normalizeCameraFeed.ts#L9), [vehicle result identity](https://github.com/Mikazukiangus/live-traffic/blob/a08c607197aa1a6f5d38f188ea49026721827503/src/features/vehicle-counting/useVehicleCounts.ts#L4), [stale display](https://github.com/Mikazukiangus/live-traffic/blob/a08c607197aa1a6f5d38f188ea49026721827503/src/features/cameras/CameraTile.tsx#L16).
 
 `CameraCard.id` embeds the source ID in `lta-live-…`; consumers later remove that prefix to recover the raw ID. Vehicle counts retain `imageUrl` and match on exact URL. This correctly prevents using a result from a different URL, but renewed signatures can give the same frame a different URL. There is no independent frame/observation identity, model version or inference time for future analysis.
 
@@ -78,7 +78,7 @@ The new validators reject malformed embedded dates. However, when a DataMall fil
 
 ### 7. P3 — Reference keys and display fields have several competing representations
 
-**Evidence:** [expressway catalogue](src/data/expressways.ts#L3), [provider aliases](server/traffic/aggregateSpeeds.ts#L5), [travel-time code list](src/utils/ltaTravelTimes.ts#L33), [camera metadata](src/data/cameras.ts#L4), [pickup coordinates](src/types/traffic.ts#L9), [shared coordinates](shared/geography/coordinates.ts#L1), [camera UI defaults](src/features/cameras/normalizeCameraFeed.ts#L20), [workshop model](src/types/traffic.ts#L16).
+**Evidence:** [expressway catalogue](https://github.com/Mikazukiangus/live-traffic/blob/a08c607197aa1a6f5d38f188ea49026721827503/src/data/expressways.ts#L3), [provider aliases](https://github.com/Mikazukiangus/live-traffic/blob/a08c607197aa1a6f5d38f188ea49026721827503/server/traffic/aggregateSpeeds.ts#L5), [travel-time code list](https://github.com/Mikazukiangus/live-traffic/blob/a08c607197aa1a6f5d38f188ea49026721827503/src/utils/ltaTravelTimes.ts#L33), [camera metadata](https://github.com/Mikazukiangus/live-traffic/blob/a08c607197aa1a6f5d38f188ea49026721827503/src/data/cameras.ts#L4), [pickup coordinates](https://github.com/Mikazukiangus/live-traffic/blob/a08c607197aa1a6f5d38f188ea49026721827503/src/types/traffic.ts#L9), [shared coordinates](https://github.com/Mikazukiangus/live-traffic/blob/a08c607197aa1a6f5d38f188ea49026721827503/shared/geography/coordinates.ts#L1), [camera UI defaults](https://github.com/Mikazukiangus/live-traffic/blob/a08c607197aa1a6f5d38f188ea49026721827503/src/features/cameras/normalizeCameraFeed.ts#L20), [workshop model](https://github.com/Mikazukiangus/live-traffic/blob/a08c607197aa1a6f5d38f188ea49026721827503/src/types/traffic.ts#L16).
 
 - Most relationships use unconstrained `code: string`, with provider aliases and supported-code lists maintained separately. One name/case change can stop a join. Aliases such as the KPE tunnel are legitimate provider differences; consolidate ownership without removing them. The travel-time formatter also knows `NSC`, so a strict internal catalogue needs an explicit future/unknown-road path rather than rejecting new provider values indiscriminately.
 - Coordinates use `lat/lon`, `lat/lng`, provider `Latitude/Longitude`, and speed tuples `[code, band, startLon, startLat, endLon, endLat]`. Boundary adapters are necessary, but the internal convention should reuse shared `Coordinates`; tuple field order needs labels and a version.
@@ -89,7 +89,7 @@ The new validators reject malformed embedded dates. However, when a DataMall fil
 
 ### 8. P3 before tariff history or exact route costing — ERP gantry groups and schedules have no independent identities
 
-**Evidence:** [ERP group/slot types](src/data/erpRates.ts#L15), [multi-gantry group](src/data/erpRates.ts#L43), [current corridor filter](src/utils/erp.ts#L73), [formatted note rewriting](src/utils/erp.ts#L14).
+**Evidence:** [ERP group/slot types](https://github.com/Mikazukiangus/live-traffic/blob/a08c607197aa1a6f5d38f188ea49026721827503/src/data/erpRates.ts#L15), [multi-gantry group](https://github.com/Mikazukiangus/live-traffic/blob/a08c607197aa1a6f5d38f188ea49026721827503/src/data/erpRates.ts#L43), [current corridor filter](https://github.com/Mikazukiangus/live-traffic/blob/a08c607197aa1a6f5d38f188ea49026721827503/src/utils/erp.ts#L73), [formatted note rewriting](https://github.com/Mikazukiangus/live-traffic/blob/a08c607197aa1a6f5d38f188ea49026721827503/src/utils/erp.ts#L14).
 
 `gantryNos` is a comma-separated string and one row can represent several physical gantries. One global effective date/source and a mutable current schedule are sufficient for today's display but cannot represent past revisions or group membership changes. `erpOn` explicitly reports charging gantries on the same expressway in either direction; that is not evidence that a saved partial route crosses a gantry.
 
@@ -119,7 +119,7 @@ flowchart LR
   A --> DE[Dispatch lifecycle events]
 ```
 
-**VMS deserves its own asset/observation relationship:** [VMS input and grouping](src/features/cameras/vmsBoards.ts#L7) already preserve equipment IDs and coordinates in each grouped board. Keep that useful behavior. `VmsBoard.id = message` is appropriate for a deduplicated screen row; it is not a physical sign ID. A future history should key observations by sign identity and time, retaining full raw message; derive unique-message groups for display. Do not merge different physical signs merely because their messages match.
+**VMS deserves its own asset/observation relationship:** [VMS input and grouping](https://github.com/Mikazukiangus/live-traffic/blob/a08c607197aa1a6f5d38f188ea49026721827503/src/features/cameras/vmsBoards.ts#L7) already preserve equipment IDs and coordinates in each grouped board. Keep that useful behavior. `VmsBoard.id = message` is appropriate for a deduplicated screen row; it is not a physical sign ID. A future history should key observations by sign identity and time, retaining full raw message; derive unique-message groups for display. Do not merge different physical signs merely because their messages match.
 
 A future shared store also needs an explicit owner relationship for saved commutes. Today browser-only scope is deliberate. Add a local profile/device identity or authenticated user relationship only when synchronization is required, with an ownership migration; do not invent user accounts for the current app.
 
@@ -153,3 +153,7 @@ Each implementation needs its own preview review and explicit main merge approva
 - Executed isolated native Node/TypeScript helper checks with an in-memory localStorage stub. Confirmed route-edit history mixing, two malformed-storage failures, shuffled/disconnected stretch behavior, incident identity changes/dropped parsed timestamp, and the demo ID repeat. No browser user storage, live APIs, database, images, bookings or notification permissions were accessed.
 - Booking remarks loss, duplicate dispatch meanings, timestamp formats, VMS/ERP relationships and signed-URL identity concerns are from source inspection. They were not tested against an operational booking backend or alleged to be observed production incidents.
 - No application code, dependencies, settings, database or test suite changed. The full test/build suite was not rerun for this documentation-only review; historical 95-test release results are not presented as new verification.
+
+## First implementation preview
+
+The first slice is implemented on `codex/commute-storage-integrity`: validated/versioned browser storage, non-destructive legacy recovery, current-route history invalidation and visible storage notices. See [COMMUTE_STORAGE.md](COMMUTE_STORAGE.md) for migration and limits. This is a preview pending explicit main merge approval; the path-connectivity and other later slices remain proposals. Historical source links above now point to the reviewed commit so line references remain valid after implementation.

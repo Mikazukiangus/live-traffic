@@ -1,7 +1,13 @@
 import React, { useMemo } from 'react';
 import { CongestionStatus } from '../../types/traffic';
 import { RAIN_LEVEL_STYLE } from '../../utils/rainForecast';
-import { Commute, enableNotifications, notificationsSupported, saveCommute } from '../../utils/commutes';
+import {
+  Commute,
+  commuteRouteKey,
+  enableNotifications,
+  notificationsSupported,
+  saveCommute,
+} from '../../utils/commutes';
 import { erpOn, formatSgd } from '../../utils/erp';
 import { floodLabel } from '../../utils/floodAlerts';
 import { sgtClock, useNow } from '../../utils/freshness';
@@ -38,7 +44,15 @@ export const CommuteCard: React.FC<MyCommuteProps & { commute: Commute; onEdit: 
   const now = useNow();
   const erp = useMemo(() => erpOn(codes, new Date(now)), [codes.join(), now]);
 
-  const { samples, trend } = useCommuteHistory(commute.id, total, anyEstimated, travelStatus, travelFetchedAt, now);
+  const { samples, trend } = useCommuteHistory(
+    commute.id,
+    commuteRouteKey(commute),
+    total,
+    anyEstimated,
+    travelStatus,
+    travelFetchedAt,
+    now,
+  );
 
   const toggleAlerts = async () => {
     if (!commute.alerts && !(await enableNotifications())) {
