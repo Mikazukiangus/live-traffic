@@ -1681,6 +1681,12 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - A redacted scan of the 18 changed/new files found no secret candidates. No real key values/fragments or signed camera links were printed.
 - Updated ARCHITECTURE.md and LAYERING_REVIEW.md with the implemented first slice, versioned-catalogue maintenance and existing approximation limits. Updated this log/table of contents for commit and push. Deployment and PR checks are recorded below after publication; main merge requires explicit user approval.
 
+### Published preview:
+- Pushed implementation `4a4c841` and created draft PR #8: https://github.com/Mikazukiangus/live-traffic/pull/8. The PR is mergeable and branch/PR GitHub Checks, Vercel deployment and preview checks passed. Attached it to this chat.
+- Exact implementation deployment `dpl_DqLouPnBeEwU6ZJeuxxK6Wm94zyx` is READY: https://live-traffic-inf19wwol-carbon-bc04.vercel.app. Authenticated checks returned 200 for the homepage, its referenced entry asset and the referenced radar asset; the radar bundle contains the new unavailable-matching message and reference-area data.
+- Closed the temporary browser tab and stopped the owned local preview/provider fixture after verification. Main and production remain unchanged. The pushed preview is ready for explicit merge approval; the later layering slices are still separate work.
+
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*
