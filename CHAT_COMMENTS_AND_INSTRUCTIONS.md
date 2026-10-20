@@ -103,6 +103,8 @@ This document records all user instructions, feedback, technical inquiries, inve
 92. [Turn 92: Weather Feed Reliability on Preview](#92-turn-92-weather-feed-reliability-on-preview)
 93. [Turn 93: Weather Reliability Merged to Main](#93-turn-93-weather-reliability-merged-to-main)
 94. [Turn 94: UI, Business Logic and Data Access Layer Review](#94-turn-94-ui-business-logic-and-data-access-layer-review)
+95. [Turn 95: Independent Hazard Geography on Preview](#95-turn-95-independent-hazard-geography-on-preview)
+96. [Turn 96: Continue and Verify Hazard Geography](#96-turn-96-continue-and-verify-hazard-geography)
 
 ---
 
@@ -1650,6 +1652,34 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Confirmed the geographic coupling with a small synthetic helper check: an unchanged Woodlands strike and flood alert match SLE/BKE with area coordinates and return no corridor matches without them. Current radar source composition drops those coordinates when the rain forecast expires, and lightning presentation can interpret unavailable matching as zero nearby strikes. The UI implication is from source inspection, not a simulated production outage. Recommended independently retained reference geography and an explicit unavailable matching state first.
 - Application source, environment settings, dependencies and lockfiles were not changed. No live provider calls, notification permissions, dispatch submissions or deployment actions were performed. Full tests/build were not rerun for this documentation-only review; the existing release results remain historical evidence.
 - Updated this log and table of contents for commit and push to main under the standing instruction. Implementing the proposed refactoring remains a preview-branch follow-up with explicit approval required before a main merge.
+
+---
+
+## 95. Turn 95: Independent Hazard Geography on Preview
+
+**User Instruction:**
+> "go with your recommendations"
+
+### Implemented on `codex/independent-hazard-geography` (20 October 2026, SGT):
+- Started with the first recommended layering slice: independent geographic reference data and explicit hazard-match availability. The server flood extraction, booking, commute and other proposed slices remain separate follow-ups under the documented preview workflow.
+- Retrieved the official keyless NEA two-hour endpoint's area_metadata once and created a reviewed, immutable 47-area catalogue containing only area names and coordinates, with source URL and verification date. It contains no forecast wording or validity and needs no runtime fetch or extra polling. This also supports a fresh visit while rain is unavailable.
+- Moved the existing expressway-to-area associations and straight-line distance calculation into pure shared geography modules. Added plain-input lightning/flood matchers that distinguish ready results from unavailable feed/geography. Missing, incomplete, duplicate or invalid geography cannot establish no nearby events. Known empty event lists remain distinct from missing feeds. Existing 5 km lightning and flood-radius-plus-1.5 km town-centre approximations are preserved.
+- Radar hazard matching now uses the reference catalogue independently of rain state. Rain expiry still removes outdated prediction text. Weather presentation explicitly handles unavailable matching, while raw flood descriptions and map markers retain their existing paths. Kept compatibility exports for existing utility callers; new application composition uses explicit matching results.
+- Added eight focused tests for catalogue coverage/purity, rain-independent matching, unavailable versus empty states, distance thresholds, rendered warning behavior and raw hazard markers. Type checking, all 85 tests and the production build passed before publication.
+
+---
+
+## 96. Turn 96: Continue and Verify Hazard Geography
+
+**User Instruction:**
+> "continue where you last left off"
+
+### Continued and verified (20 October 2026, SGT):
+- Continued the existing preview branch and completed the React/UI review, final formatting, provenance and ownership documentation. Rechecked type safety with unused locals, all 85 tests and the production build successfully. No package, lockfile, credential or remote environment changes are required.
+- Used isolated loopback provider fixtures for browser verification, with synthetic LTA responses/key, counting disabled and request pacing disabled only in the simulation. Corrected the fixture timestamp to precede the flood filter's captured clock. No live traffic calls or real dispatch/notification actions were needed; the single earlier public NEA metadata acquisition is reference-data provenance.
+- Verified a fresh browser load with rain HTTP 503/unavailable: nearby lightning and flood corridor matches remained visible. The expressway view retained both raw map markers and hazard badges. Captured no uncaught/reference/type/update-depth errors. Synthetic health results were not treated as live provider status.
+- A redacted scan of the 18 changed/new files found no secret candidates. No real key values/fragments or signed camera links were printed.
+- Updated ARCHITECTURE.md and LAYERING_REVIEW.md with the implemented first slice, versioned-catalogue maintenance and existing approximation limits. Updated this log/table of contents for commit and push. Deployment and PR checks are recorded below after publication; main merge requires explicit user approval.
 
 ---
 

@@ -16,6 +16,8 @@ type Props = {
     | 'floodFeed'
     | 'floodAlerts'
     | 'lightningByCode'
+    | 'lightningMatch'
+    | 'floodMatch'
     | 'floodsByCode'
     | 'rainByCode'
     | 'strikes'
@@ -30,6 +32,8 @@ export function WeatherPanel({ readings, navigation }: Props) {
     weatherAlerts,
     floodFeed,
     floodAlerts,
+    lightningMatch,
+    floodMatch,
     lightningByCode,
     floodsByCode,
     rainByCode,
@@ -140,6 +144,11 @@ export function WeatherPanel({ readings, navigation }: Props) {
               <span className="text-xs text-slate-500 font-mono">checked {sgtHour(floodFeed.data.checkedAt)} SGT</span>
             )}
           </div>
+          {floodMatch.status === 'unavailable' && (
+            <p className="text-xs text-amber-800" role="status">
+              Expressway matching unavailable; flood locations are shown below.
+            </p>
+          )}
           <ul className="flex flex-col gap-2">
             {floodAlerts.map((f) => {
               const codes = Object.keys(floodsByCode).filter((c) => floodsByCode[c].some((x) => x.id === f.id));
@@ -196,6 +205,12 @@ export function WeatherPanel({ readings, navigation }: Props) {
               </span>
               {weatherAlerts.data.strikes == null ? (
                 <span className="text-slate-500">Lightning data unavailable.</span>
+              ) : lightningMatch.status === 'unavailable' ? (
+                <span className="text-amber-800" role="status">
+                  {lightningMatch.reason === 'geography'
+                    ? 'Expressway matching unavailable. View lightning locations on the map.'
+                    : 'Lightning location data unavailable.'}
+                </span>
               ) : Object.keys(lightningByCode).length ? (
                 <span className="text-violet-800">
                   <span className="font-semibold">Lightning near </span>

@@ -1,7 +1,8 @@
 import { config } from '../../config/client';
 import { usePolledJson } from './usePolledJson';
-import { kmBetween } from './nearMe';
-import { EXPRESSWAY_RAIN_AREAS, ForecastArea } from './rainForecast';
+import { matchLightningToExpressways } from '../../shared/geography/hazardMatching';
+import type { ReferenceArea } from '../../shared/geography/coordinates';
+export { LIGHTNING_NEAR_KM } from '../../shared/geography/hazardMatching';
 
 export interface Strike {
   lat: number;
@@ -27,23 +28,20 @@ export interface WeatherAlerts {
 
 /** NEA lightning (latest observation) and WBGT heat stress. */
 export function useWeatherAlerts() {
-  return usePolledJson<WeatherAlerts>('/api/live?feed=weatheralerts', config.poll.weatherAlerts, (d) => !!d?.strikes && !!d.heatStations, (d) => Array.isArray(d?.strikes) || Array.isArray(d?.heatStations));
+  return usePolledJson<WeatherAlerts>(
+    '/api/live?feed=weatheralerts',
+    config.poll.weatherAlerts,
+    (d) => !!d?.strikes && !!d.heatStations,
+    (d) => Array.isArray(d?.strikes) || Array.isArray(d?.heatStations),
+  );
 }
 
-// A strike this close to a forecast area an expressway passes through counts as near that expressway.
-export const LIGHTNING_NEAR_KM = 5;
-
-/** Strikes near each expressway, using the forecast areas along it as its footprint. */
-export function lightningByExpressway(strikes: Strike[] | null | undefined, areas: ForecastArea[] | undefined) {
-  const counts: Record<string, number> = {};
-  if (!strikes?.length || !areas?.length) return counts;
-  const byName = new Map(areas.map((a) => [a.name, a]));
-  for (const [code, names] of Object.entries(EXPRESSWAY_RAIN_AREAS)) {
-    const pts = names.map((n) => byName.get(n)).filter((a): a is ForecastArea => !!a);
-    const n = strikes.filter((s) => pts.some((a) => kmBetween(s.lat, s.lon, a.lat, a.lon) <= LIGHTNING_NEAR_KM)).length;
-    if (n) counts[code] = n;
-  }
-  return counts;
+/** Compatibility projection. Application code uses the explicit matching result. */
+export function lightningByExpressway(
+  strikes: Strike[] | null | undefined,
+  areas: readonly ReferenceArea[] | undefined,
+) {
+  return matchLightningToExpressways(strikes, areas).byCode;
 }
 
 export const HEAT_STYLE: Record<string, { dot: string; text: string }> = {

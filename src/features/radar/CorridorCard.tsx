@@ -1,6 +1,6 @@
 import { CongestionStatus } from '../../types/traffic';
 import { RAIN_LEVEL_STYLE, describeCorridorRain } from '../../utils/rainForecast';
-import { LIGHTNING_NEAR_KM } from '../../utils/weatherAlerts';
+import { LIGHTNING_NEAR_KM } from '../../../shared/geography/hazardMatching';
 import { floodLabel } from '../../utils/floodAlerts';
 
 // Speed bar scale; LTA's top speed band is 70+ km/h and most expressways are signed 80–90 km/h.

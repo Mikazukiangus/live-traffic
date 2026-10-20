@@ -1,3 +1,5 @@
+import { FORECAST_AREAS } from '../../../shared/geography/forecastAreas';
+import { matchLightningToExpressways, matchFloodsToExpressways } from '../../../shared/geography/hazardMatching';
 import { useRainFeed } from '../weather/useRainFeed';
 import { rainIsValid } from '../../../shared/weather/rain';
 import { useNow } from '../../utils/freshness';
@@ -10,8 +12,8 @@ import { rainByExpressway } from '../../utils/rainForecast';
 import { useLtaTravelTimes } from '../../utils/ltaTravelTimes';
 import { useAirQuality } from '../../utils/airQuality';
 import { roadWorksByCode, useRoadConditions } from '../../utils/roadConditions';
-import { lightningByExpressway, useWeatherAlerts } from '../../utils/weatherAlerts';
-import { floodsByExpressway, useFloodAlerts } from '../../utils/floodAlerts';
+import { useWeatherAlerts } from '../../utils/weatherAlerts';
+import { useFloodAlerts } from '../../utils/floodAlerts';
 
 export function useRadarSources() {
   // Real expressway speeds from LTA speed bands (no values until the first successful fetch)
@@ -45,11 +47,13 @@ export function useRadarSources() {
   // PUB flood alerts
   const floodFeed = useFloodAlerts();
   const floodAlerts = floodFeed.data?.alerts || [];
-  const lightningByCode = useMemo(
-    () => lightningByExpressway(weatherAlerts.data?.strikes, rainForecast?.areas),
-    [weatherAlerts.data, rainForecast],
+  const lightningMatch = useMemo(
+    () => matchLightningToExpressways(weatherAlerts.data?.strikes, FORECAST_AREAS),
+    [weatherAlerts.data],
   );
-  const floodsByCode = useMemo(() => floodsByExpressway(floodAlerts, rainForecast?.areas), [floodAlerts, rainForecast]);
+  const floodMatch = useMemo(() => matchFloodsToExpressways(floodFeed.data?.alerts, FORECAST_AREAS), [floodFeed.data]);
+  const lightningByCode = lightningMatch.byCode;
+  const floodsByCode = floodMatch.byCode;
   const rainByCode = useMemo(() => (rainForecast ? rainByExpressway(rainForecast.areas) : {}), [rainForecast]);
 
   return {
@@ -68,6 +72,8 @@ export function useRadarSources() {
     weatherAlerts,
     floodFeed,
     floodAlerts,
+    lightningMatch,
+    floodMatch,
     lightningByCode,
     floodsByCode,
     rainByCode,

@@ -1,3 +1,5 @@
+import { COS_LAT, KM_PER_DEG } from '../../shared/geography/coordinates';
+export { kmBetween } from '../../shared/geography/coordinates';
 import { useEffect, useSyncExternalStore } from 'react';
 import type { SpeedSegment } from '../../shared/traffic/types';
 
@@ -78,14 +80,6 @@ export function useNearMe(): NearMeState {
     resumeIfAllowed();
   }, []);
   return useSyncExternalStore(subscribe, () => state);
-}
-
-const COS_LAT = Math.cos((1.35 * Math.PI) / 180);
-const KM_PER_DEG = 111.32;
-
-/** Straight-line km between two points (equirectangular; plenty for Singapore). */
-export function kmBetween(lat1: number, lon1: number, lat2: number, lon2: number) {
-  return Math.hypot((lon1 - lon2) * COS_LAT, lat1 - lat2) * KM_PER_DEG;
 }
 
 /** The expressway with a speed band link nearest the point, and how far away it is. */
