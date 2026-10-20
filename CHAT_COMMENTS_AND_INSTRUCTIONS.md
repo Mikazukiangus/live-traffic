@@ -102,6 +102,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 91. [Turn 91: Restore Normal Summaries and Discuss Next Options](#91-turn-91-restore-normal-summaries-and-discuss-next-options)
 92. [Turn 92: Weather Feed Reliability on Preview](#92-turn-92-weather-feed-reliability-on-preview)
 93. [Turn 93: Weather Reliability Merged to Main](#93-turn-93-weather-reliability-merged-to-main)
+94. [Turn 94: UI, Business Logic and Data Access Layer Review](#94-turn-94-ui-business-logic-and-data-access-layer-review)
 
 ---
 
@@ -1634,6 +1635,21 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Production health returned 200 with 15/15 UP and the LTA key configured. The paced probe batch measured 12,918 ms. These are point-in-time checks; the documented instance-local limiter cannot eliminate provider rate limits across separate instances.
 - No credentials, environment settings, dependencies or lockfiles were changed. No key values/fragments or signed camera links were printed. The pre-existing untracked `.claude/` directory remains untouched.
 - Updated this log and table of contents for commit and push to main under the standing instruction. The approved merge is complete; no further confirmation is needed.
+
+---
+
+## 94. Turn 94: UI, Business Logic and Data Access Layer Review
+
+**User Instruction:**
+> "Show me where my UI, business logic, and data access are tangled together, and how to split them into clean layers."
+
+### Reviewed (20 October 2026, SGT):
+- Reviewed current main at `bb5bfd6` after the modularity and weather reliability releases; refreshed origin/main and confirmed the checkout matched. Re-read the current architecture and historical modularity review before tracing remaining UI, hook, rule, provider and storage boundaries.
+- Added `LAYERING_REVIEW.md` with pinned source references, a dependency diagram, concrete module responsibilities, preservation checks and an incremental preview plan. Linked it from `ARCHITECTURE.md`. The existing speed/rain resources, camera acquisition seam and server helpers are retained as useful examples; this is not a repeat of the previous refactor.
+- Identified remaining seams in geography versus forecast lifetime, PUB/road-condition/weather API interpretation, booking-modal assignment construction, mixed pure/feed/presentation utilities, commute storage/notification policy and 24-hour/health UI containers. Explained how thin UI/HTTP adapters, application controllers, pure domain rules and data-access adapters should interact.
+- Confirmed the geographic coupling with a small synthetic helper check: an unchanged Woodlands strike and flood alert match SLE/BKE with area coordinates and return no corridor matches without them. Current radar source composition drops those coordinates when the rain forecast expires, and lightning presentation can interpret unavailable matching as zero nearby strikes. The UI implication is from source inspection, not a simulated production outage. Recommended independently retained reference geography and an explicit unavailable matching state first.
+- Application source, environment settings, dependencies and lockfiles were not changed. No live provider calls, notification permissions, dispatch submissions or deployment actions were performed. Full tests/build were not rerun for this documentation-only review; the existing release results remain historical evidence.
+- Updated this log and table of contents for commit and push to main under the standing instruction. Implementing the proposed refactoring remains a preview-branch follow-up with explicit approval required before a main merge.
 
 ---
 

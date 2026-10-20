@@ -75,3 +75,5 @@ The specialized speed fetcher retains its source timestamps and retry behavior. 
 Run `bun run lint`, `bun run test` and `bun run build` before publishing an implementation. `tests/modularity.test.ts` covers the new ownership boundaries with synthetic fixtures; the existing diagnostics/configuration/parser checks remain required.
 
 Weather retry/cache behavior and its per-instance limits are documented in [WEATHER_FEEDS.md](WEATHER_FEEDS.md). `tests/weather-reliability.test.ts` covers pacing, provider cooldowns, cache age/expiry, retained response headers and shared browser polling.
+
+For the remaining UI/domain/data-access seams after PRs #6 and #7, see [LAYERING_REVIEW.md](LAYERING_REVIEW.md). It is a proposed plan, not an implemented folder reorganization.
