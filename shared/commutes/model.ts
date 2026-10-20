@@ -10,6 +10,7 @@ export interface Commute {
   name: string;
   legs: CommuteLeg[];
   alerts: boolean;
+  routeRevision?: number;
 }
 export type Sample = [receivedAt: number, minutes: number];
 export interface RouteHistory {
@@ -40,6 +41,10 @@ export function isCommute(value: unknown, codes: ReadonlySet<string>): value is 
     isCommuteId(value.id) &&
     text(value.name, MAX_NAME_LENGTH) &&
     typeof value.alerts === 'boolean' &&
+    (value.routeRevision === undefined ||
+      (Number.isSafeInteger(value.routeRevision) &&
+        Number(value.routeRevision) >= 0 &&
+        Number(value.routeRevision) < Number.MAX_SAFE_INTEGER)) &&
     Array.isArray(value.legs) &&
     value.legs.length > 0 &&
     value.legs.length <= MAX_LEGS &&
@@ -57,8 +62,11 @@ export function isCommute(value: unknown, codes: ReadonlySet<string>): value is 
 }
 const normalizePoint = (s: string) => s.trim().replace(/\s+/g, ' ').toLowerCase();
 /** Full canonical route description, without a collision-prone hash; ordered legs matter. */
-export const commuteRouteKey = (commute: Pick<Commute, 'legs'>): string =>
+export const commutePathKey = (commute: Pick<Commute, 'legs'>): string =>
   JSON.stringify(commute.legs.map((l) => [l.code, l.direction, normalizePoint(l.from), normalizePoint(l.to)]));
+/** A revision survives partial history-write failures and prevents A-to-B-to-A resurrection. */
+export const commuteRouteKey = (commute: Pick<Commute, 'legs' | 'routeRevision'>): string =>
+  JSON.stringify([commute.routeRevision ?? 0, JSON.parse(commutePathKey(commute))]);
 
 export interface Decoded<T> {
   value: T;
@@ -86,6 +94,7 @@ export function decodeCommutes(raw: string | null, codes: ReadonlySet<string>, l
       id: row.id,
       name: row.name.trim(),
       alerts: row.alerts,
+      routeRevision: row.routeRevision ?? 0,
       legs: row.legs.map((l) => ({ code: l.code, direction: l.direction, from: l.from.trim(), to: l.to.trim() })),
     });
   }

@@ -53,7 +53,7 @@ const histories = (rows: unknown[]) => JSON.stringify({ schemaVersion: 1, histor
 test('legacy valid commutes are recovered without writes, then persist in a versioned new key', () => {
   const legacy = JSON.stringify([route()]);
   const s = setup({ [K.legacyCommutes]: legacy, [K.legacyHistory]: '{"home":[[1,99]]}' });
-  assert.deepEqual(s.repo.getSnapshot().commutes, [route()]);
+  assert.deepEqual(s.repo.getSnapshot().commutes, [{ ...route(), routeRevision: 0 }]);
   assert.equal(s.data.size, 2, 'loading must not migrate or overwrite storage');
   assert.match(s.repo.getSnapshot().notice!, /trends will build again/);
   assert.deepEqual(s.repo.samples('home', commuteRouteKey(route())), []);
@@ -187,7 +187,7 @@ test('route edit clears history immediately and prevents stale-route writes and 
   s.repo.save(changed);
   assert.deepEqual(s.repo.samples(c.id, key), []);
   assert.deepEqual(s.repo.record(c.id, key, 30, t + 30 * 60_000), []);
-  const fresh = s.repo.record(c.id, commuteRouteKey(changed), 10, t + 30 * 60_000);
+  const fresh = s.repo.record(c.id, commuteRouteKey(s.repo.getSnapshot().commutes[0]), 10, t + 30 * 60_000);
   assert.equal(fresh.length, 1);
   assert.equal(trendOf(fresh, t + 30 * 60_000), null);
   s.repo.save(c);
@@ -216,11 +216,11 @@ test('rename, alerts and endpoint capitalization/spacing preserve history; direc
     s.repo.save({ ...c, legs });
     assert.deepEqual(s.repo.samples(c.id, key), []);
     s.repo.save(c);
-    s.repo.record(c.id, key, 20, t);
+    s.repo.record(c.id, commuteRouteKey(s.repo.getSnapshot().commutes[0]), 20, t);
   }
   const two = { ...c, legs: [c.legs[0], { code: 'KPE', direction: 0, from: '', to: '' }] };
   s.repo.save(two);
-  const twoKey = commuteRouteKey(two);
+  const twoKey = commuteRouteKey(s.repo.getSnapshot().commutes[0]);
   s.repo.record(c.id, twoKey, 20, t);
   s.repo.save({ ...two, legs: [...two.legs].reverse() });
   assert.deepEqual(s.repo.samples(c.id, twoKey), []);
@@ -306,4 +306,29 @@ test('repository snapshots stay stable until changes and notify every subscriber
   unsubscribe();
   s.repo.remove(c.id);
   assert.equal(count, 2);
+});
+
+test('persisted route revisions prevent old history returning after partial failures and reload', () => {
+  const s = setup();
+  const a = route();
+  s.repo.save(a);
+  const oldKey = commuteRouteKey(a);
+  s.repo.record(a.id, oldKey, 30, t);
+  const oldHistory = s.data.get(K.history);
+  s.fail(K.history);
+  s.repo.save({ ...a, legs: [{ code: 'AYE', direction: 1, from: 'C', to: 'D' }] });
+  s.repo.save(a);
+  assert.equal(s.data.get(K.history), oldHistory, 'simulate two failed history clears');
+  const reload = createCommuteRepository(
+    () => s.port,
+    CODES,
+    () => t,
+  );
+  const restored = reload.getSnapshot().commutes[0];
+  assert.equal(restored.routeRevision, 2);
+  assert.notEqual(commuteRouteKey(restored), oldKey);
+  assert.deepEqual(reload.samples(a.id, commuteRouteKey(restored)), []);
+  assert.equal(reload.record(a.id, commuteRouteKey(restored), 10, t).length, 1);
+  reload.save({ ...restored, name: 'Rename', alerts: true, routeRevision: 0 });
+  assert.equal(reload.getSnapshot().commutes[0].routeRevision, 2, 'callers cannot reset a revision');
 });

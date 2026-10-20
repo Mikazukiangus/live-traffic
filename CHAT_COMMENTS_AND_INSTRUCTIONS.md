@@ -1814,6 +1814,12 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Exact implementation deployment `dpl_GDcWh5DwTRJAt9vm9Wr4MaxZkVeo` is READY: https://live-traffic-dm46uhem7-carbon-bc04.vercel.app. Authenticated homepage and its referenced entry asset returned HTTP 200. The served bundle contains the v1 storage keys, protected-store notice and route-key history implementation. No remote user storage was modified; behavior was exercised through the isolated local UI fixture and injected repository tests.
 - No additional live provider/health calls were needed for this browser-storage-only implementation. Main and production remain unchanged. The old route history restart is intentional and documented; original legacy keys are preserved. The later directed-path, observation, tariff and dispatch slices remain separate work. Main merge still requires explicit user approval.
 
+
+### Final partial-write safeguard:
+- Final review identified a further failure case: if a route save succeeds while clearing its history fails, an A-to-B-to-A edit could match older persisted history after reload. Added a repository-owned, persisted routeRevision (legacy zero; incremented only for route changes) to the history key. Callers cannot reset the revision. This preserves the full canonical route description while preventing old records from matching a later revision after partial failures.
+- Added a focused regression simulating two failed history clears with successful route saves and a fresh repository/reload. The restored revision is two, old history remains unmatched and a new sample starts alone. All 107 tests and type checking pass; the production build passes. A final isolated browser check with the revised model again confirmed that a paused-feed route edit removes the old samples/trend immediately, including a KPE whole-road leg, without console warnings/errors. Closed the owned tab/server afterward.
+- Updated COMMUTE_STORAGE.md to explain the persisted revision and partial-write guarantee. This follow-up is pushed to the same PR #10; its latest CI/deployment checks must pass before merge approval is requested.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*

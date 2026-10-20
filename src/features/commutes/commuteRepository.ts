@@ -1,5 +1,6 @@
 import {
   commuteRouteKey,
+  commutePathKey,
   decodeCommutes,
   decodeHistories,
   HISTORY_KEEP_MS,
@@ -99,9 +100,14 @@ export function createCommuteRepository(
         id: value.id,
         name: value.name.trim(),
         alerts: value.alerts,
+        routeRevision: previous?.routeRevision ?? 0,
         legs: value.legs.map((l) => ({ code: l.code, direction: l.direction, from: l.from.trim(), to: l.to.trim() })),
       };
-      const changed = previous && commuteRouteKey(previous) !== commuteRouteKey(commute);
+      const changed = previous && commutePathKey(previous) !== commutePathKey(commute);
+      if (changed) {
+        if (commute.routeRevision! >= Number.MAX_SAFE_INTEGER - 1) return false;
+        commute.routeRevision! += 1;
+      }
       if (changed) histories = histories.filter((h) => h.commuteId !== commute.id);
       const commutes = previous
         ? snapshot.commutes.map((c) => (c.id === commute.id ? commute : c))
