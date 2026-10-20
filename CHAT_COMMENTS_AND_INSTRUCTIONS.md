@@ -107,6 +107,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 96. [Turn 96: Continue and Verify Hazard Geography](#96-turn-96-continue-and-verify-hazard-geography)
 97. [Turn 97: Hazard Geography Merged to Main](#97-turn-97-hazard-geography-merged-to-main)
 98. [Turn 98: Validate LTA Incident and Camera Responses](#98-turn-98-validate-lta-incident-and-camera-responses)
+99. [Turn 99: LTA Response Validation Merged to Main](#99-turn-99-lta-response-validation-merged-to-main)
 
 ---
 
@@ -1728,6 +1729,21 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Exact implementation deployment `dpl_7ZuQ6BDCrJy3jz2Niw2FjRsnNLPo` is READY: https://live-traffic-o3nsttjcd-carbon-bc04.vercel.app. Authenticated homepage, incident and camera requests returned 200. The incident endpoint returned four valid records; cameras returned eight DataMall records with matching total/count. Only status/count/source/field names were reported; no real image URLs or keys were printed.
 - Authenticated preview health returned 200 with 15/15 UP in a measured 12,971 ms batch. Incident and camera probes both returned UP/HTTP 200 under the new payload checks. These are point-in-time observations; schema validation does not guarantee source completeness or image freshness/accessibility.
 - No local browser or temporary provider server was required for this API-focused change. Existing retention paths were reviewed, and validation/fallback behavior was exercised with synthetic tests. Main and production remain unchanged pending explicit approval to merge PR #9. This verification log is committed and pushed on the preview branch under the standing instruction.
+
+---
+
+## 99. Turn 99: LTA Response Validation Merged to Main
+
+**User Instruction:**
+> "yes" (approval to merge PR #9 into main)
+
+### Done (20 October 2026, SGT):
+- Received explicit merge approval. Confirmed exact reviewed head `8e30b44` was mergeable with all GitHub/Vercel checks passing, marked PR #9 ready and merged it into main as `84e7891`. PR: https://github.com/Mikazukiangus/live-traffic/pull/9. Retained the review branch and fast-forwarded local main.
+- Released the shared incident/camera runtime contracts, safe malformed-response handling, validated provider fallback and health probes, plus synthetic JSON examples in docs/api/lta-traffic.md. The approved implementation had 95 passing tests, type checking and a successful production build; no additional application code was changed during this merge.
+- Main-branch Checks workflow `39399788967` passed for the merge commit. Production deployment `dpl_Ekr7AXLxP6zfYjD4zc4ft1ioh8Uz` is READY for `84e7891` and assigned to https://live-traffic-carbon-bc04.vercel.app.
+- Authenticated production homepage, incident and camera requests returned HTTP 200. Incidents contained four records; cameras contained eight DataMall records with matching count/total. Production health returned HTTP 200 with 15/15 UP and a measured 12,885 ms batch; incident and camera probes both reported UP/HTTP 200 under the new validators. These are point-in-time results, not a guarantee of future provider availability, source completeness or pixel freshness.
+- The approved merge is complete. No further confirmation is required. This log update is committed and pushed to main; it contains no additional application changes.
+- No credentials, environment settings, dependencies or lockfiles were changed. No real key values/fragments or signed camera URLs were printed. Pre-existing untracked .claude/ remains untouched. Updated this log and table of contents for commit and push to main under the standing instruction.
 
 ---
 
