@@ -1,3 +1,4 @@
+import { rainNotice } from '../weather/rainFreshness';
 import { RadarSources } from './useRadarSources';
 import { IncidentFeed } from '../../utils/ltaIncidents';
 import { NearMeState } from '../../utils/nearMe';
@@ -17,7 +18,7 @@ export function radarStaleFeeds(sources: RadarSources, incidentFeed: IncidentFee
     speedBandsUpdated,
     speedStatus,
     travelTimes,
-    rainForecast,
+    rainFeed,
     airQuality,
     roadConditions,
     weatherAlerts,
@@ -44,13 +45,8 @@ export function radarStaleFeeds(sources: RadarSources, incidentFeed: IncidentFee
         : 'unavailable, the feed is not responding',
     });
   }
-  const rainEnds = parseSgt(rainForecast?.validPeriod.end);
-  if (rainEnds && now > rainEnds) {
-    staleFeeds.push({
-      label: 'NEA rain forecast',
-      detail: `expired at ${sgtClock(rainEnds)} SGT; no newer forecast received`,
-    });
-  }
+  const rainWarning = rainNotice(rainFeed, now);
+  if (rainWarning) staleFeeds.push(rainWarning);
   const psiAt = parseSgt(airQuality?.psiTimestamp);
   if (roadConditions.status === 'error')
     staleFeeds.push({ label: 'LTA road works & traffic lights', detail: 'not responding' });

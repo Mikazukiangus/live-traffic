@@ -1,18 +1,6 @@
-import { config } from '../../config/client';
-import { usePolledJson } from './usePolledJson';
-
-export interface ForecastArea {
-  name: string;
-  lat: number;
-  lon: number;
-  forecast: string;
-}
-
-export interface RainForecast {
-  issuedAt: string;
-  validPeriod: { start: string; end: string; text: string };
-  areas: ForecastArea[];
-}
+import type { ForecastArea } from '../../shared/weather/rain';
+import { useRainFeed } from '../features/weather/useRainFeed';
+export type { ForecastArea, RainForecast } from '../../shared/weather/rain';
 
 // Ordered from dry to most severe, so levels can be compared.
 export type RainLevel = 'dry' | 'rain' | 'heavy' | 'thundery';
@@ -67,8 +55,33 @@ export interface CorridorRain {
 // area (link midpoint). Fixed, since neither moves, so the rain outlook needs no road geometry.
 // Generated on 2026-10-06 from /api/expresswayspeeds?include=segments and /api/rainforecast.
 export const EXPRESSWAY_RAIN_AREAS: Record<string, string[]> = {
-  PIE: ['Bedok', 'Bukit Batok', 'Bukit Panjang', 'Bukit Timah', 'Changi', 'Clementi', 'Geylang', 'Jalan Bahar', 'Jurong West', 'Novena', 'Pioneer', 'Tampines', 'Tengah', 'Toa Payoh'],
-  AYE: ['Boon Lay', 'Bukit Merah', 'City', 'Clementi', 'Jalan Bahar', 'Jurong East', 'Jurong West', 'Pioneer', 'Queenstown'],
+  PIE: [
+    'Bedok',
+    'Bukit Batok',
+    'Bukit Panjang',
+    'Bukit Timah',
+    'Changi',
+    'Clementi',
+    'Geylang',
+    'Jalan Bahar',
+    'Jurong West',
+    'Novena',
+    'Pioneer',
+    'Tampines',
+    'Tengah',
+    'Toa Payoh',
+  ],
+  AYE: [
+    'Boon Lay',
+    'Bukit Merah',
+    'City',
+    'Clementi',
+    'Jalan Bahar',
+    'Jurong East',
+    'Jurong West',
+    'Pioneer',
+    'Queenstown',
+  ],
   ECP: ['Bedok', 'Changi', 'City', 'Kallang', 'Marine Parade', 'Tampines'],
   CTE: ['Ang Mo Kio', 'Bukit Merah', 'City', 'Kallang', 'Seletar', 'Serangoon', 'Toa Payoh'],
   TPE: ['Changi', 'Pasir Ris', 'Paya Lebar', 'Punggol', 'Seletar', 'Tampines'],
@@ -105,13 +118,15 @@ export function rainByExpressway(areas: ForecastArea[]): Record<string, Corridor
 export function describeCorridorRain(rain: CorridorRain): string {
   const areas = `${rain.areaCount} ${rain.areaCount === 1 ? 'area' : 'areas'}`;
   if (rain.wetAreas.length === 0) return `No rain expected (${areas})`;
-  const names = rain.wetAreas.slice(0, 2).map((a) => a.name).join(', ');
+  const names = rain.wetAreas
+    .slice(0, 2)
+    .map((a) => a.name)
+    .join(', ');
   const more = rain.wetAreas.length > 2 ? ` +${rain.wetAreas.length - 2}` : '';
   return `${rain.wetAreas[0].forecast}: ${names}${more} (${rain.wetAreas.length} of ${areas})`;
 }
 
-// NEA updates roughly every 30 minutes; the endpoint is CDN-cached for 5.
-const RAIN_POLL_MS = config.poll.rain;
-export function useRainForecast(): RainForecast | null {
-  return usePolledJson<RainForecast>('/api/rainforecast', RAIN_POLL_MS, (d) => Array.isArray(d?.areas) && d.areas.length > 0).data;
+// Compatibility hook; polling/state is shared across all consumers.
+export function useRainForecast() {
+  return useRainFeed().data;
 }

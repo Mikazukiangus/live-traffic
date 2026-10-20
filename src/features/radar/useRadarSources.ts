@@ -1,9 +1,12 @@
+import { useRainFeed } from '../weather/useRainFeed';
+import { rainIsValid } from '../../../shared/weather/rain';
+import { useNow } from '../../utils/freshness';
 import { useSpeedFeed } from '../traffic/useSpeedFeed';
 const NO_SEGMENTS: SpeedSegment[] = [];
 
 import { useMemo } from 'react';
 import type { SpeedSegment } from '../../../shared/traffic/types';
-import { rainByExpressway, useRainForecast } from '../../utils/rainForecast';
+import { rainByExpressway } from '../../utils/rainForecast';
 import { useLtaTravelTimes } from '../../utils/ltaTravelTimes';
 import { useAirQuality } from '../../utils/airQuality';
 import { roadWorksByCode, useRoadConditions } from '../../utils/roadConditions';
@@ -26,7 +29,9 @@ export function useRadarSources() {
   const travelTimes = useLtaTravelTimes();
 
   // NEA 2-hour rain forecast for the areas along each expressway (needs no LTA speed data)
-  const rainForecast = useRainForecast();
+  const rainFeed = useRainFeed();
+  const now = useNow();
+  const rainForecast = rainFeed.data && rainIsValid(rainFeed.data, now) ? rainFeed.data : null;
 
   // NEA 24-hour PSI and 1-hour PM2.5 for the five regions
   const airQuality = useAirQuality();
@@ -56,6 +61,7 @@ export function useRadarSources() {
     speedsFromSnapshot,
     travelTimes,
     rainForecast,
+    rainFeed,
     airQuality,
     roadConditions,
     worksByCode,

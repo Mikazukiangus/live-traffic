@@ -1,4 +1,4 @@
-import { reportFailure, UpstreamHttpError } from '../shared/diagnostics.ts';
+import { reportFailure } from '../shared/diagnostics.ts';
 import { config } from '../config/server.ts';
 /**
  * NEA Air Quality Serverless Endpoint (keyless)
@@ -7,7 +7,7 @@ import { config } from '../config/server.ts';
  * Returns the 24-hour PSI and the latest 1-hour PM2.5 for each of the five regions.
  * Either reading may be null when its feed fails; the endpoint fails only if both do.
  */
-import { NO_STORE, liveCacheHeaders, setCorsHeaders, setHeaders } from './_client.ts';
+import { fetchDataGovV2, NO_STORE, liveCacheHeaders, setCorsHeaders, setHeaders } from './_client.ts';
 
 const PSI_URL = config.server.upstreams.psi;
 const PM25_URL = config.server.upstreams.pm25;
@@ -30,19 +30,10 @@ function send(res: any, status: number, body: unknown, cache = NO_STORE) {
 
 // v2 responses are wrapped: { code, errorMsg, data: { regionMetadata, items } }
 async function fetchLatest(url: string) {
-  const get = () => fetch(url, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(config.server.weatherTimeoutMs) });
-  let response = await get();
-  // data.gov.sg rate-limits keyless calls in short bursts; one retry usually gets through.
-  if (response.status === 429) {
-    await new Promise((r) => setTimeout(r, config.server.weatherRetryDelayMs));
-    response = await get();
-  }
-  if (!response.ok) throw new UpstreamHttpError(response.status);
-  const json = await response.json();
-  if (json?.code !== 0 || !json?.data) throw new Error('Unexpected provider payload');
-  const item = json.data.items?.[0];
+  const data = await fetchDataGovV2(url);
+  const item = data.items?.[0];
   if (!item?.readings) throw new Error('No readings published');
-  return { item, regions: json.data.regionMetadata || [] };
+  return { item, regions: data.regionMetadata || [] };
 }
 
 const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null);
@@ -89,7 +80,7 @@ export default async function handler(req: any, res?: any) {
       })),
     },
     // A partial answer is served but not cached, so the next request tries both feeds again.
-    psiData && pm25Data ? CACHE : NO_STORE
+    psiData && pm25Data ? CACHE : NO_STORE,
   );
 }
 

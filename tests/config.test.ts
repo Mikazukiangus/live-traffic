@@ -14,6 +14,10 @@ test('configuration defaults preserve current operational behavior and are immut
   assert.equal(c.server.upstreams.lightning, 'https://api-open.data.gov.sg/v2/real-time/api/weather?api=lightning');
   assert.equal(c.server.speeds.concurrency, 10);
   assert.equal(c.poll.cameras, 30000);
+  assert.equal(c.server.weather.minIntervalMs, 2100);
+  assert.equal(c.server.weatherRetryDelayMs, 10000);
+  assert.equal(c.server.weather.rainCacheTtlMs, 300000);
+  assert.equal(c.healthTimeoutMs, 30000);
   assert.deepEqual(c.server.cache.speeds, [300, 600]);
   assert.ok(Object.isFrozen(c.server.speeds));
   assert.throws(() => { c.poll.cameras = 1; }, TypeError);
@@ -40,7 +44,9 @@ test('invalid settings fail with setting names and no supplied values', () => {
     { DEV_PORT: '0' }, { DEV_PORT: '3100garbage' }, { SPEED_PAGE_CONCURRENCY: '11' },
     { SPEED_MAX_PAGES: '5' }, { REQUEST_TIMEOUT_MS: '-1' }, { VITE_LIVE_POLL_MS: '1.5' },
     { DISABLE_HMR: '0' }, { VITE_VEHICLE_COUNTING_ENABLED: 'TRUE' }, { CDN_CACHE_MULTIPLIER: 'NaN' },
-    { VITE_HEALTH_TIMEOUT_MS: '8000' }, { DEV_HOST: '0.0.0.0; command' }, { DEV_HOST: 'localhost:3200' },
+    { VITE_HEALTH_TIMEOUT_MS: '8000' }, { VITE_HEALTH_TIMEOUT_MS: '20000' },
+    { DATA_GOV_MIN_INTERVAL_MS: '-1' }, { RAIN_MAX_RETAINED_MS: '0' },
+    { DEV_HOST: '0.0.0.0; command' }, { DEV_HOST: 'localhost:3200' },
     { HEALTHCHECK_RETRY_DELAY_MS: '120000', HEALTHCHECK_TIMEOUT_MS: '120000' },
     { LTA_BASE_URL: 'http://untrusted.example.test' }, { LTA_BASE_URL: 'https://user:private-marker@example.test' },
     { VITE_SITE_URL: 'https://example.test/subpath' }, { API_CORS_ORIGIN: 'https://a.test,https://b.test' },
