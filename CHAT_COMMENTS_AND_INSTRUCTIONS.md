@@ -106,6 +106,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 95. [Turn 95: Independent Hazard Geography on Preview](#95-turn-95-independent-hazard-geography-on-preview)
 96. [Turn 96: Continue and Verify Hazard Geography](#96-turn-96-continue-and-verify-hazard-geography)
 97. [Turn 97: Hazard Geography Merged to Main](#97-turn-97-hazard-geography-merged-to-main)
+98. [Turn 98: Validate LTA Incident and Camera Responses](#98-turn-98-validate-lta-incident-and-camera-responses)
 
 ---
 
@@ -1702,6 +1703,31 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Production health returned 200 with 15/15 UP and a 12,921 ms probe batch. This is a point-in-time provider check; the existing approximate town-centre matching and versioned-catalogue maintenance requirements remain documented.
 - Updated ARCHITECTURE.md and LAYERING_REVIEW.md to mark the first slice released. Recorded this turn and table of contents for commit/push to main under the standing instruction. Later server flood, booking, commute and container extractions remain separate previews.
 - No credentials, environment settings, dependencies or lockfiles were changed. No real key values/fragments or signed camera links were printed; the pre-existing untracked .claude/ directory remains untouched. No further approval is required for the completed merge.
+
+---
+
+## 98. Turn 98: Validate LTA Incident and Camera Responses
+
+**User Instructions:**
+> "Show me the JSON shape this API returns, and add validation so a malformed response is caught early."
+> Clarification: "LTA traffic API for incidents and traffic cameras."
+
+### Implemented on `codex/lta-payload-validation` (20 October 2026, SGT):
+- After the initial ambiguous request, drafted PUB flood validation while awaiting clarification. Set aside that unpublished draft in a private temporary backup when the user identified LTA incidents and cameras. No flood implementation is included, committed or deployed in this preview. Two earlier keyless PUB response inspections were part of that initial investigation.
+- Inspected authenticated production responses with safe field/count projection only: incidents returned HTTP 200 with three rows of Type/Latitude/Longitude/Message; cameras returned HTTP 200 with seven normalized camera records. No real image URLs, key values/fragments or response bodies were printed. Counts are observations, not enforced limits.
+- Added shared, dependency-free runtime contracts for incident records, DataMall/public camera inputs and normalized camera output. Validate entire snapshots, finite coordinate ranges, nonblank strings, HTTPS URL structure, unique camera IDs, matching totals and explicit-zone calendar-valid timestamps. Unknown incident types and extra provider fields remain allowed. Valid empty lists remain distinct from missing/malformed wrappers.
+- Incident Node/Web routes validate before successful caching; the browser checks the same contract before replacing its list. Both camera providers validate before normalization, and the browser validates internal/public fallback responses. Invalid primary camera data can recover through the existing public fallback. Existing hook error paths retain previous valid data and receipt/capture times on failed refresh.
+- Preserve successful OData payloads, source observation times, signed image links and CDN behavior. Invalid embedded camera dates cannot become a fresh request time. The historical request-time fallback for filenames without a timestamp remains and is documented as a freshness limitation. Public snapshots select the newest actual instant if multiple are supplied.
+- Added fixed `UPSTREAM_INVALID_RESPONSE` diagnostics and safe 502/no-store responses without rejected values or snippets. Incident and camera health probes check payload structure, retaining the actual HTTP status for malformed HTTP 200 responses. Other feeds retain their existing validation policy.
+- Documented synthetic JSON examples, required/optional fields, fallbacks, empty/error states and limitations in docs/api/lta-traffic.md; linked the new contracts from ARCHITECTURE.md. Updated camera test fixtures to provide realistic required fields.
+- Final formatting, type checking with unused locals, all 95 tests (ten new contract/integration tests), production build and whitespace checks passed. Reviewed the existing hook retention paths: invalid incident data is rejected before state/receipt updates, and a rejected camera refresh only sets failure state. No UI components were changed. A redacted scan of all 16 changed/new files found no secret candidates. Preview publication and deployment results are recorded below after verification. Main merge requires explicit approval; no dependencies, environment settings, credentials or lockfiles are changed. Pre-existing untracked .claude/ remains untouched.
+
+
+### Published preview and live verification:
+- Pushed implementation `252ada6`, opened draft PR #9 (https://github.com/Mikazukiangus/live-traffic/pull/9) and attached it to this chat. The preview is mergeable; branch GitHub Checks, PR Checks, Vercel deployment and preview checks passed before this log update.
+- Exact implementation deployment `dpl_7ZuQ6BDCrJy3jz2Niw2FjRsnNLPo` is READY: https://live-traffic-o3nsttjcd-carbon-bc04.vercel.app. Authenticated homepage, incident and camera requests returned 200. The incident endpoint returned four valid records; cameras returned eight DataMall records with matching total/count. Only status/count/source/field names were reported; no real image URLs or keys were printed.
+- Authenticated preview health returned 200 with 15/15 UP in a measured 12,971 ms batch. Incident and camera probes both returned UP/HTTP 200 under the new payload checks. These are point-in-time observations; schema validation does not guarantee source completeness or image freshness/accessibility.
+- No local browser or temporary provider server was required for this API-focused change. Existing retention paths were reviewed, and validation/fallback behavior was exercised with synthetic tests. Main and production remain unchanged pending explicit approval to merge PR #9. This verification log is committed and pushed on the preview branch under the standing instruction.
 
 ---
 

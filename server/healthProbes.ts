@@ -1,4 +1,4 @@
-import { safeFailure, UpstreamHttpError } from '../shared/diagnostics.ts';
+import { InvalidPayloadError, safeFailure, UpstreamHttpError } from '../shared/diagnostics.ts';
 import { fetchDataGovV2 } from './providers/dataGov.ts';
 import { config } from '../config/server.ts';
 const PROBE_TIMEOUT_MS = config.server.probeTimeoutMs;
@@ -9,15 +9,32 @@ export interface ProbeResult {
   error?: string;
 }
 
-export async function probe(url: string, headers: Record<string, string> = {}): Promise<ProbeResult> {
+export async function probe(
+  url: string,
+  headers: Record<string, string> = {},
+  validate?: (value: unknown) => boolean,
+): Promise<ProbeResult> {
   const start = Date.now();
+  let httpCode = 0;
   try {
     const response = await fetch(url, {
       headers: { accept: 'application/json', ...headers },
       signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
     });
-    // Drain the body so the connection is released.
-    await response.arrayBuffer().catch(() => undefined);
+    httpCode = response.status;
+    if (response.ok && validate) {
+      let data: unknown;
+      try {
+        data = await response.json();
+      } catch (error) {
+        if (error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError')) throw error;
+        throw new InvalidPayloadError();
+      }
+      if (!validate(data)) throw new InvalidPayloadError();
+    } else {
+      // Drain unvalidated bodies so the connection is released.
+      await response.arrayBuffer().catch(() => undefined);
+    }
     return {
       status: response.ok ? 'UP' : 'DOWN',
       httpCode: response.status,
@@ -27,7 +44,7 @@ export async function probe(url: string, headers: Record<string, string> = {}): 
   } catch (err: any) {
     return {
       status: 'DOWN',
-      httpCode: 0,
+      httpCode,
       latencyMs: Date.now() - start,
       error: safeFailure('gateway', err).body.error,
     };

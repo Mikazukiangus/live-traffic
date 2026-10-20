@@ -1,5 +1,5 @@
 import { config } from '../../config/server.ts';
-import { reportFailure, UpstreamHttpError } from '../../shared/diagnostics.ts';
+import { InvalidPayloadError, reportFailure, UpstreamHttpError } from '../../shared/diagnostics.ts';
 import { sendJson, setCorsHeaders, setHeaders, liveCacheHeaders } from '../http/responses.ts';
 export interface LtaRequestOptions {
   endpoint: string;
@@ -32,7 +32,12 @@ const LTA_PROXY_CACHE = liveCacheHeaders(...config.server.cache.proxy);
  * Universal Serverless Handler for LTA DataMall endpoints.
  * Supports both Node/Express style (req, res) and Web standard Request -> Response.
  */
-export async function handleLtaRequest(endpointUrl: string, req: any, res?: any): Promise<Response | void> {
+export async function handleLtaRequest(
+  endpointUrl: string,
+  req: any,
+  res?: any,
+  validate?: (value: unknown) => boolean,
+): Promise<Response | void> {
   // Handle CORS preflight
   if (req && req.method === 'OPTIONS') {
     if (res && typeof res.status === 'function') {
@@ -99,8 +104,14 @@ export async function handleLtaRequest(endpointUrl: string, req: any, res?: any)
       return sendJson(res, response.status, reportFailure('lta', undefined, response.status));
     }
 
-    const data = await response.json();
-    if (!data || !Array.isArray(data.value)) throw new Error('Unexpected LTA payload');
+    let data;
+    try {
+      data = await response.json();
+    } catch (error) {
+      if (error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError')) throw error;
+      throw new InvalidPayloadError();
+    }
+    if (validate ? !validate(data) : !data || !Array.isArray(data.value)) throw new InvalidPayloadError();
 
     const cache = LTA_PROXY_CACHE;
     if (res && typeof res.status === 'function') {

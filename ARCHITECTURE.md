@@ -52,6 +52,7 @@ A newer summary does not relabel retained segment speeds as current: current seg
 | `server/providers/dataGov.ts` / `dataGovClient.ts` | Wrapped v2 transport, pending-request sharing, instance-local pacing/cooldown and bounded rate-limit retry |
 | `server/weather/rainService.ts` | Validated forecasts, fresh cache, pending refreshes and validity/age-limited retention |
 | `shared/weather/rain.ts` / `shared/time.ts` / `shared/httpRetry.ts` | Cross-runtime forecast validation, Singapore timestamp parsing and safe retry timing |
+| `shared/traffic/incidents.ts`, `cameras.ts`, `validation.ts` | Cross-runtime incident/camera contracts, safe JSON parsing and pure camera normalization; see [JSON examples](docs/api/lta-traffic.md) |
 | `shared/geography/` | NEA reference coordinates, expressway area footprints, distance calculations and explicit hazard-matching results |
 | `server/providers/ltaSpeedPages.ts` | Speed-page retries, timeout and source timestamp metadata |
 | `server/traffic/aggregateSpeeds.ts` | Incremental, pure speed summaries and geometry normalization |
