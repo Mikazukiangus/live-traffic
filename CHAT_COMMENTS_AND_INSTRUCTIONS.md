@@ -105,6 +105,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 94. [Turn 94: UI, Business Logic and Data Access Layer Review](#94-turn-94-ui-business-logic-and-data-access-layer-review)
 95. [Turn 95: Independent Hazard Geography on Preview](#95-turn-95-independent-hazard-geography-on-preview)
 96. [Turn 96: Continue and Verify Hazard Geography](#96-turn-96-continue-and-verify-hazard-geography)
+97. [Turn 97: Hazard Geography Merged to Main](#97-turn-97-hazard-geography-merged-to-main)
 
 ---
 
@@ -1686,6 +1687,21 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Exact implementation deployment `dpl_DqLouPnBeEwU6ZJeuxxK6Wm94zyx` is READY: https://live-traffic-inf19wwol-carbon-bc04.vercel.app. Authenticated checks returned 200 for the homepage, its referenced entry asset and the referenced radar asset; the radar bundle contains the new unavailable-matching message and reference-area data.
 - Closed the temporary browser tab and stopped the owned local preview/provider fixture after verification. Main and production remain unchanged. The pushed preview is ready for explicit merge approval; the later layering slices are still separate work.
 
+
+---
+
+## 97. Turn 97: Hazard Geography Merged to Main
+
+**User Instruction:**
+> "merge to main"
+
+### Done (20 October 2026, SGT):
+- Received explicit approval, confirmed exact reviewed head `628f61c` was mergeable with all GitHub/Vercel checks passing, marked PR #8 ready and merged it into main as `7dcf998`. PR: https://github.com/Mikazukiangus/live-traffic/pull/8. Retained the review branch and fast-forwarded local main.
+- Main-branch Checks workflow `39395995361` passed for the merge commit. The released implementation includes the previously verified 85 passing tests, type check and production build; no additional application change was required during the merge.
+- Production deployment `dpl_Dhxu1bWfMdDKoNfhrDTRPTFQVCsb` is READY for the merge commit and assigned to https://live-traffic-carbon-bc04.vercel.app. Authenticated homepage and referenced entry/radar asset checks returned 200; the served radar bundle includes the unavailable-matching message and reference-area data.
+- Production health returned 200 with 15/15 UP and a 12,921 ms probe batch. This is a point-in-time provider check; the existing approximate town-centre matching and versioned-catalogue maintenance requirements remain documented.
+- Updated ARCHITECTURE.md and LAYERING_REVIEW.md to mark the first slice released. Recorded this turn and table of contents for commit/push to main under the standing instruction. Later server flood, booking, commute and container extractions remain separate previews.
+- No credentials, environment settings, dependencies or lockfiles were changed. No real key values/fragments or signed camera links were printed; the pre-existing untracked .claude/ directory remains untouched. No further approval is required for the completed merge.
 
 ---
 

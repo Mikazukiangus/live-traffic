@@ -79,7 +79,7 @@ Weather retry/cache behavior and its per-instance limits are documented in [WEAT
 
 For the remaining UI/domain/data-access seams after PRs #6 and #7, see [LAYERING_REVIEW.md](LAYERING_REVIEW.md). It is a proposed plan, not an implemented folder reorganization.
 
-## Independent hazard geography (preview)
+## Independent hazard geography
 
 `shared/geography/forecastAreas.ts` contains the 47 NEA area names/coordinates acquired from the official two-hour endpoint's `area_metadata` on 20 October 2026. It stores no forecast wording or validity and needs no runtime fetch, cache or subscriber. The data is a versioned reference catalogue; future provider coordinate/name changes require a reviewed catalogue refresh and an updated `verifiedOn` date.
 
