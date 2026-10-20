@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { TOW_FLEET_UNITS } from '../data/mockData';
+import { TOW_FLEET_UNITS } from '../data/demoData';
 import { TowUnit } from '../types/traffic';
 
 interface RadarWidgetProps {
@@ -56,7 +56,9 @@ export const RadarWidget: React.FC<RadarWidgetProps> = ({
 
         {/* Top unit selector hint */}
         <div className="self-end bg-scrim/80 backdrop-blur-md px-2 py-0.5 rounded text-[10px] text-white font-mono flex items-center gap-1">
-          <span>Sample {selectedUnitIndex + 1}/{TOW_FLEET_UNITS.length}</span>
+          <span>
+            Sample {selectedUnitIndex + 1}/{TOW_FLEET_UNITS.length}
+          </span>
           <span className="material-symbols-outlined text-[12px]">cycle</span>
         </div>
 
@@ -68,9 +70,7 @@ export const RadarWidget: React.FC<RadarWidgetProps> = ({
               {activeUnit.code}: {activeUnit.distanceKm}km away
             </span>
           </span>
-          <span className="text-emerald-700 font-bold font-mono shrink-0 pl-1">
-            ETA {activeUnit.etaMins} min
-          </span>
+          <span className="text-emerald-700 font-bold font-mono shrink-0 pl-1">ETA {activeUnit.etaMins} min</span>
         </div>
       </div>
 
@@ -85,7 +85,9 @@ export const RadarWidget: React.FC<RadarWidgetProps> = ({
           <span className="text-slate-900 font-bold">{trafficSpeed}</span>
         </div>
         <div className="bg-slate-50 border border-slate-200 p-2.5 rounded">
-          <span className="text-slate-500 text-[10px] uppercase block font-semibold">{corridorCode} Incidents (LTA)</span>
+          <span className="text-slate-500 text-[10px] uppercase block font-semibold">
+            {corridorCode} Incidents (LTA)
+          </span>
           <span className="text-slate-900 font-bold">{incidentsText}</span>
         </div>
         {rainText && (

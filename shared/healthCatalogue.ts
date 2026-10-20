@@ -1,0 +1,36 @@
+/** Trusted static identities only: no runtime environment, provider data or server imports. */
+export const HEALTH_PATHS = {
+  health: '/api/health',
+  traffic: '/api/traffic',
+  trafficimages: '/api/trafficimages',
+  trafficflow: '/api/trafficflow',
+  expresswayspeeds: '/api/expresswayspeeds',
+  vms: '/api/vms',
+  traveltimes: '/api/traveltimes',
+  rainforecast: '/api/rainforecast',
+  forecast24h: '/api/forecast24h',
+  airquality: '/api/airquality',
+  roadconditions: '/api/live?feed=roadconditions',
+  carparks: '/api/live?feed=carparks',
+  weatheralerts: '/api/live?feed=weatheralerts',
+  floods: '/api/live?feed=floods',
+  imageproxy: '/api/imageproxy',
+} as const;
+
+export const HEALTH_FEEDS = [
+  [HEALTH_PATHS.health, 'Gateway health'],
+  [HEALTH_PATHS.traffic, 'Traffic incidents'],
+  [HEALTH_PATHS.trafficimages, 'Traffic cameras'],
+  [HEALTH_PATHS.trafficflow, 'Speed bands'],
+  [HEALTH_PATHS.expresswayspeeds, 'Speed summary'],
+  [HEALTH_PATHS.vms, 'Message signs'],
+  [HEALTH_PATHS.traveltimes, 'Travel times'],
+  [HEALTH_PATHS.rainforecast, 'Two-hour forecast'],
+  [HEALTH_PATHS.forecast24h, '24-hour forecast'],
+  [HEALTH_PATHS.airquality, 'Air quality'],
+  [HEALTH_PATHS.roadconditions, 'Road conditions'],
+  [HEALTH_PATHS.carparks, 'Car parks'],
+  [HEALTH_PATHS.weatheralerts, 'Lightning and heat'],
+  [HEALTH_PATHS.floods, 'Flood alerts'],
+  [HEALTH_PATHS.imageproxy, 'Camera image proxy'],
+] as const;

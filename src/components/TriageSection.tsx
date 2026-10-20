@@ -1,5 +1,5 @@
 import React from 'react';
-import { TRIAGE_SITUATIONS } from '../data/mockData';
+import { TRIAGE_SITUATIONS } from '../data/demoData';
 import { TriageSituation } from '../types/traffic';
 
 interface TriageSectionProps {
@@ -84,9 +84,7 @@ export const TriageSection: React.FC<TriageSectionProps> = ({ onSelectSituation 
                 <h3 className="text-sm sm:text-base text-slate-900 font-bold group-hover:text-sky-600 transition-colors">
                   {sit.title}
                 </h3>
-                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                  {sit.description}
-                </p>
+                <p className="text-xs text-slate-600 mt-1 leading-relaxed">{sit.description}</p>
               </div>
 
               {/* Pricing & Dispatch Action */}

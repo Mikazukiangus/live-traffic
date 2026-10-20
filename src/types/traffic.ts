@@ -1,4 +1,8 @@
-export type TabType = 'live-traffic-radar' | 'highway-cameras-emas' | 'roadside-sos-workshops' | 'route-alerts-courier-hub';
+export type TabType =
+  | 'live-traffic-radar'
+  | 'highway-cameras-emas'
+  | 'roadside-sos-workshops'
+  | 'route-alerts-courier-hub';
 
 export type WorkshopCategory = 'all' | 'towing' | 'insurance' | 'fleet' | 'ev';
 
@@ -76,7 +80,7 @@ export interface ActiveDispatch {
   createdAt: string;
 }
 
-export type CongestionStatus = 'Smooth' | 'Moderate' | 'Heavy' | 'Congested';
+export type { CongestionStatus } from '../../shared/traffic/types';
 
 // Static reference details; live speeds, incidents and travel times come from LTA.
 export interface ExpresswayCorridor {

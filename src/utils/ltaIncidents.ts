@@ -9,7 +9,7 @@ import { config } from '../../config/client';
 import { useMemo } from 'react';
 import { usePolledJson } from './usePolledJson';
 import { sgtClock } from './freshness';
-import { EXPRESSWAY_CORRIDORS } from '../data/mockData';
+import { EXPRESSWAY_CORRIDORS } from '../data/expressways';
 import { IncidentAlert } from '../types/traffic';
 
 export const NON_EXPRESSWAY_CORRIDOR = 'Singapore Road Network';
@@ -39,17 +39,14 @@ const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 // Codes ("PIE") and full names ("Central Expressway", "Kallang Paya Lebar Expressway") -> code
 const EXPRESSWAY_PATTERN = new RegExp(
-  `^(${EXPRESSWAY_CORRIDORS.flatMap((c) => [
-    c.code,
-    escapeRegex(c.name).replace(/[- ]+/g, '[-\\s]+'),
-  ]).join('|')})\\b`,
-  'i'
+  `^(${EXPRESSWAY_CORRIDORS.flatMap((c) => [c.code, escapeRegex(c.name).replace(/[- ]+/g, '[-\\s]+')]).join('|')})\\b`,
+  'i',
 );
 
 const codeFor = (match: string): string | undefined => {
   const norm = match.toLowerCase().replace(/[-\s]+/g, ' ');
   return EXPRESSWAY_CORRIDORS.find(
-    (c) => c.code.toLowerCase() === norm || c.name.toLowerCase().replace(/[-\s]+/g, ' ') === norm
+    (c) => c.code.toLowerCase() === norm || c.name.toLowerCase().replace(/[-\s]+/g, ' ') === norm,
   )?.code;
 };
 
@@ -159,8 +156,7 @@ const SEVERITY_RANK: Record<IncidentAlert['severity'], number> = { Critical: 0, 
 export const sortBySeverity = (incidents: IncidentAlert[]) =>
   [...incidents].sort(
     (a, b) =>
-      SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity] ||
-      Number(!a.corridorCode) - Number(!b.corridorCode)
+      SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity] || Number(!a.corridorCode) - Number(!b.corridorCode),
   );
 
 export const countByCorridor = (incidents: IncidentAlert[]): Record<string, number> => {
@@ -190,10 +186,17 @@ const INCIDENT_POLL_MS = config.poll.live;
  * After a failed refresh the last live list is kept and status becomes "error".
  */
 export function useLtaIncidents(): IncidentFeed {
-  const feed = usePolledJson<{ value: LtaIncidentRecord[] }>('/api/traffic', INCIDENT_POLL_MS, (d) => Array.isArray(d?.value));
+  const feed = usePolledJson<{ value: LtaIncidentRecord[] }>('/api/traffic', INCIDENT_POLL_MS, (d) =>
+    Array.isArray(d?.value),
+  );
   const incidents = useMemo(() => {
     const now = new Date(feed.fetchedAt ?? Date.now());
     return sortBySeverity((feed.data?.value || []).map((item, idx) => mapLtaIncident(item, idx, now)));
   }, [feed.data, feed.fetchedAt]);
-  return { incidents, status: feed.status, fetchedAt: feed.fetchedAt ? sgtClock(feed.fetchedAt) : null, refresh: feed.refresh };
+  return {
+    incidents,
+    status: feed.status,
+    fetchedAt: feed.fetchedAt ? sgtClock(feed.fetchedAt) : null,
+    refresh: feed.refresh,
+  };
 }
