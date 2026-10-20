@@ -134,3 +134,7 @@ Enforce the seam with simple import checks: domain modules import no React, `con
 ## Scope and verification
 
 This is a source-level review of the current implementation. The only executed application check was the small, synthetic geographic-matching comparison described above. No live APIs, browser permissions, real notifications, deployments or dispatch submissions were used, and no full test/build rerun was needed for documentation changes. The previous release's 77 passing tests are historical evidence, not newly rerun results for this review.
+
+## First implementation follow-up (preview)
+
+The first recommended slice is implemented on `codex/independent-hazard-geography`: an official versioned 47-area catalogue, pure geography/hazard matching and explicit unavailable UI states. Hazard matching no longer consumes the current rain forecast's area list. The raw hazard/map paths are preserved. See `ARCHITECTURE.md` and `tests/hazard-geography.test.ts` for ownership, provenance, approximation and checks. This preview requires explicit approval before merging to main; server flood extraction and the other proposed layers remain later slices.

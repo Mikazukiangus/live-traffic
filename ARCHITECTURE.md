@@ -52,6 +52,7 @@ A newer summary does not relabel retained segment speeds as current: current seg
 | `server/providers/dataGov.ts` / `dataGovClient.ts` | Wrapped v2 transport, pending-request sharing, instance-local pacing/cooldown and bounded rate-limit retry |
 | `server/weather/rainService.ts` | Validated forecasts, fresh cache, pending refreshes and validity/age-limited retention |
 | `shared/weather/rain.ts` / `shared/time.ts` / `shared/httpRetry.ts` | Cross-runtime forecast validation, Singapore timestamp parsing and safe retry timing |
+| `shared/geography/` | NEA reference coordinates, expressway area footprints, distance calculations and explicit hazard-matching results |
 | `server/providers/ltaSpeedPages.ts` | Speed-page retries, timeout and source timestamp metadata |
 | `server/traffic/aggregateSpeeds.ts` | Incremental, pure speed summaries and geometry normalization |
 | `server/traffic/traceCheckpoint.ts` | Pure directional route tracing, coverage and travel-time estimates |
@@ -77,3 +78,13 @@ Run `bun run lint`, `bun run test` and `bun run build` before publishing an impl
 Weather retry/cache behavior and its per-instance limits are documented in [WEATHER_FEEDS.md](WEATHER_FEEDS.md). `tests/weather-reliability.test.ts` covers pacing, provider cooldowns, cache age/expiry, retained response headers and shared browser polling.
 
 For the remaining UI/domain/data-access seams after PRs #6 and #7, see [LAYERING_REVIEW.md](LAYERING_REVIEW.md). It is a proposed plan, not an implemented folder reorganization.
+
+## Independent hazard geography (preview)
+
+`shared/geography/forecastAreas.ts` contains the 47 NEA area names/coordinates acquired from the official two-hour endpoint's `area_metadata` on 20 October 2026. It stores no forecast wording or validity and needs no runtime fetch, cache or subscriber. The data is a versioned reference catalogue; future provider coordinate/name changes require a reviewed catalogue refresh and an updated `verifiedOn` date.
+
+`hazardMatching.ts` accepts plain coordinates and a reference catalogue. It imports neither React nor configuration/provider clients. Results distinguish ready (possibly no matches) from unavailable (missing feed or unusable geography). An empty known hazard list needs no geography to establish no events. Incomplete/duplicate/invalid catalogues cannot establish no nearby hazards when events exist.
+
+Radar composition uses this catalogue even when rain is expired, failed or never loaded. Weather presentation handles unavailable matching explicitly; raw hazard markers and flood descriptions retain their existing path. Rain validity still controls prediction text only. Existing approximate matching is preserved: lightning within 5 km of town-centre areas along a road; flood circles within an additional 1.5 km. This does not establish exact road intersection.
+
+To refresh the reference data, inspect the official `area_metadata`, retain only name/latitude/longitude, review the coordinate changes, update source verification date, and run the coverage/matching tests. Keep the existing road-to-area associations separate from the current prediction payload.

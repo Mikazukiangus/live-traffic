@@ -26,6 +26,11 @@ export function radarStaleFeeds(sources: RadarSources, incidentFeed: IncidentFee
   } = sources;
   const { status: incidentStatus, fetchedAt: incidentsFetchedAt } = incidentFeed;
   const staleFeeds: StaleFeed[] = [];
+  if ([sources.lightningMatch, sources.floodMatch].some((m) => m.status === 'unavailable' && m.reason === 'geography'))
+    staleFeeds.push({
+      label: 'Expressway hazard matching',
+      detail: 'reference locations unavailable; use the mapped hazard locations',
+    });
   const speedsAt = parseSgt(speedBandsUpdated);
   if (speedStatus === 'error' || (speedsAt && now - speedsAt > SPEEDS_STALE_MS)) {
     staleFeeds.push({

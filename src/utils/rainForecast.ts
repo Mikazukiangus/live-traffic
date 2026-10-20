@@ -1,3 +1,5 @@
+import { EXPRESSWAY_AREAS as EXPRESSWAY_RAIN_AREAS } from '../../shared/geography/expresswayAreas';
+export { EXPRESSWAY_AREAS as EXPRESSWAY_RAIN_AREAS } from '../../shared/geography/expresswayAreas';
 import type { ForecastArea } from '../../shared/weather/rain';
 import { useRainFeed } from '../features/weather/useRainFeed';
 export type { ForecastArea, RainForecast } from '../../shared/weather/rain';
@@ -50,47 +52,6 @@ export interface CorridorRain {
   // Areas along the expressway forecast to have rain, worst first.
   wetAreas: ForecastArea[];
 }
-
-// NEA forecast areas along each expressway: every LTA speed band link assigned to its nearest
-// area (link midpoint). Fixed, since neither moves, so the rain outlook needs no road geometry.
-// Generated on 2026-10-06 from /api/expresswayspeeds?include=segments and /api/rainforecast.
-export const EXPRESSWAY_RAIN_AREAS: Record<string, string[]> = {
-  PIE: [
-    'Bedok',
-    'Bukit Batok',
-    'Bukit Panjang',
-    'Bukit Timah',
-    'Changi',
-    'Clementi',
-    'Geylang',
-    'Jalan Bahar',
-    'Jurong West',
-    'Novena',
-    'Pioneer',
-    'Tampines',
-    'Tengah',
-    'Toa Payoh',
-  ],
-  AYE: [
-    'Boon Lay',
-    'Bukit Merah',
-    'City',
-    'Clementi',
-    'Jalan Bahar',
-    'Jurong East',
-    'Jurong West',
-    'Pioneer',
-    'Queenstown',
-  ],
-  ECP: ['Bedok', 'Changi', 'City', 'Kallang', 'Marine Parade', 'Tampines'],
-  CTE: ['Ang Mo Kio', 'Bukit Merah', 'City', 'Kallang', 'Seletar', 'Serangoon', 'Toa Payoh'],
-  TPE: ['Changi', 'Pasir Ris', 'Paya Lebar', 'Punggol', 'Seletar', 'Tampines'],
-  KPE: ['Geylang', 'Hougang', 'Kallang', 'Marine Parade', 'Paya Lebar', 'Punggol', 'Sengkang'],
-  SLE: ['Ang Mo Kio', 'Central Water Catchment', 'Mandai', 'Seletar', 'Sungei Kadut', 'Woodlands', 'Yishun'],
-  BKE: ['Bukit Panjang', 'Bukit Timah', 'Choa Chu Kang', 'Sungei Kadut', 'Woodlands'],
-  KJE: ['Bukit Panjang', 'Choa Chu Kang', 'Sungei Kadut', 'Tengah'],
-  MCE: ['City', 'Marine Parade'],
-};
 
 // Rain outlook per expressway from the latest NEA 2-hour forecast.
 export function rainByExpressway(areas: ForecastArea[]): Record<string, CorridorRain> {

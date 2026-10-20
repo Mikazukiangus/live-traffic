@@ -1,9 +1,7 @@
+import type { ReferenceArea } from '../geography/coordinates.ts';
 import { parseSgt } from '../time.ts';
 
-export interface ForecastArea {
-  name: string;
-  lat: number;
-  lon: number;
+export interface ForecastArea extends ReferenceArea {
   forecast: string;
 }
 export interface RainForecast {
