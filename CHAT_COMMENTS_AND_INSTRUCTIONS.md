@@ -1722,6 +1722,13 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Documented synthetic JSON examples, required/optional fields, fallbacks, empty/error states and limitations in docs/api/lta-traffic.md; linked the new contracts from ARCHITECTURE.md. Updated camera test fixtures to provide realistic required fields.
 - Final formatting, type checking with unused locals, all 95 tests (ten new contract/integration tests), production build and whitespace checks passed. Reviewed the existing hook retention paths: invalid incident data is rejected before state/receipt updates, and a rejected camera refresh only sets failure state. No UI components were changed. A redacted scan of all 16 changed/new files found no secret candidates. Preview publication and deployment results are recorded below after verification. Main merge requires explicit approval; no dependencies, environment settings, credentials or lockfiles are changed. Pre-existing untracked .claude/ remains untouched.
 
+
+### Published preview and live verification:
+- Pushed implementation `252ada6`, opened draft PR #9 (https://github.com/Mikazukiangus/live-traffic/pull/9) and attached it to this chat. The preview is mergeable; branch GitHub Checks, PR Checks, Vercel deployment and preview checks passed before this log update.
+- Exact implementation deployment `dpl_7ZuQ6BDCrJy3jz2Niw2FjRsnNLPo` is READY: https://live-traffic-o3nsttjcd-carbon-bc04.vercel.app. Authenticated homepage, incident and camera requests returned 200. The incident endpoint returned four valid records; cameras returned eight DataMall records with matching total/count. Only status/count/source/field names were reported; no real image URLs or keys were printed.
+- Authenticated preview health returned 200 with 15/15 UP in a measured 12,971 ms batch. Incident and camera probes both returned UP/HTTP 200 under the new payload checks. These are point-in-time observations; schema validation does not guarantee source completeness or image freshness/accessibility.
+- No local browser or temporary provider server was required for this API-focused change. Existing retention paths were reviewed, and validation/fallback behavior was exercised with synthetic tests. Main and production remain unchanged pending explicit approval to merge PR #9. This verification log is committed and pushed on the preview branch under the standing instruction.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*
