@@ -1612,6 +1612,13 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - A redacted scan of the 32 changed/new files found one existing synthetic configuration-test fixture and no real credential findings. No key values/fragments or signed camera links were printed.
 - Reviewed the changed React composition for stable subscriptions, shared listeners/polling, existing tab behavior and conditional expiry notices. Preview deployment and CI results are recorded below after publication. Main merge still requires explicit approval under the standing preview workflow.
 
+### Published preview:
+- Pushed implementation `aa46675` and opened draft PR #7: https://github.com/Mikazukiangus/live-traffic/pull/7. Branch/PR GitHub checks and Vercel checks passed; the PR is mergeable. Attached the PR to this chat.
+- Exact implementation deployment `dpl_8DRdZ54zsxqbRbT8f9xu8LsbHfUH` is READY: https://live-traffic-hoov8gtkh-carbon-bc04.vercel.app. Authenticated homepage and rain requests returned 200. The rain payload contained 47 areas, current delivery metadata and the original 09:30–11:30 SGT validity; browser cache headers require revalidation.
+- The preview health endpoint returned 200 with 15/15 UP, the LTA key configured, and a measured 12,985 ms probe batch. This point-in-time result does not guarantee future provider availability. The process-local quota limitation remains documented.
+- Controlled camera/weather warning checks captured no uncaught/reference/type/update-depth errors. Temporary local previews and their fixture are closed after verification. Production remains on main; explicit user approval is required to merge PR #7.
+
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*
