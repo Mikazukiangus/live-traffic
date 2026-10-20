@@ -1808,6 +1808,12 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Reviewed the changed React hooks/components against the React best-practices skill for stable subscriptions/dependencies, derived route samples and accessible notices. Closed the owned fixture tab and stopped its local server after verification. Documented migration/limits in COMMUTE_STORAGE.md and ownership in ARCHITECTURE.md; pinned historical review source links and marked its first slice as preview work.
 - Final formatting, type checking with unused locals, all 106 tests, the production build and whitespace checks passed. A redacted scan of all 15 changed/new files found no secret candidates. Kept unrelated test-file formatting out of the final diff. Updated this log/table of contents for commit and push under the standing instruction; PR/CI and deployment outcomes are recorded after publication below. Main merge requires explicit user approval. No dependencies, lockfiles, credentials or remote environment settings were changed; pre-existing .claude/ remains untouched.
 
+
+### Published preview:
+- Pushed implementation `4312260`, opened draft PR #10 (https://github.com/Mikazukiangus/live-traffic/pull/10) and attached it to this chat. GitHub branch and PR Checks, Vercel deployment and preview checks all passed; the PR is mergeable.
+- Exact implementation deployment `dpl_GDcWh5DwTRJAt9vm9Wr4MaxZkVeo` is READY: https://live-traffic-dm46uhem7-carbon-bc04.vercel.app. Authenticated homepage and its referenced entry asset returned HTTP 200. The served bundle contains the v1 storage keys, protected-store notice and route-key history implementation. No remote user storage was modified; behavior was exercised through the isolated local UI fixture and injected repository tests.
+- No additional live provider/health calls were needed for this browser-storage-only implementation. Main and production remain unchanged. The old route history restart is intentional and documented; original legacy keys are preserved. The later directed-path, observation, tariff and dispatch slices remain separate work. Main merge still requires explicit user approval.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*
