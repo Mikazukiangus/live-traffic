@@ -1,3 +1,4 @@
+import { isLtaIncidentPayload, type LtaIncidentPayload } from '../../shared/traffic/incidents.ts';
 import { config } from '../../config/client';
 /**
  * Maps LTA DataMall TrafficIncidents records into IncidentAlert objects.
@@ -186,9 +187,7 @@ const INCIDENT_POLL_MS = config.poll.live;
  * After a failed refresh the last live list is kept and status becomes "error".
  */
 export function useLtaIncidents(): IncidentFeed {
-  const feed = usePolledJson<{ value: LtaIncidentRecord[] }>('/api/traffic', INCIDENT_POLL_MS, (d) =>
-    Array.isArray(d?.value),
-  );
+  const feed = usePolledJson<LtaIncidentPayload>('/api/traffic', INCIDENT_POLL_MS, isLtaIncidentPayload);
   const incidents = useMemo(() => {
     const now = new Date(feed.fetchedAt ?? Date.now());
     return sortBySeverity((feed.data?.value || []).map((item, idx) => mapLtaIncident(item, idx, now)));

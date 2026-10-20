@@ -284,7 +284,13 @@ test('camera client preserves the public fallback and offline provenance of inte
             items: [
               {
                 timestamp: '2026-10-19T01:00:00Z',
-                cameras: [{ camera_id: '2701', image: 'https://example.test/photo.jpg' }],
+                cameras: [
+                  {
+                    camera_id: '2701',
+                    image: 'https://example.test/photo.jpg',
+                    location: { latitude: 1.44, longitude: 103.77 },
+                  },
+                ],
               },
             ],
           });
@@ -297,9 +303,19 @@ test('camera client preserves the public fallback and offline provenance of inte
     globalThis.fetch = async () =>
       Response.json(
         {
+          success: true,
+          totalCameras: 1,
           source: 'lta_datamall_v2',
           timestamp: '2026-10-19T01:00:00Z',
-          cameras: [{ camera_id: '2701', image: 'https://example.test/photo.jpg' }],
+          cameras: [
+            {
+              camera_id: '2701',
+              image: 'https://example.test/photo.jpg',
+              latitude: 1.44,
+              longitude: 103.77,
+              timestamp: '2026-10-19T01:00:00Z',
+            },
+          ],
         },
         { headers: { 'X-TrafficPulse-Offline': '1' } },
       );

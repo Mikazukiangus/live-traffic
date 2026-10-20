@@ -1,3 +1,5 @@
+import { isLtaIncidentPayload } from '../shared/traffic/incidents.ts';
+import { isDataMallCameras, isPublicCameras } from '../shared/traffic/cameras.ts';
 import { probe, probeDataGov, missingKey } from '../server/healthProbes.ts';
 import { healthEndpoints } from '../server/healthCatalogue.ts';
 
@@ -30,8 +32,8 @@ export default async function handler(req: any, res?: any) {
   // Only the server-side environment key is checked; the key value is never echoed back.
   const accountKey = getLtaAccountKey();
   const ltaHeaders: Record<string, string> = accountKey ? { AccountKey: accountKey } : {};
-  const ltaProbe = (path: string) =>
-    accountKey ? probe(`${LTA_BASE}/${path}`, ltaHeaders) : Promise.resolve(missingKey());
+  const ltaProbe = (path: string, validate?: (value: unknown) => boolean) =>
+    accountKey ? probe(`${LTA_BASE}/${path}`, ltaHeaders, validate) : Promise.resolve(missingKey());
 
   const startTime = Date.now();
   const [
@@ -51,8 +53,10 @@ export default async function handler(req: any, res?: any) {
     wbgt,
     floods,
   ] = await Promise.all([
-    ltaProbe('TrafficIncidents'),
-    accountKey ? probe(`${LTA_BASE}/Traffic-Imagesv2`, ltaHeaders) : probe(DATA_GOV_TRAFFIC_IMAGES),
+    ltaProbe('TrafficIncidents', isLtaIncidentPayload),
+    accountKey
+      ? probe(`${LTA_BASE}/Traffic-Imagesv2`, ltaHeaders, isDataMallCameras)
+      : probe(DATA_GOV_TRAFFIC_IMAGES, {}, isPublicCameras),
     ltaProbe('v4/TrafficSpeedBands'),
     ltaProbe('VMS'),
     ltaProbe('EstTravelTimes'),

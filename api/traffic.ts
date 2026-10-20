@@ -1,3 +1,4 @@
+import { isLtaIncidentPayload } from '../shared/traffic/incidents.ts';
 import { config } from '../config/server.ts';
 /**
  * LTA DataMall Traffic Incidents Serverless Endpoint
@@ -9,9 +10,9 @@ import { handleLtaRequest } from './_client.ts';
 const LTA_TRAFFIC_INCIDENTS_ENDPOINT = config.server.upstreams.incidents;
 
 export default async function handler(req: any, res?: any) {
-  return handleLtaRequest(LTA_TRAFFIC_INCIDENTS_ENDPOINT, req, res);
+  return handleLtaRequest(LTA_TRAFFIC_INCIDENTS_ENDPOINT, req, res, isLtaIncidentPayload);
 }
 
 export async function GET(request: Request) {
-  return handleLtaRequest(LTA_TRAFFIC_INCIDENTS_ENDPOINT, request);
+  return handleLtaRequest(LTA_TRAFFIC_INCIDENTS_ENDPOINT, request, undefined, isLtaIncidentPayload);
 }

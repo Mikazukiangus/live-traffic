@@ -13,14 +13,33 @@ export class UpstreamHttpError extends Error {
   }
 }
 
+/** A fixed classification; never retain a rejected value, field value, path or response body. */
+export class InvalidPayloadError extends Error {
+  constructor() {
+    super('Invalid provider response');
+    this.name = 'InvalidPayloadError';
+  }
+}
+
 /** Project untrusted errors into a closed set of diagnostic fields; never serialize them. */
 export function safeFailure(service: string, error: unknown, status?: number) {
   const httpCode = status ?? (error instanceof UpstreamHttpError ? error.status : undefined);
-  const timeout = error instanceof Error &&
-    (error.name === 'TimeoutError' || error.name === 'AbortError');
-  const code = timeout ? 'UPSTREAM_TIMEOUT' : validStatus(httpCode) ? 'UPSTREAM_HTTP_ERROR' : 'UPSTREAM_FAILURE';
-  const message = timeout ? 'Traffic provider timed out'
-    : validStatus(httpCode) ? `Upstream responded ${httpCode}` : 'Traffic provider temporarily unavailable';
+  const timeout = error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError');
+  const invalid = error instanceof InvalidPayloadError;
+  const code = invalid
+    ? 'UPSTREAM_INVALID_RESPONSE'
+    : timeout
+      ? 'UPSTREAM_TIMEOUT'
+      : validStatus(httpCode)
+        ? 'UPSTREAM_HTTP_ERROR'
+        : 'UPSTREAM_FAILURE';
+  const message = invalid
+    ? 'Traffic provider returned an invalid response'
+    : timeout
+      ? 'Traffic provider timed out'
+      : validStatus(httpCode)
+        ? `Upstream responded ${httpCode}`
+        : 'Traffic provider temporarily unavailable';
   return {
     log: {
       event: 'upstream_failure',
