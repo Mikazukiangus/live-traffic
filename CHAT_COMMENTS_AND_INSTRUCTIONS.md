@@ -110,6 +110,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 99. [Turn 99: LTA Response Validation Merged to Main](#99-turn-99-lta-response-validation-merged-to-main)
 100. [Turn 100: SQL Query Requirements and Database Discovery](#100-turn-100-sql-query-requirements-and-database-discovery)
 101. [Turn 101: Check Whether TrafficPulse Has a Database](#101-turn-101-check-whether-trafficpulse-has-a-database)
+102. [Turn 102: Data Model Duplication and Relationship Review](#102-turn-102-data-model-duplication-and-relationship-review)
 
 ---
 
@@ -1772,6 +1773,22 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Confirmed current data paths: external LTA/NEA/PUB HTTP feeds; instance-local weather/speed caches; browser localStorage for saved commutes, short commute history and speed snapshots; service-worker Cache Storage for offline copies; demo dispatch state in React memory. Found no application database schema, migrations, SQL dependency or SQL read/write path.
 - Conclusion: no SQL database is currently connected to TrafficPulse, so there are no verified application tables/indexes against which to write the requested query. Historical incident/camera/travel-time reporting would first need a chosen report and an approved persistence design. A separate database's schema would also allow targeted SQL if one exists outside this project.
 - No database, integration, paid resource, environment variable or application code was created or changed, and no SQL was executed. No tests/build were required for read-only discovery and this documentation update. Updated this log/table of contents for commit and push under the standing instruction. Next clarification can focus on the report the user wants rather than asking them to supply unknown technical details.
+
+---
+
+## 102. Turn 102: Data Model Duplication and Relationship Review
+
+**User Instruction:**
+> "review my data model for duplication, missing relationships, and fields that will hurt me later."
+
+### Reviewed (20 October 2026, SGT):
+- Reviewed main at a08c607, following the preceding confirmation that TrafficPulse has no connected SQL database. Traced provider/shared contracts, UI types, browser storage, travel-time topology, camera/count identity, incident parsing, VMS grouping, demo dispatch builders and ERP representation. Distinguished legitimate DTO/view-model duplication from independently mutable domain facts.
+- Added DATA_MODEL_REVIEW.md with eight prioritized findings, pinned source references, synthetic cases, a proposed relationship diagram, data invariants and an incremental preview plan. Linked it from ARCHITECTURE.md. This is a model review, not an implemented database schema or broad application refactor.
+- Isolated in-memory helper checks confirmed that editing a route mixes old/new travel-time samples into a false easing trend; malformed commute/history JSON can throw after weak loader checks; shuffled route stretches lose a valid path and disconnected stretches can be summed as one trip. No real browser storage was accessed and no current provider topology failure is alleged.
+- Additional synthetic checks confirmed that incident message edits change the fingerprint while the mapped type drops parsed reportedAt, and that truncated demo dispatch IDs repeat after 100 seconds. Source inspection identified dropped booking remarks, ambiguous customer/tow vehicle fields, locale-only dispatch timestamps, missing assignment/entity links, signed-URL-versus-frame identity, timestamp provenance, reference key/coordinate duplication and missing ERP group/tariff identities. Dispatch and tariff items are explicitly scoped to their present demo/advisory uses and future persistence needs.
+- Recommended the first implementation preview focus on validated/versioned commute storage and route-change history invalidation, followed by directed-path integrity. Later observation provenance and real dispatch/history design require separate review. Did not recommend provisioning a database merely to fix the current browser models.
+- Read the Canvas skill for an analytical review, but no managed canvas workspace for this checkout was available in the provisioned workspace inventory. Delivered the linked repository document with a Mermaid relationship diagram instead; no unrecognized canvas directory was created.
+- No live APIs, database, account resources, images, notification permissions or dispatch submissions were accessed. Application code, dependencies, settings, storage and test suite remain unchanged. Full tests/build were not rerun for this documentation-only review; synthetic helper outputs are the new evidence. Updated this log/table of contents for commit and push under the standing instruction.
 
 ---
 

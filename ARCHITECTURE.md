@@ -89,3 +89,7 @@ For the remaining UI/domain/data-access seams after PRs #6 and #7, see [LAYERING
 Radar composition uses this catalogue even when rain is expired, failed or never loaded. Weather presentation handles unavailable matching explicitly; raw hazard markers and flood descriptions retain their existing path. Rain validity still controls prediction text only. Existing approximate matching is preserved: lightning within 5 km of town-centre areas along a road; flood circles within an additional 1.5 km. This does not establish exact road intersection.
 
 To refresh the reference data, inspect the official `area_metadata`, retain only name/latitude/longitude, review the coordinate changes, update source verification date, and run the coverage/matching tests. Keep the existing road-to-area associations separate from the current prediction payload.
+
+## Data model review
+
+See [DATA_MODEL_REVIEW.md](DATA_MODEL_REVIEW.md) for the source-based review of commute history, storage contracts, route connectivity, asset/observation identity, demo dispatch relationships and ERP versioning. It documents confirmed synthetic cases and a proposed implementation order; it does not change the running model or provision a database.
