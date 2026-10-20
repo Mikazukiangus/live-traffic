@@ -119,4 +119,4 @@ This review used source and test inspection. No runtime tests or live provider c
 
 ## Implementation follow-up
 
-The recommended responsibility splits are implemented on `codex/modular-traffic-features`. See [ARCHITECTURE.md](ARCHITECTURE.md) for the current owners, speed subscription modes and import boundaries. Compatibility entry points preserve existing callers. Validation and preview results are recorded in Turns 88 and 89 of the project log; production merge requires explicit approval.
+The recommended responsibility splits were merged to `main` through [PR #6](https://github.com/Mikazukiangus/live-traffic/pull/6) with explicit approval. See [ARCHITECTURE.md](ARCHITECTURE.md) for the current owners, speed subscription modes and import boundaries. Compatibility entry points preserve existing callers. Validation, preview and production results are recorded in Turns 88–90 of the project log.

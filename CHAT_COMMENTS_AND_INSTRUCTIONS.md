@@ -96,6 +96,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 87. [Turn 87: Modularity and Responsibility Review](#87-turn-87-modularity-and-responsibility-review)
 88. [Turn 88: Implement Modularity Recommendations on Preview](#88-turn-88-implement-modularity-recommendations-on-preview)
 89. [Turn 89: Continue and Verify the Modularity Refactor](#89-turn-89-continue-and-verify-the-modularity-refactor)
+90. [Turn 90: Modularity Refactor Merged to Main](#90-turn-90-modularity-refactor-merged-to-main)
 
 ---
 
@@ -1558,6 +1559,21 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - A non-camera host was rejected with 403. A malformed image URL returned fixed 502 `UPSTREAM_FAILURE` JSON, omitted the supplied value and used `Cache-Control: no-store`. Successful camera signatures were not printed.
 - The final local application render, including SOS pickup readings, had no captured uncaught/reference/type/update-depth errors. Restored the browser viewport override and stopped the isolated verification server after checking.
 - Radar view composition is now 307 lines (from 1,311), camera view composition 357 (from 928), `App.tsx` 264 (from 410), and the speed HTTP entry point 56 (from 327), with their responsibilities documented under their new owners. The preview and log are pushed for review; explicit approval is still required before merging to `main`.
+
+---
+
+## 90. Turn 90: Modularity Refactor Merged to Main
+
+**User Instruction:**
+> "merge to main"
+
+### Done (20 October 2026, SGT):
+- Received explicit merge approval, confirmed the exact PR head `7ff76dd` was mergeable with all GitHub/Vercel checks passing, marked PR #6 ready and merged it into `main` as `c4d7b9b`. PR: https://github.com/Mikazukiangus/live-traffic/pull/6. Retained the review branch and fast-forwarded the local `main` checkout.
+- Main-branch Checks workflow `39353156108` passed for the merge commit. The previously verified implementation has 64 passing tests, a successful type check and production build.
+- Production deployment `dpl_3RAG6z85wUE6SX4RjUFP7nT4gpnC` for the merge commit is READY and assigned to https://live-traffic-carbon-bc04.vercel.app. Authenticated checks confirmed the production homepage returned 200, eight LTA cameras were available, and full speed data included ten expressways, 4,044 segments and two checkpoint estimates.
+- Production health returned 200 with 14/15 UP. The only failed probe was `/api/rainforecast`, whose data.gov.sg upstream returned HTTP 429. The other probes passed. This provider rate limit remains visible through the established health/freshness behavior.
+- A malformed image URL returned fixed 502 `UPSTREAM_FAILURE` JSON with `Cache-Control: no-store` and omitted the supplied input. No credentials, credential fragments or signed camera links were printed. No environment settings or dependencies were changed.
+- Updated `MODULARITY_REVIEW.md` to reflect the release and recorded this turn/table of contents for commit and push to `main` under the standing logging instruction.
 
 ---
 
