@@ -35,6 +35,7 @@ Malformed settings fail before serving/building. URLs require HTTPS. Loopback HT
 is allowed only in explicit local development/test config; builds, production previews,
 Vercel deployments and production health targets require HTTPS. URL credentials, query strings and
 fragments are rejected; operational URLs are never printed in validation errors.
+The [SSRF guard](docs/api/ssrf.md) separately requires actual provider network destinations to use public HTTPS/443, including in local development. Parser acceptance of loopback mock settings does not bypass that network policy; isolated tests inject synthetic transport/resolver dependencies.
 Server-secret placeholders are rejected; empty keys intentionally preserve the
 existing keyless camera/weather mode. The browser cannot import or serialize the
 server key through its supported config entry point.
