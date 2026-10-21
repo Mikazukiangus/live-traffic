@@ -121,6 +121,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 110. [Turn 110: HTTPS Safeguards Merged to Main](#110-turn-110-https-safeguards-merged-to-main)
 111. [Turn 111: Request Boundary Validation on Preview](#111-turn-111-request-boundary-validation-on-preview)
 112. [Turn 112: Request Validation Merged to Main](#112-turn-112-request-validation-merged-to-main)
+113. [Turn 113: XSS Input-to-Output Audit](#113-turn-113-xss-input-to-output-audit)
 
 ---
 
@@ -1985,6 +1986,22 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Authenticated production checks returned no-store 400 with fixed metadata for negative $skip, duplicate live feed selectors and a malformed image URL. A disallowed image destination returned no-store 403 with IMAGE_HOST_NOT_ALLOWED. The production homepage and its referenced entry asset returned HTTP 200.
 - Valid incident pagination returned HTTP 200 with 16 active records; camera metadata returned HTTP 200 with all eight cameras and zero non-HTTPS image links. No signed links, raw provider bodies or credentials were printed/persisted. These are selected production checks; the comprehensive method/body/header/no-provider-work matrix remains covered by the deterministic Node/Web tests and isolated HTTP verification.
 - Marked docs/api/request-validation.md released. No environment settings, dependencies, lockfiles or real saved browser data were changed. Pre-existing untracked .claude/ remains untouched. Updated this log/table of contents for commit and push on main under the standing instruction. The approved merge is complete; no further confirmation is required.
+
+---
+
+## 113. Turn 113: XSS Input-to-Output Audit
+
+**User Instruction:**
+> "audit my app for XSS: where does user input reach the page unescaped, and how do i fix it?"
+
+### Reviewed (21 October 2026, SGT):
+- Reviewed main at 288043387f65d0aad9216fb818ed3bf6aca822a1 across user forms, shared URLs, browser storage, provider messages/images, JSX/DOM/URL sinks, JSON responses, build metadata, service-worker notification navigation and deployed CSP. No confirmed visitor-reachable reflected/stored/DOM XSS or first-party raw HTML/eval sink was found. Added XSS_AUDIT.md with pinned source locations, prerequisites, concrete proposed fixes, verified safe paths and limits.
+- Confirmed an unescaped build-time metadata path: VITE_SITE_URL passes the existing HTTPS/origin parser and is substituted directly into quoted HTML attributes. A temporary real production build with a synthetic quote-bearing origin emitted three meta elements with additional event/global attributes. HTML attribute injection is confirmed; browser execution was not demonstrated. It requires build-setting control, not an ordinary visitor's query/form input. Recommend contextual HTML attribute encoding via a replacement callback plus strict canonical-host validation and a build regression.
+- Authenticated production homepage returned 200 and confirmed script-src permits unsafe-inline and arbitrary HTTPS script origins. Documented this as an XSS defense-in-depth gap, not an independent exploit. Recommend externalizing/hashing the theme bootstrap and tightening script sources in a separately verified preview while preserving required WASM/blob-worker support, offline behavior and narrow preview-tool access.
+- A VM using the actual service-worker source captured external HTTPS and javascript destination strings reaching openWindow without a URL policy. No browser navigation or script execution occurred. The current notification producer has a fixed same-origin incident URL; no untrusted producer was found. Documented a latent navigation risk, not confirmed reachable XSS. Recommend using the fixed incident destination in the worker, or a future same-origin route allowlist with safe fallback.
+- Synthetic React static renders confirmed escaped output on five actual surfaces: incidents, dispatch fields, call text/telephone attribute, VMS location labels/link titles and saved-commute editing. A tag-like commute name also passed the existing storage decoder, illustrating why output context matters. VMS message JSX, query/history encoding, preferences, maps, camera/image contexts and JSON output were reviewed without inventing additional XSS findings. The transport/cookie audit is explicitly not an XSS-specific gate.
+- Consulted primary OWASP, React and MDN guidance for contextual encoding, raw-HTML bypasses, CSP and worker navigation limits. Read the Canvas audit skill; no matching managed Canvas workspace was provisioned, so the durable source-linked report is in the repository. No real user/browser storage, notifications, production settings, credentials, dependencies, lockfiles or application code were changed. Removed the temporary build directory; pre-existing .claude/ remains untouched. Full tests/build were not repeated for documentation-only changes; the isolated rendering/build/VM checks above provide the new evidence.
+- Updated this log/table of contents for commit/push on main under the standing instruction. Proposed application fixes remain unapplied and can be implemented on a preview branch after approval.
 
 ---
 
