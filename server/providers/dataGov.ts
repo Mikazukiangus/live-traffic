@@ -1,7 +1,8 @@
 import { config } from '../../config/server.ts';
 import { createDataGovClient } from './dataGovClient.ts';
+import { fetchProvider } from '../http/providerFetch.ts';
 const client = createDataGovClient({
-  fetch: (...args) => fetch(...args),
+  fetch: fetchProvider,
   now: Date.now,
   sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
   random: Math.random,

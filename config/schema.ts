@@ -90,7 +90,7 @@ export const ENV_SCHEMA = {
   DEV_HOST: field('development', 'Local dev/preview bind host; default preserves existing LAN access.', '0.0.0.0', (v) => {
     try {
       const ipv6 = (v.match(/:/g)?.length || 0) > 1;
-      const parsed = new URL(`http://${ipv6 ? `[${v}]` : v}`);
+      const parsed = new URL(`https://${ipv6 ? `[${v}]` : v}`);
       if (!/^[a-zA-Z0-9.:-]+$/.test(v) || parsed.port || parsed.username || parsed.password || parsed.pathname !== '/') throw new Error();
     } catch { throw new Error('must be a hostname or IP address without a port'); }
     return v;
@@ -121,7 +121,13 @@ const PLATFORM_PUBLIC_KEYS = new Set([
     .map((name) => `VITE_VERCEL_GIT_${name}`),
 ]);
 
-function read(env: Environment, scopes: Scope[]): Values {
+// These settings cause network requests or public resource URLs. Local HTTP is test/dev-only.
+const HTTPS_SETTINGS = new Set<EnvKey>([
+  'LTA_BASE_URL', 'DATA_GOV_BASE_URL', 'VITE_SITE_URL', 'VITE_TRAFFIC_IMAGES_URL',
+  'OVERPASS_API_URL', 'PRODUCTION_HEALTH_URL',
+]);
+
+function read(env: Environment, scopes: Scope[], httpsOnly = false): Values {
   const result: Partial<Values> = {};
   const errors: string[] = [];
   for (const key of Object.keys(env)) {
@@ -134,7 +140,11 @@ function read(env: Environment, scopes: Scope[]): Values {
     try {
       if (input != null && typeof input !== 'string') throw new Error('must be a string');
       const value = typeof input === 'string' ? input.trim() : '';
-      Object.assign(result, { [key]: spec.parse(value || spec.default) });
+      const parsed = spec.parse(value || spec.default);
+      if ((httpsOnly || key === 'PRODUCTION_HEALTH_URL') && HTTPS_SETTINGS.has(key) &&
+          typeof parsed === 'string' && parsed && new URL(parsed).protocol !== 'https:')
+        throw new Error('must use HTTPS in builds/deployments and production health checks');
+      Object.assign(result, { [key]: parsed });
     } catch (error) {
       errors.push(`${key}: ${error instanceof Error ? error.message : 'invalid setting'}`);
     }
@@ -162,23 +172,30 @@ function publicConfig(v: Values) {
   };
 }
 /** Browser-safe projection: server settings are neither parsed nor returned here. */
-export function createPublicConfig(env: Environment = {}) { return freeze(publicConfig(read(env, ['public']))); }
+export function createPublicConfig(env: Environment = {}) {
+  const deployed = env.PROD === true || env.NODE_ENV === 'production' ||
+    env.VITE_VERCEL_ENV === 'production' || env.VITE_VERCEL_ENV === 'preview';
+  return freeze(publicConfig(read(env, ['public'], deployed)));
+}
 
 /** The single complete application config, evaluated once per server/build process. */
 export function createConfig(env: Environment = {}) {
-  const v = read(env, ['public', 'server', 'development', 'tools', 'ci']);
+  const environment = typeof env.NODE_ENV === 'string' && env.NODE_ENV ? env.NODE_ENV : 'production';
+  if (!['development', 'production', 'test'].includes(environment)) throw new Error('Invalid configuration: NODE_ENV must be development, production or test');
+  const httpsOnly = environment === 'production' || env.VERCEL === '1' ||
+    env.VERCEL_ENV === 'production' || env.VERCEL_ENV === 'preview';
+  const v = read(env, ['public', 'server', 'development', 'tools', 'ci'], httpsOnly);
   if (v.SPEED_MAX_PAGES < v.SPEED_PAGE_CONCURRENCY) throw new Error('Invalid configuration: SPEED_MAX_PAGES must be at least SPEED_PAGE_CONCURRENCY');
   if (v.VITE_HEALTH_TIMEOUT_MS <= v.HEALTH_PROBE_TIMEOUT_MS + 6 * v.DATA_GOV_MIN_INTERVAL_MS) throw new Error('Invalid configuration: VITE_HEALTH_TIMEOUT_MS must exceed HEALTH_PROBE_TIMEOUT_MS plus six paced weather intervals');
   if (v.HEALTHCHECK_RETRY_DELAY_MS + 2 * v.HEALTHCHECK_TIMEOUT_MS > 240000)
     throw new Error('Invalid configuration: HEALTHCHECK_RETRY_DELAY_MS and HEALTHCHECK_TIMEOUT_MS must leave setup time in the five-minute workflow');
-  const environment = typeof env.NODE_ENV === 'string' && env.NODE_ENV ? env.NODE_ENV : 'production';
-  if (!['development', 'production', 'test'].includes(environment)) throw new Error('Invalid configuration: NODE_ENV must be development, production or test');
   const lta = (path: string) => `${v.LTA_BASE_URL}/${path}`;
   const gov = (path: string) => `${v.DATA_GOV_BASE_URL}/${path}`;
   const cache = (seconds: number, stale: number) => [Math.round(seconds * v.CDN_CACHE_MULTIPLIER), Math.round(stale * v.CDN_CACHE_MULTIPLIER)] as const;
   return freeze({ ...publicConfig(v),
     server: {
       environment,
+      allowLoopbackHttp: !httpsOnly,
       accountKey: v.LTA_ACCOUNT_KEY || v.LTA_API_KEY,
       corsOrigin: v.API_CORS_ORIGIN,
       requestTimeoutMs: v.REQUEST_TIMEOUT_MS, weatherTimeoutMs: v.DATA_GOV_TIMEOUT_MS, probeTimeoutMs: v.HEALTH_PROBE_TIMEOUT_MS,

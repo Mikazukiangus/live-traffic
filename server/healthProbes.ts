@@ -1,6 +1,7 @@
 import { InvalidPayloadError, safeFailure, UpstreamHttpError } from '../shared/diagnostics.ts';
 import { fetchDataGovV2 } from './providers/dataGov.ts';
 import { config } from '../config/server.ts';
+import { fetchProvider } from './http/providerFetch.ts';
 const PROBE_TIMEOUT_MS = config.server.probeTimeoutMs;
 export interface ProbeResult {
   status: 'UP' | 'DOWN';
@@ -17,7 +18,7 @@ export async function probe(
   const start = Date.now();
   let httpCode = 0;
   try {
-    const response = await fetch(url, {
+    const response = await fetchProvider(url, {
       headers: { accept: 'application/json', ...headers },
       signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
     });

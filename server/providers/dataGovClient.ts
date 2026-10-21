@@ -15,7 +15,7 @@ interface Options {
   timeoutMs?: number;
 }
 interface Dependencies {
-  fetch: typeof fetch;
+  fetch: (url: string, init: RequestInit) => Promise<Response>;
   now: () => number;
   sleep: (ms: number) => Promise<void>;
   random: () => number;
@@ -48,6 +48,7 @@ export function createDataGovClient(deps: Dependencies) {
       const response = await deps.fetch(url, {
         headers: { accept: 'application/json' },
         signal: AbortSignal.timeout(options.timeoutMs ?? deps.timeoutMs),
+        redirect: 'error',
       });
       if (response.ok) {
         const json = await response.json();

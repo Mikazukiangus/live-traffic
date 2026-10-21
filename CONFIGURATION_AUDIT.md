@@ -31,12 +31,16 @@ and the GitHub-only automation bypass secret are documented separately. Explicit
 platform metadata names are accepted without treating arbitrary `VITE_VERCEL_*`
 variables as safe.
 
-Malformed settings fail before serving/building. URLs require HTTPS, with HTTP
-allowed only for loopback fixture servers. URL credentials, query strings and
+Malformed settings fail before serving/building. URLs require HTTPS. Loopback HTTP
+is allowed only in explicit local development/test config; builds, production previews,
+Vercel deployments and production health targets require HTTPS. URL credentials, query strings and
 fragments are rejected; operational URLs are never printed in validation errors.
 Server-secret placeholders are rejected; empty keys intentionally preserve the
 existing keyless camera/weather mode. The browser cannot import or serialize the
 server key through its supported config entry point.
+
+See [TRANSPORT_SECURITY.md](TRANSPORT_SECURITY.md) for the derived loopback policy,
+guarded provider transport, HSTS/CSP headers, cookie review gate and mixed-content checks.
 
 ## Values deliberately kept in code
 

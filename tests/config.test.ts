@@ -24,7 +24,7 @@ test('configuration defaults preserve current operational behavior and are immut
 });
 
 test('overrides are typed, provider paths derived, cache profiles scaled and aliases consistent', () => {
-  const c = createConfig({ LTA_ACCOUNT_KEY: ' primary-test ', LTA_API_KEY: 'old-test', DEV_PORT: '3200', DISABLE_HMR: 'false',
+  const c = createConfig({ NODE_ENV: 'test', LTA_ACCOUNT_KEY: ' primary-test ', LTA_API_KEY: 'old-test', DEV_PORT: '3200', DISABLE_HMR: 'false',
     LTA_BASE_URL: 'http://127.0.0.1:4500/lta/', DATA_GOV_BASE_URL: 'https://weather.example.test/v2/',
     CDN_CACHE_MULTIPLIER: '0.5', SPEED_CACHE_TTL_MS: '600000', VITE_CAMERA_POLL_MS: '45000', VITE_VEHICLE_COUNTING_ENABLED: 'false' });
   assert.equal(c.server.accountKey, 'primary-test');

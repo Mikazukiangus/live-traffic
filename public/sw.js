@@ -4,7 +4,9 @@
  * hashed build assets are cache-first. The app flags old data itself from each feed's timestamp.
  */
 const VERSION = 'v5';
-const SHELL = `shell-${VERSION}`;
+// Refresh cached HTML so offline navigation also receives the deployed security policy.
+// Preserve existing data/font/asset caches and their original observation timestamps.
+const SHELL = 'shell-v6';
 const ASSETS = `assets-${VERSION}`;
 const DATA = `data-${VERSION}`;
 const FONTS = `fonts-${VERSION}`;
