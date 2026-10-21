@@ -12,7 +12,10 @@ export function summarizeCommute(
     rain,
     lightning,
     floods,
-  }: Pick<MyCommuteProps, 'routes' | 'estimateMinutes' | 'incidents' | 'roadWorks' | 'rain' | 'lightning' | 'floods'>,
+  }: Pick<
+    MyCommuteProps,
+    'routes' | 'estimateMinutes' | 'incidents' | 'roadWorks' | 'rain' | 'lightning' | 'floods'
+  >,
 ) {
   const codes = commuteCodes(commute);
   const legs = commute.legs.map((leg) => {
@@ -21,7 +24,9 @@ export function summarizeCommute(
     const est = lta == null ? estimateMinutes(leg.code) : null;
     return { leg, minutes: lta ?? est, estimated: lta == null };
   });
-  const total = legs.every((l) => l.minutes != null) ? legs.reduce((sum, l) => sum + (l.minutes || 0), 0) : null;
+  const total = legs.every((l) => l.minutes != null)
+    ? legs.reduce((sum, l) => sum + (l.minutes || 0), 0)
+    : null;
   const anyEstimated = legs.some((l) => l.estimated);
   const onRoute = incidents.filter((i) => i.corridorCode && codes.includes(i.corridorCode));
   const works = codes.reduce((n, c) => n + (roadWorks[c]?.length || 0), 0);
@@ -33,3 +38,4 @@ export function summarizeCommute(
   const floodAlerts = [...new Map(codes.flatMap((c) => floods[c] || []).map((f) => [f.id, f])).values()];
   return { codes, legs, total, anyEstimated, onRoute, works, worstRain, strikes, floodAlerts };
 }
+export type CommuteSummary = ReturnType<typeof summarizeCommute>;

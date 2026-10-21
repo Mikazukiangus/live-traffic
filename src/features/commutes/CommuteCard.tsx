@@ -12,7 +12,7 @@ import { erpOn, formatSgd } from '../../utils/erp';
 import { floodLabel } from '../../utils/floodAlerts';
 import { sgtClock, useNow } from '../../utils/freshness';
 import { MyCommuteProps } from './types';
-import { summarizeCommute } from './summarizeCommute';
+import type { CommuteSummary } from './summarizeCommute';
 import { useCommuteHistory } from './useCommuteHistory';
 import { Sparkline } from './CommuteSparkline';
 const STATUS_TEXT: Record<CongestionStatus, string> = {
@@ -22,37 +22,18 @@ const STATUS_TEXT: Record<CongestionStatus, string> = {
   Smooth: 'text-emerald-700',
 };
 
-export const CommuteCard: React.FC<MyCommuteProps & { commute: Commute; onEdit: () => void }> = ({
-  commute,
-  routes,
-  travelFetchedAt,
-  travelStatus,
-  speeds,
-  incidents,
-  roadWorks,
-  rain,
-  lightning,
-  floods,
-  estimateMinutes,
-  onShowOnMap,
-  onEdit,
-}) => {
-  const { codes, legs, total, anyEstimated, onRoute, works, worstRain, strikes, floodAlerts } = summarizeCommute(
-    commute,
-    { routes, estimateMinutes, incidents, roadWorks, rain, lightning, floods },
-  );
+export const CommuteCard: React.FC<
+  Pick<MyCommuteProps, 'speeds' | 'onShowOnMap'> & {
+    commute: Commute;
+    summary: CommuteSummary;
+    onEdit: () => void;
+  }
+> = ({ commute, summary, speeds, onShowOnMap, onEdit }) => {
+  const { codes, legs, total, anyEstimated, onRoute, works, worstRain, strikes, floodAlerts } = summary;
   const now = useNow();
   const erp = useMemo(() => erpOn(codes, new Date(now)), [codes.join(), now]);
 
-  const { samples, trend } = useCommuteHistory(
-    commute.id,
-    commuteRouteKey(commute),
-    total,
-    anyEstimated,
-    travelStatus,
-    travelFetchedAt,
-    now,
-  );
+  const { samples, trend } = useCommuteHistory(commute.id, commuteRouteKey(commute), now);
 
   const toggleAlerts = async () => {
     if (!commute.alerts && !(await enableNotifications())) {
@@ -90,7 +71,9 @@ export const CommuteCard: React.FC<MyCommuteProps & { commute: Commute; onEdit: 
               onClick={toggleAlerts}
               aria-pressed={commute.alerts}
               aria-label={
-                commute.alerts ? 'Turn off alerts for this commute' : 'Alert me about new incidents on this commute'
+                commute.alerts
+                  ? 'Turn off alerts for this commute'
+                  : 'Alert me about new incidents on this commute'
               }
               title={
                 commute.alerts
@@ -129,7 +112,9 @@ export const CommuteCard: React.FC<MyCommuteProps & { commute: Commute; onEdit: 
               >
                 {leg.code}
               </button>
-              <span className="text-slate-600">{leg.from ? `${leg.from} → ${leg.to}` : 'whole expressway'}</span>
+              <span className="text-slate-600">
+                {leg.from ? `${leg.from} → ${leg.to}` : 'whole expressway'}
+              </span>
               {minutes != null && (
                 <span className="font-mono text-slate-900">
                   {estimated ? '≈' : ''}
@@ -205,7 +190,9 @@ export const CommuteCard: React.FC<MyCommuteProps & { commute: Commute; onEdit: 
         {works > 0 && <span>{works} road works</span>}
         {worstRain && (
           <span className={`flex items-center gap-1 ${RAIN_LEVEL_STYLE[worstRain.level].className}`}>
-            <span className="material-symbols-outlined text-sm">{RAIN_LEVEL_STYLE[worstRain.level].icon}</span>
+            <span className="material-symbols-outlined text-sm">
+              {RAIN_LEVEL_STYLE[worstRain.level].icon}
+            </span>
             {worstRain.wetAreas.length ? worstRain.wetAreas[0].forecast : 'No rain in the next 2h'}
           </span>
         )}
@@ -240,5 +227,9 @@ const TREND_STYLE = {
     className: 'text-emerald-700',
     advice: 'traffic is easing, waiting a little may save time',
   },
-  steady: { icon: 'trending_flat', className: 'text-slate-700', advice: 'little difference between now and later' },
+  steady: {
+    icon: 'trending_flat',
+    className: 'text-slate-700',
+    advice: 'little difference between now and later',
+  },
 } as const;

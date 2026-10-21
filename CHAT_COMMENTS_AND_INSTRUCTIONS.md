@@ -115,6 +115,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 104. [Turn 104: Commute Storage Integrity Merged to Main](#104-turn-104-commute-storage-integrity-merged-to-main)
 105. [Turn 105: Slow Query and Index Availability Check](#105-turn-105-slow-query-and-index-availability-check)
 106. [Turn 106: N+1 and Repeated Work Review](#106-turn-106-n1-and-repeated-work-review)
+107. [Turn 107: Shared Feeds and Batched History on Preview](#107-turn-107-shared-feeds-and-batched-history-on-preview)
 
 ---
 
@@ -1866,6 +1867,27 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - An isolated fetch stub confirmed overlapping same-URL consumers make one HTTP request, while a later consumer after completion increases the total to two. An injected in-memory repository confirmed three commutes cause three whole-history writes/publications per update; unchanged totals two minutes later still cause three writes/publications while each commute retains one sample. These demonstrate request-sharing lifetime and bounded write amplification, not production latency or upstream request counts.
 - Documented optional deferral of hidden camera image analysis, necessary image acquisition, local inference tiles, continuation-token dependencies, existing provider pacing and intentional health fan-out. Examples preserve source/offline age, retry timing, live-only sample eligibility, current route revisions, retention and protected-store/partial-write guarantees.
 - No live provider or database requests, real browser storage, signed camera URLs, credentials, settings, dependencies or application source changes were involved. Full tests/build were not rerun for documentation-only changes; the isolated helper checks are the new behavioral evidence. Updated this log/table of contents for commit and push under the standing instruction. Implementation remains a proposed preview.
+
+---
+
+## 107. Turn 107: Shared Feeds and Batched History on Preview
+
+**User Instruction:**
+> "go with your recommendations."
+
+### Implemented on `codex/shared-feeds-history-batching` (21 October 2026, SGT):
+- Implemented the first two recommendations from the N+1 review: shared travel-time/air-quality state across main-page remounts, plus no-op suppression and batched commute-history writes. Optional hidden-camera inference deferral and health-report reuse remain separate improvements. No SQL database or indexes were introduced.
+- Added an injected, React-free polled resource and a small browser subscription adapter. Each feed retains one validated observation, receipt time, pending request, refresh deadline and numeric retry cooldown. Recent remounts reuse completed data without another fetch or loading reset; expired deadlines and explicit refreshes share one request. Polling timers/refresh listeners exist only while subscribed; late completions retain useful data without restarting background work. No optional feeds were moved into App.
+- Travel-time/air-quality cache guards validate the fields consumed by their existing presentation/derivation code. Valid empty travel-time lists and partial air-quality readings remain usable. Errors retain the last valid observation; offline copies preserve their receipt time and cannot renew or replace an existing observation. Retry-After survives remounts and explicit refresh requests. Specialized speed/rain resources, server/provider pacing and public API response shapes are unchanged.
+- The commute list now derives summaries once and records all eligible live, non-estimated samples in one parent effect. Cards subscribe only for current-route history/trends. The repository validates each batch row against the current persisted route revision, applies existing sample spacing and retention, and persists/publishes at most once when histories change. Unchanged updates do neither. Failed history persistence can retry without a new sample and recover its notice independently of other-key failures. Compatibility recordSample/record behavior, protected stores and partial-write route safeguards remain.
+- Added seven shared-feed regressions and four batch-history regressions. Deterministic checks cover completed-cache remounts/deadlines, overlapping refreshes, malformed data, initial retries, offline ages, cooldowns, disposal, single commits/no-ops, invalid/stale routes, pruning, protected versions and failed-write recovery. All 118 tests, type checking with unused locals and the production build passed. Formatting and whitespace checks passed.
+- Used the React best-practices skill to review stable subscriptions, dependency tracking, one derived summary per card, effect idempotence and storage boundaries. An isolated loopback browser fixture mounted the actual hooks/list/cards under React Strict Mode with synthetic responses/storage: page switches kept travel/air request counts at one each; three cards produced one history write; unchanged two-minute updates added no write; the four-minute sample added one write; route edits during a failed feed cleared history immediately; recovery started fresh; KPE estimates added no samples. No browser warnings/errors were reported. This verifies behavior, not production latency savings.
+- Updated ARCHITECTURE.md, COMMUTE_STORAGE.md and N_PLUS_ONE_REVIEW.md to describe ownership, cache lifetime, batch persistence and preview status. No live provider requests, real user storage, credentials, signed camera URLs, dependencies, lockfiles or remote environment settings were used or changed. Pre-existing untracked .claude/ remains untouched. This log/table of contents is included in the preview commit/push; publication/check outcomes follow below. Main merge requires explicit approval.
+
+### Published and verified:
+- Pushed implementation 71e4d08 and opened draft PR #11 (https://github.com/Mikazukiangus/live-traffic/pull/11), attached to this chat. Both GitHub Checks runs, Vercel deployment and preview checks passed for that implementation.
+- Exact implementation deployment dpl_HhcZEFMzTePGaGDYbCjHaSTbPzL4 is READY: https://live-traffic-hfyoqpk8u-carbon-bc04.vercel.app. Deployment metadata confirms the intended preview branch and full implementation SHA. Authenticated homepage, entry/shared assets and radar asset returned HTTP 200; the served radar bundle contains recordBatch. This verifies delivery of the implementation; lifecycle and write-count behavior was exercised in the isolated browser and regression checks above.
+- Closed the owned synthetic browser tab and stopped its loopback server after verification. No production user storage was modified and no live provider probes were required for these browser-side changes. Updated this publication record for commit/push on the same preview branch. Main/production remain unchanged; explicit user approval is required to merge PR #11.
 
 ---
 

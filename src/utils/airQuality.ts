@@ -1,5 +1,7 @@
 import { config } from '../../config/client';
-import { usePolledJson } from './usePolledJson';
+import { isLatitude, isLongitude, isRecord } from '../../shared/traffic/validation';
+import { parseSgt } from '../../shared/time';
+import { createBrowserFeed, useSharedFeed } from '../features/feeds/useSharedFeed';
 
 export type AirRegion = 'north' | 'south' | 'east' | 'west' | 'central';
 
@@ -16,6 +18,37 @@ export interface AirQuality {
   psiTimestamp: string | null;
   pm25Timestamp: string | null;
   regions: RegionAirQuality[];
+}
+
+const nullableReading = (v: unknown) => v === null || (typeof v === 'number' && Number.isFinite(v) && v >= 0);
+const nullableTimestamp = (v: unknown) => v === null || (typeof v === 'string' && parseSgt(v) !== null);
+export function isAirQuality(value: unknown): value is AirQuality {
+  if (
+    !isRecord(value) ||
+    !nullableTimestamp(value.psiTimestamp) ||
+    !nullableTimestamp(value.pm25Timestamp) ||
+    !Array.isArray(value.regions) ||
+    !value.regions.length
+  )
+    return false;
+  const names = new Set<unknown>();
+  return value.regions.every((r: unknown) => {
+    if (
+      !isRecord(r) ||
+      typeof r.name !== 'string' ||
+      !Object.hasOwn(REGION_LABEL, r.name) ||
+      names.has(r.name)
+    )
+      return false;
+    names.add(r.name);
+    return (
+      (r.lat === null || isLatitude(r.lat)) &&
+      (r.lon === null || isLongitude(r.lon)) &&
+      nullableReading(r.psi24h) &&
+      nullableReading(r.pm25OneHour) &&
+      nullableReading(r.pm25TwentyFourHour)
+    );
+  });
 }
 
 export interface AirBand {
@@ -68,7 +101,7 @@ export function nearestRegion(lat: number, lon: number, air: AirQuality): Region
 export const sgtHour = (timestamp: string | null) => timestamp?.slice(11, 16) ?? null;
 
 // NEA updates hourly; the endpoint is CDN-cached for 5 minutes.
-const AIR_POLL_MS = config.poll.air;
+const airFeed = createBrowserFeed({ url: '/api/airquality', pollMs: config.poll.air, isValid: isAirQuality });
 export function useAirQuality(): AirQuality | null {
-  return usePolledJson<AirQuality>('/api/airquality', AIR_POLL_MS, (d) => Array.isArray(d?.regions) && d.regions.length > 0).data;
+  return useSharedFeed(airFeed).data;
 }

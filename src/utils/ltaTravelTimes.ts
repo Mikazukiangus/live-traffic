@@ -5,7 +5,8 @@ import { config } from '../../config/client';
  * so adding a direction's stretches gives the end-to-end time. LTA does not publish KPE or MCE.
  */
 import { useMemo } from 'react';
-import { usePolledJson } from './usePolledJson';
+import { isRecord, isText } from '../../shared/traffic/validation';
+import { createBrowserFeed, useSharedFeed } from '../features/feeds/useSharedFeed';
 
 interface LtaTravelTimeRecord {
   Name: string;
@@ -14,6 +15,25 @@ interface LtaTravelTimeRecord {
   StartPoint?: string;
   EndPoint?: string;
   EstTime: number;
+}
+
+export function isTravelTimeFeed(value: unknown): value is { value: LtaTravelTimeRecord[] } {
+  return (
+    isRecord(value) &&
+    Array.isArray(value.value) &&
+    value.value.every(
+      (row: unknown) =>
+        isRecord(row) &&
+        isText(row.Name) &&
+        Number.isInteger(row.Direction) &&
+        typeof row.FarEndPoint === 'string' &&
+        typeof row.EstTime === 'number' &&
+        Number.isFinite(row.EstTime) &&
+        row.EstTime >= 0 &&
+        (row.StartPoint === undefined || typeof row.StartPoint === 'string') &&
+        (row.EndPoint === undefined || typeof row.EndPoint === 'string'),
+    )
+  );
 }
 
 /** One expressway direction as LTA's ordered stretches, e.g. Tuas Checkpoint -> Tuas West Rd, 1 min. */
@@ -45,8 +65,16 @@ export function groupStretches(records: LtaTravelTimeRecord[]): TravelRoute[] {
   for (const r of records) {
     if (!r?.Name || typeof r.EstTime !== 'number' || !r.StartPoint || !r.EndPoint) continue;
     const key = `${r.Name}-${r.Direction}`;
-    if (!routes.has(key)) routes.set(key, { code: r.Name, direction: r.Direction, towards: tidyPlace(r.FarEndPoint || ''), stretches: [] });
-    routes.get(key)!.stretches.push({ from: tidyPlace(r.StartPoint), to: tidyPlace(r.EndPoint), minutes: r.EstTime });
+    if (!routes.has(key))
+      routes.set(key, {
+        code: r.Name,
+        direction: r.Direction,
+        towards: tidyPlace(r.FarEndPoint || ''),
+        stretches: [],
+      });
+    routes
+      .get(key)!
+      .stretches.push({ from: tidyPlace(r.StartPoint), to: tidyPlace(r.EndPoint), minutes: r.EstTime });
   }
   return [...routes.values()].sort((a, b) => a.code.localeCompare(b.code) || a.direction - b.direction);
 }
@@ -71,7 +99,12 @@ export function sumTravelTimes(records: LtaTravelTimeRecord[]): Record<string, D
     if (!r?.Name || typeof r.EstTime !== 'number') continue;
     const key = `${r.Name}-${r.Direction}`;
     if (!totals.has(key)) {
-      totals.set(key, { code: r.Name, direction: r.Direction, towards: tidyPlace(r.FarEndPoint || ''), minutes: 0 });
+      totals.set(key, {
+        code: r.Name,
+        direction: r.Direction,
+        towards: tidyPlace(r.FarEndPoint || ''),
+        minutes: 0,
+      });
     }
     totals.get(key)!.minutes += r.EstTime;
   }
@@ -84,10 +117,14 @@ export function sumTravelTimes(records: LtaTravelTimeRecord[]): Record<string, D
 }
 
 // LTA refreshes travel times every 5 minutes.
-const TRAVEL_TIME_POLL_MS = config.poll.travelTimes;
+const travelFeed = createBrowserFeed({
+  url: '/api/traveltimes',
+  pollMs: config.poll.travelTimes,
+  isValid: isTravelTimeFeed,
+});
 
 export function useLtaTravelTimes() {
-  const feed = usePolledJson<{ value: LtaTravelTimeRecord[] }>('/api/traveltimes', TRAVEL_TIME_POLL_MS, (d) => Array.isArray(d?.value));
+  const feed = useSharedFeed(travelFeed);
   const byCode = useMemo(() => sumTravelTimes(feed.data?.value || []), [feed.data]);
   const routes = useMemo(() => groupStretches(feed.data?.value || []), [feed.data]);
   return { byCode, routes, status: feed.status, fetchedAt: feed.fetchedAt, refresh: feed.refresh };
