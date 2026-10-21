@@ -2,7 +2,7 @@ import { readRequestAccountKey, requestSchemas } from '../http/requestSchemas.ts
 import { withRequestSchema } from '../http/validateRequest.ts';
 import { config } from '../../config/server.ts';
 import { InvalidPayloadError, reportFailure, UpstreamHttpError } from '../../shared/diagnostics.ts';
-import { sendJson, setCorsHeaders, setHeaders, liveCacheHeaders } from '../http/responses.ts';
+import { sendJson, setHeaders, liveCacheHeaders } from '../http/responses.ts';
 import { fetchProvider } from '../http/providerFetch.ts';
 export interface LtaRequestOptions {
   endpoint: string;
@@ -80,7 +80,6 @@ async function runLtaRequest(
 
     const cache = LTA_PROXY_CACHE;
     if (res && typeof res.status === 'function') {
-      setCorsHeaders(res);
       setHeaders(res, cache);
       return res.status(response.status).json(data);
     }
@@ -89,7 +88,6 @@ async function runLtaRequest(
       status: response.status,
       headers: {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': config.server.corsOrigin,
         ...cache,
       },
     });

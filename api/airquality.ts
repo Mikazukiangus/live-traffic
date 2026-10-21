@@ -9,7 +9,7 @@ import { config } from '../config/server.ts';
  * Returns the 24-hour PSI and the latest 1-hour PM2.5 for each of the five regions.
  * Either reading may be null when its feed fails; the endpoint fails only if both do.
  */
-import { fetchDataGovV2, NO_STORE, liveCacheHeaders, setCorsHeaders, setHeaders } from './_client.ts';
+import { fetchDataGovV2, NO_STORE, liveCacheHeaders, setHeaders } from './_client.ts';
 
 const PSI_URL = config.server.upstreams.psi;
 const PM25_URL = config.server.upstreams.pm25;
@@ -19,14 +19,13 @@ const REGIONS = ['north', 'south', 'east', 'west', 'central'] as const;
 
 function send(res: any, status: number, body: unknown, cache = NO_STORE) {
   if (res && typeof res.status === 'function') {
-    setCorsHeaders(res);
     res.setHeader('Content-Type', 'application/json');
     setHeaders(res, cache);
     return res.status(status).json(body);
   }
   return new Response(JSON.stringify(body), {
     status,
-    headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': config.server.corsOrigin, ...cache },
+    headers: { 'Content-Type': 'application/json', ...cache },
   });
 }
 

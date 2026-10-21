@@ -126,6 +126,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 115. [Turn 115: Continue and Verify Script CSP Preview](#115-turn-115-continue-and-verify-script-csp-preview)
 116. [Turn 116: XSS Fixes and Script CSP Merged to Main](#116-turn-116-xss-fixes-and-script-csp-merged-to-main)
 117. [Turn 117: Cookie Authentication and CSRF Review](#117-turn-117-cookie-authentication-and-csrf-review)
+118. [Turn 118: Restrict API CORS to Trusted Frontend Origins](#118-turn-118-restrict-api-cors-to-trusted-frontend-origins)
 
 ---
 
@@ -2075,6 +2076,22 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Existing request-boundary and transport regression suites passed all 15 tests. Existing coverage discovers callable API modules and checks rejection before provider work; no duplicate permanent test matrix was added. No full suite/build was needed for documentation-only changes.
 - Added CSRF_REVIEW.md with source-linked evidence, verification limits and requirements for future authenticated writes; linked it from TRANSPORT_SECURITY.md. Consulted primary OWASP CSRF guidance and Vercel Authentication documentation. CORS and SameSite are not presented as complete CSRF defenses. Vercel's deployment-access cookies are platform-owned; its full login/logout flow and internal CSRF implementation were not audited or changed.
 - No runtime code, dependencies, lockfiles, credentials, environment settings or real saved browser data changed. Pre-existing untracked .claude/ remains untouched. Updated this log/table of contents for a documentation commit and push on main under the standing instruction; no implementation preview or merge approval is needed.
+
+---
+
+## 118. Turn 118: Restrict API CORS to Trusted Frontend Origins
+
+**User Instruction:**
+> "Configure CORS for my API and frontend origins without opening it up to everyone."
+
+### Implemented on `codex/restrict-api-cors` (21 October 2026, SGT):
+- Started from main at dd02ffe. Replaced the wildcard CORS default with a frozen validated origin allowlist: canonical VITE_SITE_URL, exact platform-owned deployment/branch/project-production origins when VERCEL=1, and optional comma-separated server-only API_CORS_ORIGINS. Retained the legacy singular setting for one exact extra origin; wildcard/null/invalid origins fail configuration. No all-vercel.app or suffix matching, request Host/Forwarded trust, wildcard credentials or browser-exposed server setting was introduced.
+- Centralized Origin/preflight validation and Node/Web response decoration in the request guard, covering all 16 callable API modules including JSON, errors and camera-image bytes. Untrusted origins return safe no-store 403 before business/provider work. Malformed/duplicate consumed CORS headers return 400. Valid preflights remain GET-only with supported Content-Type/key headers; unsafe methods/unknown headers are denied. Removed unused Authorization preflight permission and scattered unconditional origin headers.
+- All responses vary by Origin, including absent/denied origins; preflights also vary by requested method/headers. Existing Vary tokens, valid feed/image caching, signed query bytes and provider/data contracts are preserved. Requests without Origin remain usable for same-origin/server clients; CORS is documented as browser access policy, not authentication or a CSRF substitute.
+- Explicit local dev/test config includes loopback origins on configured ports. Preserved local production-preview/CLI-port camera behavior using request-scoped context established only by the Vite adapter's actual loopback socket. Direct deployed handlers do not create this context; no HTTP header can grant it. Production configuration itself includes no automatic HTTP loopback origins.
+- Added eight CORS regression groups. Full suite passes all 148 tests; type checking with unused locals, production build, transport audit and whitespace checks pass. A nine-case real loopback HTTP matrix through actual middleware passed with only three authorized synthetic provider reads, including raw duplicate Origin rejection and unchanged JPEG bytes. Three further local-preview image cases accepted the actual loopback listener origins and denied another port with only two provider reads. Closed all temporary listeners. No real provider calls, cookies, secrets or user data were used in these fixtures.
+- Used Vercel environment-variable/deployment skills and primary MDN/Vercel guidance. Confirmed the intended project/team, latest production main SHA dd02ffe, and project-domain metadata (live-traffic-kappa.vercel.app). Read only environment metadata, without decrypting values: LTA_ACCOUNT_KEY is configured for production/preview, with no CORS overrides; local override names also contained no CORS setting. No environment mutation/migration is needed for the current project. Exact platform production-domain metadata covers the project alias in addition to the configured canonical origin.
+- Regenerated .env.example and added docs/api/cors.md with configuration/migration rules, browser/network limitations and verification. Updated architecture/config/request-validation ownership docs and linked the historical CSRF review to the follow-up. No dependencies, lockfiles, credentials, deployment-protection settings or real saved browser data changed. Pre-existing .claude/ remains untouched. Updated this log/table of contents for commit/push; preview publication follows below. Main merge requires explicit approval under the standing instruction.
 
 ---
 

@@ -2,6 +2,8 @@
 
 Reviewed on 21 October 2026 against main at `d8a3ef587ca1f8d7df397f8c85c6a6cf89ebd2ab`.
 
+Follow-up: the [CORS allowlist preview](docs/api/cors.md) replaces the wildcard policy described at that pinned baseline and rejects untrusted origins before application work. The historical verification below describes the reviewed baseline; CORS remains separate from authentication/CSRF protection for future writes.
+
 ## Result
 
 No app-owned cookie-authenticated routes or server-side user mutations were found. All 16 callable API modules accept only GET and OPTIONS. No application CSRF gap was identified, so no token system, authentication code or CORS change was added.

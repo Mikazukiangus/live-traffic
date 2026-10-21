@@ -48,7 +48,8 @@ A newer summary does not relabel retained segment speeds as current: current seg
 
 | Module | Owns |
 |---|---|
-| `server/http/responses.ts` | Node/Web JSON responses, CORS, preflight and cache headers |
+| `server/http/responses.ts` | Node/Web JSON/preflight serialization and cache headers; origin decisions belong to the request guard |
+| `server/http/cors.ts` / `localCors.ts` | Exact validated frontend allowlist, preflight enforcement and Node/Web CORS decoration; request-scoped loopback context for the local Vite adapter; see [CORS policy](docs/api/cors.md) |
 | `server/html/metadata.ts` | Quoted HTML-attribute serialization for build-time site metadata, preserving literal replacement tokens |
 | `server/http/requestSchemas.ts` / `validateRequest.ts` | Explicit inbound HTTP contracts, scalar/encoding/body/header checks and safe rejection before application handlers; see [request validation](docs/api/request-validation.md) |
 | `server/http/providerFetch.ts` | Pre-request HTTPS/credential checks and mandatory no-redirect provider transport; explicit local-test loopback exception |

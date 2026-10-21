@@ -42,6 +42,8 @@ server key through its supported config entry point.
 See [TRANSPORT_SECURITY.md](TRANSPORT_SECURITY.md) for the derived loopback policy,
 guarded provider transport, HSTS/CSP headers, cookie review gate and mixed-content checks.
 
+The [CORS policy](docs/api/cors.md) replaces the former wildcard default with the canonical site, exact platform deployment origins and validated optional `API_CORS_ORIGINS`. The legacy singular setting accepts an exact extra origin only; `*` now fails validation. Loopback allowances are confined to local development/tests or the local Vite adapter's actual listener.
+
 ## Values deliberately kept in code
 
 | Category | Reason |
