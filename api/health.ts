@@ -10,7 +10,7 @@ import { config } from '../config/server.ts';
  * Health check & diagnostic endpoint for TrafficPulse LTA DataMall serverless connection.
  * Each endpoint's status comes from a live probe of its upstream source, not a static flag.
  */
-import { getLtaAccountKey, liveCacheHeaders, setCorsHeaders, setHeaders } from './_client.ts';
+import { getLtaAccountKey, liveCacheHeaders, setHeaders } from './_client.ts';
 
 const LTA_BASE = config.server.upstreams.ltaBase;
 const DATA_GOV_TRAFFIC_IMAGES = config.trafficImagesUrl;
@@ -107,7 +107,6 @@ const handler = withRequestSchema(requestSchemas.empty, async (_req, res) => {
   const cache = liveCacheHeaders(...config.server.cache.health);
 
   if (res && typeof res.status === 'function') {
-    setCorsHeaders(res);
     res.setHeader('Content-Type', 'application/json');
     setHeaders(res, cache);
     return res.status(200).json(healthData);
@@ -117,7 +116,6 @@ const handler = withRequestSchema(requestSchemas.empty, async (_req, res) => {
     status: 200,
     headers: {
       'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': config.server.corsOrigin,
       ...cache,
     },
   });

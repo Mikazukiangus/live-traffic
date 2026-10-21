@@ -3,14 +3,13 @@ import { withRequestSchema } from '../server/http/validateRequest.ts';
 import { reportFailure } from '../shared/diagnostics.ts';
 import { config } from '../config/server.ts';
 import { getSpeedSummary } from '../server/traffic/speedService.ts';
-import { NO_STORE, getLtaAccountKey, liveCacheHeaders, setCorsHeaders, setHeaders } from './_client.ts';
+import { NO_STORE, getLtaAccountKey, liveCacheHeaders, setHeaders } from './_client.ts';
 export type { ExpresswaySpeedSummary, CheckpointApproach, SpeedSegment } from '../shared/traffic/types.ts';
 export { traceCheckpoint, CHECKPOINT_ROUTES } from '../server/traffic/traceCheckpoint.ts';
 
 const handler = withRequestSchema(requestSchemas.speeds, async (_req, res, input) => {
   const send = (status: number, body: any, cache: Record<string, string>) => {
     if (res && typeof res.status === 'function') {
-      setCorsHeaders(res);
       res.setHeader('Content-Type', 'application/json');
       setHeaders(res, cache);
       return res.status(status).json(body);
@@ -19,7 +18,6 @@ const handler = withRequestSchema(requestSchemas.speeds, async (_req, res, input
       status,
       headers: {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': config.server.corsOrigin,
         ...cache,
       },
     });

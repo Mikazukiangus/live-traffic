@@ -6,7 +6,6 @@ export {
   NO_STORE,
   sendJson,
   handlePreflight,
-  setCorsHeaders,
   setHeaders,
   liveCacheHeaders,
 } from '../server/http/responses.ts';

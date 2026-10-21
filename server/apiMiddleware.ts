@@ -1,4 +1,5 @@
 import { reportFailure } from '../shared/diagnostics.ts';
+import { markLocalCorsRequest } from './http/localCors.ts';
 
 type Loader = () => Promise<{ default: (req: any, res?: any) => any }>;
 
@@ -6,6 +7,9 @@ type Loader = () => Promise<{ default: (req: any, res?: any) => any }>;
 export function createApiMiddleware(handlers: Record<string, Loader>) {
   return async function apiMiddleware(req: any, res: any, next: () => void) {
     if (!req.url?.startsWith('/api/')) return next();
+    // Preserve anonymous camera pixel access in local production-preview and CLI port overrides.
+    // The bound loopback socket supplies this origin; Host/Forwarded headers are never trusted.
+    markLocalCorsRequest(req);
     const pathname = req.url.split('?')[0].replace(/\.ts$/, '');
     if (typeof res.json !== 'function') {
       res.json = (body: unknown) => {

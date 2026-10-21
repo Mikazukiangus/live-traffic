@@ -38,7 +38,7 @@ Malformed requests return HTTP 400. Unsupported methods return 405 and `Allow: G
 
 Fields/codes are closed metadata. Responses never echo submitted values, arbitrary field names, credentials, signatures, request bodies or parser exceptions. Missing/unknown live feed selectors now return 400 (previously 404); malformed image URLs now return 400 (previously they could become 502). Genuine provider failures remain upstream errors.
 
-`OPTIONS` validates the envelope, body, credentials and query encoding, then answers CORS without requiring GET-specific fields such as `feed` or `url`. It does not call application logic. Node/Web preflights consistently advertise the existing GET/OPTIONS contract and all supported key aliases.
+`OPTIONS` validates the envelope, body, credentials and query encoding, then answers CORS without requiring GET-specific fields such as `feed` or `url`. It does not call application logic. Node/Web preflights consistently advertise the existing GET/OPTIONS contract and all supported key aliases. The [CORS allowlist](cors.md) also validates the Origin, requested method and requested headers before application work; rejected/incomplete preflights receive 403/400 rather than unconditional 204.
 
 ## Boundaries and verification
 

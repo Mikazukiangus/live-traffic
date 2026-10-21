@@ -40,7 +40,6 @@ const handler = withRequestSchema(requestSchemas.image, async (_req, res, input)
 
     if (res && typeof res.status === 'function') {
       res.setHeader('Content-Type', 'image/jpeg');
-      res.setHeader('Access-Control-Allow-Origin', config.server.corsOrigin);
       setHeaders(res, IMAGE_CACHE);
       res.statusCode = 200;
       if (typeof res.send === 'function') {
@@ -53,7 +52,6 @@ const handler = withRequestSchema(requestSchemas.image, async (_req, res, input)
       status: 200,
       headers: {
         'Content-Type': 'image/jpeg',
-        'Access-Control-Allow-Origin': config.server.corsOrigin,
         ...IMAGE_CACHE,
       },
     });

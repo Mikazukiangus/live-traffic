@@ -69,12 +69,13 @@ export const ENV_SCHEMA = {
     return Number(v);
   }),
   IMAGE_CACHE_SECONDS: integer('server', 'Immutable camera-image HTTP/CDN cache seconds; capped at the 15-minute signed-link lifetime.', 900, 0, 900),
-  API_CORS_ORIGIN: field('server', 'Allowed browser origin, or * for the existing public API behavior.', '*', (v) => {
-    if (v === '*') return v;
-    const parsed = parseUrl(v);
-    if (new URL(parsed).origin !== parsed) throw new Error('must be a single origin or *');
-    return parsed;
+  API_CORS_ORIGINS: field('server', 'Comma-separated extra trusted frontend origins. Canonical site and exact Vercel deployment origins are included automatically. No wildcards.', '', (v) => {
+    if (!v) return [];
+    const origins = v.split(',');
+    if (origins.length > 32 || origins.some((origin) => !origin.trim())) throw new Error('must contain 1 to 32 exact origins');
+    return [...new Set(origins.map((origin) => siteOrigin(origin.trim())))];
   }),
+  API_CORS_ORIGIN: field('server', 'Legacy single extra frontend origin; prefer API_CORS_ORIGINS. Empty adds nothing. Wildcard is rejected.', '', (v) => v ? siteOrigin(v) : ''),
   VITE_SITE_URL: field('public', 'Public canonical site origin used in build-time social metadata. Rebuild after changing VITE_ values.', 'https://live-traffic-carbon-bc04.vercel.app', (v) => {
     return siteOrigin(v);
   }),
@@ -196,6 +197,30 @@ export function createConfig(env: Environment = {}) {
   const httpsOnly = environment === 'production' || env.VERCEL === '1' ||
     env.VERCEL_ENV === 'production' || env.VERCEL_ENV === 'preview';
   const v = read(env, ['public', 'server', 'development', 'tools', 'ci'], httpsOnly);
+  const corsOrigins = new Set([v.VITE_SITE_URL, ...v.API_CORS_ORIGINS, ...(v.API_CORS_ORIGIN ? [v.API_CORS_ORIGIN] : [])]);
+  if (httpsOnly && [...corsOrigins].some((origin) => new URL(origin).protocol !== 'https:'))
+    throw new Error('Invalid configuration: API_CORS_ORIGINS/API_CORS_ORIGIN must use HTTPS in builds/deployments');
+  // Trust platform-owned deployment metadata only, never a request Host/Forwarded header.
+  if (env.VERCEL === '1') {
+    for (const key of ['VERCEL_URL', 'VERCEL_BRANCH_URL', 'VERCEL_PROJECT_PRODUCTION_URL']) {
+      if (env[key] === undefined || env[key] === '') continue;
+      try {
+        if (typeof env[key] !== 'string') throw new Error();
+        const host = env[key] as string;
+        const origin = siteOrigin(`https://${host}`);
+        if (new URL(origin).host !== host) throw new Error();
+        corsOrigins.add(origin);
+      } catch { throw new Error(`Invalid configuration: ${key} must be a deployment hostname without a scheme or path`); }
+    }
+  }
+  if (!httpsOnly) {
+    for (const host of ['localhost', '127.0.0.1', '[::1]']) for (const port of [v.DEV_PORT, v.PREVIEW_PORT]) {
+      const origin = new URL(`https://${host}`);
+      origin.protocol = 'http:';
+      origin.port = String(port);
+      corsOrigins.add(origin.origin);
+    }
+  }
   if (v.SPEED_MAX_PAGES < v.SPEED_PAGE_CONCURRENCY) throw new Error('Invalid configuration: SPEED_MAX_PAGES must be at least SPEED_PAGE_CONCURRENCY');
   if (v.VITE_HEALTH_TIMEOUT_MS <= v.HEALTH_PROBE_TIMEOUT_MS + 6 * v.DATA_GOV_MIN_INTERVAL_MS) throw new Error('Invalid configuration: VITE_HEALTH_TIMEOUT_MS must exceed HEALTH_PROBE_TIMEOUT_MS plus six paced weather intervals');
   if (v.HEALTHCHECK_RETRY_DELAY_MS + 2 * v.HEALTHCHECK_TIMEOUT_MS > 240000)
@@ -208,7 +233,7 @@ export function createConfig(env: Environment = {}) {
       environment,
       allowLoopbackHttp: !httpsOnly,
       accountKey: v.LTA_ACCOUNT_KEY || v.LTA_API_KEY,
-      corsOrigin: v.API_CORS_ORIGIN,
+      corsOrigins: [...corsOrigins],
       requestTimeoutMs: v.REQUEST_TIMEOUT_MS, weatherTimeoutMs: v.DATA_GOV_TIMEOUT_MS, probeTimeoutMs: v.HEALTH_PROBE_TIMEOUT_MS,
       upstreams: { ltaBase: v.LTA_BASE_URL, incidents: lta('TrafficIncidents'), images: lta('Traffic-Imagesv2'), speedBands: lta('v4/TrafficSpeedBands'),
         vms: lta('VMS'), travelTimes: lta('EstTravelTimes'), roadWorks: lta('RoadWorks'), faultyLights: lta('FaultyTrafficLights'), carParks: lta('CarParkAvailabilityv2'),
