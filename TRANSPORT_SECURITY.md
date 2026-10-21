@@ -59,6 +59,8 @@ Use no Domain attribute, make expiry/deletion retain the same scope/security att
 
 Vercel Authentication/Toolbar and external services control their own cookies. The app cannot rewrite those cookies with a generic response header. No platform cookie values, authentication state or private keys were inspected or printed. The single observed response without Set-Cookie does not establish that the entire protected-site login flow is cookie-free.
 
+An authentication-boundary recheck on 22 October 2026 found project protection scope `all_except_custom_domains`. One credential-free, non-redirecting invalid-input request to each production alias returned 401 on `live-traffic-carbon-bc04.vercel.app` and the application's 400 `INVALID_REQUEST` on `live-traffic-kappa.vercel.app`. The latter reaches application validation without login; protection on one alias must not be interpreted as a blanket private-app boundary. The code has no end-user credential verifier, application session/token issuer or per-user authorization. This is compatible with public shared feeds; private accounts/bookings would need an explicit authentication/authorization design. No access settings were changed. See Turn 124 in CHAT_COMMENTS_AND_INSTRUCTIONS.md and [Vercel's protection scopes](https://vercel.com/docs/deployment-protection).
+
 ## Finding mixed content
 
 Run:
