@@ -24,7 +24,7 @@ export default async function handler(req: any, res?: any) {
   const preflight = handlePreflight(req, res);
   if (preflight) return preflight;
   try {
-    const url = new URL(req.url || '/', 'http://localhost');
+    const url = new URL(req.url || '/', 'https://localhost');
     const name = url.searchParams.get('feed') || '';
     const feed = Object.hasOwn(FEEDS, name) ? FEEDS[name] : undefined;
     if (!feed) {

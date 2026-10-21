@@ -9,6 +9,7 @@ import {
 import { readValidatedJson } from '../shared/traffic/validation.ts';
 import { getLtaAccountKey, liveCacheHeaders, sendJson } from './_client.ts';
 import { handlePreflight } from '../server/http/responses.ts';
+import { fetchProvider } from '../server/http/providerFetch.ts';
 
 // LTA captures every 1-5 minutes; the page polls every 30 seconds.
 const CACHE = liveCacheHeaders(...config.server.cache.proxy);
@@ -20,7 +21,7 @@ export default async function handler(req: any, res?: any) {
   const accountKey = getLtaAccountKey(req);
   if (accountKey) {
     try {
-      const response = await fetch(config.server.upstreams.images, {
+      const response = await fetchProvider(config.server.upstreams.images, {
         signal: AbortSignal.timeout(config.server.requestTimeoutMs),
         headers: { AccountKey: accountKey, accept: 'application/json' },
       });
@@ -37,7 +38,7 @@ export default async function handler(req: any, res?: any) {
   }
 
   try {
-    const response = await fetch(config.trafficImagesUrl, {
+    const response = await fetchProvider(config.trafficImagesUrl, {
       signal: AbortSignal.timeout(config.server.requestTimeoutMs),
       headers: { accept: 'application/json' },
     });

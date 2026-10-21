@@ -1,6 +1,7 @@
 import { config } from '../../config/server.ts';
 import { InvalidPayloadError, reportFailure, UpstreamHttpError } from '../../shared/diagnostics.ts';
 import { sendJson, setCorsHeaders, setHeaders, liveCacheHeaders } from '../http/responses.ts';
+import { fetchProvider } from '../http/providerFetch.ts';
 export interface LtaRequestOptions {
   endpoint: string;
   defaultSkip?: number;
@@ -90,7 +91,7 @@ export async function handleLtaRequest(
       }
     }
 
-    const response = await fetch(urlObj.toString(), {
+    const response = await fetchProvider(urlObj.toString(), {
       method: 'GET',
       signal: AbortSignal.timeout(config.server.requestTimeoutMs),
       headers: {
@@ -146,7 +147,7 @@ export async function fetchLtaAll(
 ): Promise<any[]> {
   const page = async (skip: number): Promise<any[]> => {
     for (let attempt = 1; ; attempt++) {
-      const response = await fetch(`${url}?$skip=${skip}`, {
+      const response = await fetchProvider(`${url}?$skip=${skip}`, {
         headers: { AccountKey: accountKey, accept: 'application/json' },
         signal: AbortSignal.timeout(config.server.requestTimeoutMs),
       });

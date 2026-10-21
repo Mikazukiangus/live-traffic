@@ -1,6 +1,7 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import { readFileSync } from 'node:fs';
 import { defineConfig, loadEnv, Plugin } from 'vite';
 import { createConfig, ENV_KEYS } from './config/schema.ts';
 import { createApiMiddleware } from './server/apiMiddleware.ts';
@@ -35,13 +36,21 @@ function apiDevServerPlugin(): Plugin {
 }
 
 const apiMiddleware = createApiMiddleware(handlers);
+// Use the deployed header policy for local production-preview checks, without affecting dev HMR.
+const deployment = JSON.parse(readFileSync(new URL('./vercel.json', import.meta.url), 'utf8'));
+const previewHeaders = Object.fromEntries(
+  deployment.headers.find((rule: any) => rule.source === '/(.*)').headers.map(({ key, value }: any) => [key, value]),
+);
 
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ mode, command, isPreview }) => {
   // Vite's mode files are loaded first; shell/platform values take precedence.
   // Only recognized settings are forwarded to local API handlers, never to client `define`.
   const loaded = loadEnv(mode, process.cwd(), '');
   const environment = { ...loaded, ...process.env };
-  const config = createConfig(environment);
+  const config = createConfig({
+    ...environment,
+    ...(command === 'build' || isPreview ? { NODE_ENV: 'production' } : {}),
+  });
   for (const key of ENV_KEYS) {
     if (environment[key] !== undefined) process.env[key] = environment[key];
   }
@@ -77,7 +86,7 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
-    preview: { host: config.dev.host, port: config.dev.previewPort, strictPort: true },
+    preview: { host: config.dev.host, port: config.dev.previewPort, strictPort: true, headers: previewHeaders },
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
       // Do not modify—file watching is disabled to prevent flickering during agent edits.

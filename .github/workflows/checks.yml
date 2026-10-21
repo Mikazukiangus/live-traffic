@@ -23,6 +23,8 @@ jobs:
       - run: bun install --frozen-lockfile
       - name: Type check
         run: npm run lint
+      - name: HTTPS and cookie policy
+        run: npm run security:audit
       - name: Parser tests
         run: npm test
       - name: Build

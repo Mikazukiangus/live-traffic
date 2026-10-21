@@ -49,6 +49,7 @@ A newer summary does not relabel retained segment speeds as current: current seg
 | Module | Owns |
 |---|---|
 | `server/http/responses.ts` | Node/Web JSON responses, CORS, preflight and cache headers |
+| `server/http/providerFetch.ts` | Pre-request HTTPS/credential checks and mandatory no-redirect provider transport; explicit local-test loopback exception |
 | `server/providers/lta.ts` | LTA credential resolution, proxy transport and general paginated datasets |
 | `server/providers/dataGov.ts` / `dataGovClient.ts` | Wrapped v2 transport, pending-request sharing, instance-local pacing/cooldown and bounded rate-limit retry |
 | `server/weather/rainService.ts` | Validated forecasts, fresh cache, pending refreshes and validity/age-limited retention |
@@ -102,5 +103,9 @@ See [DATA_MODEL_REVIEW.md](DATA_MODEL_REVIEW.md) for the source-based review of 
 ## Commute storage integrity
 
 `shared/commutes/model.ts` owns saved-data validation and route keys. The injected `commuteRepository.ts` owns versioned storage, recovery, commands and route-specific history; `commuteStorage.ts` supplies browser storage/catalogue access. The list/controller derives summaries once and records all eligible receipts through `recordBatch`; unchanged histories skip writes/publications, except that a failed history write can retry and clear its own notice. Existing utility exports delegate to this repository. `useCommuteHistory` only selects the current route directly from its subscribed state. See [COMMUTE_STORAGE.md](COMMUTE_STORAGE.md) for the non-destructive migration, protected-store behavior and remaining scope.
+
+## Transport security
+
+`vercel.json` owns global deployed HSTS/CSP headers; Vite preview reads that definition. The edge handles HTTP-to-HTTPS redirects. The provider transport validates before forwarding credentials and never follows redirects. Browser CSP notices contain closed metadata only, and `scripts/transport-audit.ts` gates insecure resource literals/new cookie paths in CI. See [TRANSPORT_SECURITY.md](TRANSPORT_SECURITY.md) for ownership, existing cookie-free behavior, local exceptions and verification limits.
 
 Released through [PR #10](https://github.com/Mikazukiangus/live-traffic/pull/10) with explicit approval on 21 October 2026. Persisted route revisions prevent prior history from returning after partial storage failures; later data-model slices remain separate work.

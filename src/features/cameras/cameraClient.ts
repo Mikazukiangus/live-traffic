@@ -22,7 +22,7 @@ export async function fetchCameras() {
   }
 
   if (!payload?.cameras.length) {
-    const response = await fetch(config.trafficImagesUrl);
+    const response = await fetch(config.trafficImagesUrl, { redirect: 'error' });
     if (!response.ok) throw new Error('Camera feed unavailable');
     payload = fromPublicCameras(await readValidatedJson(response, isPublicCameras));
     offlineCameraCopy = false;

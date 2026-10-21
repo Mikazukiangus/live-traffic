@@ -1,12 +1,13 @@
 import { config } from '../../config/server.ts';
 import { UpstreamHttpError } from '../../shared/diagnostics.ts';
+import { fetchProvider } from '../http/providerFetch.ts';
 const SPEED_BANDS_ENDPOINT = config.server.upstreams.speedBands;
 const MAX_ATTEMPTS = config.server.speeds.attempts;
 export async function fetchPage(skip: number, accountKey: string): Promise<{ value: any[]; lastUpdatedTime?: string }> {
   let lastError: unknown = new Error('Speed data unavailable');
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
-      const response = await fetch(`${SPEED_BANDS_ENDPOINT}?$skip=${skip}`, {
+      const response = await fetchProvider(`${SPEED_BANDS_ENDPOINT}?$skip=${skip}`, {
         headers: { AccountKey: accountKey, accept: 'application/json' },
         signal: AbortSignal.timeout(config.server.requestTimeoutMs),
       });

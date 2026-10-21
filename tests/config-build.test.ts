@@ -62,3 +62,16 @@ test('invalid environment fails at build startup without logging supplied values
     return true;
   });
 });
+
+test('production build rejects HTTP resource configuration even when NODE_ENV is incorrectly development', () => {
+  assert.throws(() => execFileSync(process.execPath, ['node_modules/vite/bin/vite.js', 'build'], {
+    cwd: root, env: { ...process.env, NODE_ENV: 'development', LTA_ACCOUNT_KEY: sentinel, VITE_TRAFFIC_IMAGES_URL: 'http://localhost:4500/private-marker' },
+    stdio: 'pipe', timeout: 30000,
+  }), (error: unknown) => {
+    const stderr = String((error as { stderr?: Buffer }).stderr || '');
+    assert.match(stderr, /VITE_TRAFFIC_IMAGES_URL/);
+    assert.ok(!stderr.includes('private-marker'));
+    assert.ok(!stderr.includes(sentinel));
+    return true;
+  });
+});

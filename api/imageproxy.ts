@@ -1,6 +1,7 @@
 import { reportFailure, UpstreamHttpError } from '../shared/diagnostics.ts';
 import { IMAGE_PROXY_HOSTS } from '../config/policy.ts';
 import { config } from '../config/server.ts';
+import { fetchProvider } from '../server/http/providerFetch.ts';
 /**
  * Serverless Image Proxy for Singapore LTA and Open Data Traffic Images.
  * Fixes browser MIME-type blocking (x-content-type-options: nosniff on application/octet-stream)
@@ -44,11 +45,11 @@ export default async function handler(req: any, res?: any) {
 
   try {
     const parsed = new URL(imageUrl);
-    if (parsed.protocol !== 'https:' || !ALLOWED_HOSTS.includes(parsed.hostname)) {
+    if (parsed.protocol !== 'https:' || parsed.username || parsed.password || !ALLOWED_HOSTS.includes(parsed.hostname)) {
       return sendJson(res, 403, { error: 'Host not permitted in proxy' });
     }
 
-    const response = await fetch(imageUrl, {
+    const response = await fetchProvider(imageUrl, {
       signal: AbortSignal.timeout(config.server.requestTimeoutMs),
       headers: {
         accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
