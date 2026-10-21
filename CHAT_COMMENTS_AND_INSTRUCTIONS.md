@@ -128,6 +128,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 117. [Turn 117: Cookie Authentication and CSRF Review](#117-turn-117-cookie-authentication-and-csrf-review)
 118. [Turn 118: Restrict API CORS to Trusted Frontend Origins](#118-turn-118-restrict-api-cors-to-trusted-frontend-origins)
 119. [Turn 119: Trusted-Origin CORS Merged to Main](#119-turn-119-trusted-origin-cors-merged-to-main)
+120. [Turn 120: DNS-Aware SSRF Guard on Preview](#120-turn-120-dns-aware-ssrf-guard-on-preview)
 
 ---
 
@@ -2115,6 +2116,22 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Main-branch Checks workflow 39614312874 passed for the merge. Production deployment dpl_2Pcf3Sf2ao8bycuf28m8ZvzYQavR is READY for df32e08 with production target and the intended project/team. Aliases include live-traffic-carbon-bc04.vercel.app, live-traffic-kappa.vercel.app and the main branch URL.
 - Authenticated production homepage and its referenced entry bundle returned HTTP 200. An unknown incident query returned no-store 400 with fixed INVALID_REQUEST metadata and Vary Origin. Valid camera metadata returned HTTP 200 with all eight LTA cameras, Vary Origin and the existing live cache policy. Requests without Origin returned no allow-origin or allow-credentials header, confirming the wildcard default is removed. Signed links, raw camera bodies and credentials were not printed or persisted. The protected-fetch connector cannot set custom request headers, so the complete Origin/preflight matrix remains covered by the deterministic Node/Web tests and isolated real HTTP evidence, not an asserted production replay.
 - Used the existing Vercel deployment/protected-access workflows without changing environment settings or deployment protection. No runtime edits, dependencies, lockfiles, cookies, credentials or real saved browser data were changed during release. Pre-existing untracked .claude/ remains untouched. Updated this log/table of contents and release documents for commit/push on main under the standing instruction. The approved merge and selected production checks are complete; no further confirmation is required.
+
+---
+
+## 120. Turn 120: DNS-Aware SSRF Guard on Preview
+
+**User Instruction:**
+> "I fetch user-supplied URLs. Add an SSRF guard that blocks private IPs and unsafe schemes, re-checked when the address resolves."
+
+### Implemented on `codex/ssrf-dns-guard` (21 October 2026, SGT):
+- Started from main at de45b64. Traced the user-supplied URL boundary to the camera image proxy; retained its exact provider-host allowlist. The existing shared fetch helper forced HTTPS/no redirects but lacked address checks at DNS/socket resolution. Added a shared URL/IP/DNS guard used by every application server provider call, including proxy images, LTA/cameras/speed pagination, weather and health probes.
+- Guard URL validation requires HTTPS/443, rejects credentials/fragments/control characters/unsafe hostnames and classifies normalized IP literals, including alternate numeric IPv4 spellings. Rejects private, loopback, link-local, metadata, unspecified, multicast, reserved/documentation/benchmark, mapped/transition and non-global IPv6 destinations. Explicitly blocks Azure's public-shaped host-services IP in addition to link-local/CGNAT metadata ranges.
+- An explicit Undici Agent installs the guarded lookup on the actual TLS socket. It resolves all OS-returned A/AAAA addresses and rejects the full set if any answer is unsafe/malformed, before selecting a connection family. Only those validated addresses reach the connector, with no second unchecked resolution; each new socket checks again, while pooled sockets retain their validated peer. DNS failures fail closed with fixed safe errors. TLS hostname/certificate checks remain enabled, redirects are always rejected and caller init cannot override the dispatcher. Original URL strings, signed query bytes, headers, abort signals and response bytes remain intact.
+- Removed the generic local-loopback network exception: provider network requests require public HTTPS destinations in every environment. Configuration can still parse local mock settings for dev/tests, but network transport does not grant them access; tests inject synthetic dependencies. Existing Vite localhost frontend/CORS behavior remains independent. No request/environment bypass switch or arbitrary user URL proxy was added.
+- Added pinned undici@7.30.1 and ipaddr.js@2.5.0 with bun.lock integrity. Confirmed the intended Vercel project uses Node 24, matching CI/local verification. A real native-fetch connection test caught an incompatible Undici 8 dispatcher before publication; switched to the maintained compatible 7.x release and reran verification. Consulted primary OWASP/Undici/IP-parser sources and official npm registry metadata. No package-lock.json or unrelated dependency upgrades were introduced.
+- Seven new SSRF regression groups cover URL parser/IP bypasses, mixed DNS families, public-to-private rebinding, safe failure metadata, exact signed bytes/options, real native-fetch private-answer rejection before connection and native redirect rejection with external networking disabled. All 155 tests, type checking with unused locals, production build, transport source audit and whitespace checks pass. No real provider/metadata/private endpoint was contacted in these tests. Updated the existing transport assertion to require the guarded dispatcher.
+- Added docs/api/ssrf.md and updated architecture/transport/configuration ownership and compatibility documentation. No credentials, environment values, real saved browser data, TLS bypass or deployment-protection changes were made. Pre-existing .claude/ remains untouched. Updated this log/table of contents for commit/push on the preview branch. Frozen installation and deployed verification follow below; main merge requires explicit approval under the standing instruction.
 
 ---
 

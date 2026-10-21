@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { createConfig, createPublicConfig } from '../config/schema.ts';
 import { fetchProvider } from '../server/http/providerFetch.ts';
+import { providerDispatcher } from '../server/http/ssrf.ts';
 import { transportNotice, installTransportDiagnostics } from '../src/utils/transportSecurity.ts';
 import { auditProjectTransport, auditTransportSource } from '../scripts/transport-audit.ts';
 
@@ -82,7 +83,7 @@ test('provider transport rejects insecure/credential URLs before sending anythin
   const url = 'https://images.example.test/photo.jpg?signature=synthetic%2Bvalue%2fexact';
   const headers = { AccountKey: 'synthetic-key' };
   await fetchProvider(url, { headers, redirect: 'follow' }, transport);
-  assert.deepEqual(recorded, { url, init: { headers, redirect: 'error' } });
+  assert.deepEqual(recorded, { url, init: { headers, redirect: 'error', dispatcher: providerDispatcher } });
   assert.equal(calls, 1);
 });
 

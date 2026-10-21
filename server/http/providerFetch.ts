@@ -1,4 +1,4 @@
-import { config } from '../../config/server.ts';
+import { providerDispatcher, validateOutboundUrl } from './ssrf.ts';
 
 /** Validate before sending credentials. Never follow redirects, including HTTPS-to-HTTP downgrades. */
 export function fetchProvider(
@@ -6,16 +6,10 @@ export function fetchProvider(
   init: RequestInit = {},
   transport: typeof fetch = globalThis.fetch,
 ): Promise<Response> {
-  let url: URL;
-  try {
-    url = new URL(input);
-  } catch {
-    throw new Error('Provider URL must use HTTPS');
-  }
-  const loopback = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
-  const localTest = config.server.allowLoopbackHttp && loopback && url.protocol === 'http:';
-  if ((url.protocol !== 'https:' && !localTest) || url.username || url.password)
-    throw new Error('Provider URL must use HTTPS without embedded credentials');
+  const target = String(input);
+  validateOutboundUrl(target);
   // Preserve signed query bytes; the original URL and headers never enter our errors.
-  return transport(input, { ...init, redirect: 'error' });
+  // Caller-provided dispatchers cannot replace the guarded socket lookup.
+  const options = { ...init, redirect: 'error' as const, dispatcher: providerDispatcher };
+  return transport(target, options);
 }
