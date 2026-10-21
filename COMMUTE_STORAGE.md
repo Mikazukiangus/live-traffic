@@ -4,7 +4,13 @@
 
 The first data model fix validates browser-saved commutes/history and isolates travel-time trends by exact ordered route. There is no database or account synchronization. The existing three-commute/four-leg limits and whole-road estimates for KPE/MCE remain.
 
-## Ownership
+## Access boundary
+
+Saved commutes/history are scoped to an origin and browser profile, not an authenticated account. There is no signed-in user, owner ID, role policy or server-side record endpoint. Anyone using the same browser profile can access and edit its saved commutes. The repository's ID/route-key/revision checks protect data consistency; they do not establish identity or record ownership. Browser localStorage is not a private multi-user account boundary.
+
+If account synchronization is added, authenticate on the server and scope every record read/write/delete/history lookup to that trusted user (and tenant where applicable), with explicit role permissions for any broader access. Never accept a client-supplied role/owner ID as authorization. Test anonymous requests, two different users and privileged-role exceptions. See [OWASP authorization guidance](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html).
+
+## Module ownership
 
 - `shared/commutes/model.ts`: types, limits, pure JSON decoders, saved-record validation and canonical ordered route keys. Supported road codes are supplied from the existing expressway catalogue, not duplicated here.
 - `src/features/commutes/commuteRepository.ts`: storage migration/protection, in-memory state, subscriptions, commands and history integrity. Storage and clock are injected for tests.
