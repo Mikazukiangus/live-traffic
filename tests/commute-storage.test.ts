@@ -8,7 +8,10 @@ import {
   isCommute,
   type Commute,
 } from '../shared/commutes/model.ts';
-import { COMMUTE_STORAGE_KEYS as K, createCommuteRepository } from '../src/features/commutes/commuteRepository.ts';
+import {
+  COMMUTE_STORAGE_KEYS as K,
+  createCommuteRepository,
+} from '../src/features/commutes/commuteRepository.ts';
 import { trendOf } from '../src/utils/commuteHistory.ts';
 
 const CODES = new Set(['PIE', 'AYE', 'KPE', 'MCE']);
@@ -23,9 +26,11 @@ function setup(initial: Record<string, string> = {}) {
   const data = new Map(Object.entries(initial));
   let now = t;
   let failKey = '';
+  const writes: string[] = [];
   const port = {
     getItem: (k: string) => data.get(k) ?? null,
     setItem: (k: string, v: string) => {
+      writes.push(k);
       if (k === failKey) throw new Error('synthetic-only');
       data.set(k, v);
     },
@@ -39,6 +44,7 @@ function setup(initial: Record<string, string> = {}) {
     repo,
     data,
     port,
+    writes,
     time: (value: number) => {
       now = value;
     },
@@ -94,7 +100,14 @@ test('commute validator checks IDs, labels, roads, directions, endpoints and exi
 });
 
 test('legacy partial recovery rejects invalid and duplicate entries, retaining the original copy', () => {
-  const raw = JSON.stringify([{ id: 'broken' }, route(), route(), route('two'), route('three'), route('four')]);
+  const raw = JSON.stringify([
+    { id: 'broken' },
+    route(),
+    route(),
+    route('two'),
+    route('three'),
+    route('four'),
+  ]);
   const s = setup({ [K.legacyCommutes]: raw });
   assert.deepEqual(
     s.repo.getSnapshot().commutes.map((c) => c.id),
@@ -166,7 +179,10 @@ test('history codec rejects malformed entries, invalid samples, duplicates and u
   ]) {
     assert.equal(decodeHistories(raw).writable, false);
   }
-  assert.equal(decodeHistories(histories([good, { ...good, commuteId: 'broken', samples: 'bad' }])).value.length, 1);
+  assert.equal(
+    decodeHistories(histories([good, { ...good, commuteId: 'broken', samples: 'bad' }])).value.length,
+    1,
+  );
   const s = setup({ [K.commutes]: saved([route()]), [K.history]: histories([{ ...good, samples: {} }]) });
   const original = s.data.get(K.history);
   assert.doesNotThrow(() => s.repo.record('home', good.routeKey, 20, t));
@@ -331,4 +347,101 @@ test('persisted route revisions prevent old history returning after partial fail
   assert.equal(reload.record(a.id, commuteRouteKey(restored), 10, t).length, 1);
   reload.save({ ...restored, name: 'Rename', alerts: true, routeRevision: 0 });
   assert.equal(reload.getSnapshot().commutes[0].routeRevision, 2, 'callers cannot reset a revision');
+});
+
+test('a batch records three commutes with one write/publication and unchanged updates write nothing', () => {
+  const s = setup();
+  const commutes = ['one', 'two', 'three'].map(route);
+  commutes.forEach((c) => s.repo.save(c));
+  s.writes.length = 0;
+  let publishes = 0;
+  s.repo.subscribe(() => publishes++);
+  const rows = commutes.map((c) => ({ id: c.id, routeKey: commuteRouteKey(c), minutes: 20, receivedAt: t }));
+  s.repo.recordBatch(rows);
+  assert.deepEqual(s.writes, [K.history]);
+  assert.equal(publishes, 1);
+  s.time(t + 2 * 60_000);
+  const snapshot = s.repo.getSnapshot();
+  s.repo.recordBatch(rows.map((r) => ({ ...r, receivedAt: t + 2 * 60_000 })));
+  assert.deepEqual(s.writes, [K.history]);
+  assert.equal(publishes, 1);
+  assert.equal(s.repo.getSnapshot(), snapshot);
+  commutes.forEach((c) => assert.equal(s.repo.samples(c.id, commuteRouteKey(c)).length, 1));
+  s.time(t + 4 * 60_000);
+  s.repo.recordBatch(rows.map((r) => ({ ...r, receivedAt: t + 4 * 60_000 })));
+  assert.deepEqual(s.writes, [K.history, K.history]);
+  assert.equal(publishes, 2);
+  commutes.forEach((c) => assert.equal(s.repo.samples(c.id, commuteRouteKey(c)).length, 2));
+});
+
+test('batch validation isolates stale routes and bad receipts, preserves spacing and prunes expired histories once', () => {
+  const s = setup();
+  const c = route();
+  s.repo.save(c);
+  const row = { id: c.id, routeKey: commuteRouteKey(c), minutes: 20, receivedAt: t };
+  s.repo.recordBatch([
+    { ...row, minutes: NaN },
+    { ...row, receivedAt: t + 1 },
+    { ...row, id: 'missing' },
+    row,
+  ]);
+  assert.deepEqual(s.repo.samples(c.id, row.routeKey), [[t, 20]]);
+  s.repo.save({ ...c, legs: [{ code: 'AYE', direction: 1, from: 'C', to: 'D' }] });
+  const key = commuteRouteKey(s.repo.getSnapshot().commutes[0]);
+  s.writes.length = 0;
+  s.repo.recordBatch([row, { ...row, routeKey: key, minutes: 10 }]);
+  assert.deepEqual(s.repo.samples(c.id, key), [[t, 10]]);
+  assert.deepEqual(s.writes, [K.history]);
+  s.time(t + 60_000);
+  s.repo.recordBatch([{ ...row, routeKey: key, minutes: 11, receivedAt: t + 60_000 }]);
+  s.repo.recordBatch([{ ...row, routeKey: key, minutes: 99, receivedAt: t + 30_000 }]);
+  assert.deepEqual(s.repo.samples(c.id, key), [
+    [t, 10],
+    [t + 60_000, 11],
+  ]);
+  s.writes.length = 0;
+  s.time(t + HISTORY_KEEP_MS + 60_001);
+  s.repo.recordBatch([]);
+  assert.deepEqual(s.writes, [K.history]);
+  assert.deepEqual(JSON.parse(s.data.get(K.history)!).histories, []);
+  s.repo.recordBatch([]);
+  assert.deepEqual(s.writes, [K.history], 'pruning an already empty store is a no-op');
+});
+
+test('batch persistence retries a failed history write without new samples and keeps other-key failures visible', () => {
+  const s = setup();
+  const c = route();
+  s.repo.save(c);
+  const row = { id: c.id, routeKey: commuteRouteKey(c), minutes: 20, receivedAt: t };
+  s.fail(K.history);
+  s.repo.recordBatch([row]);
+  assert.match(s.repo.getSnapshot().notice!, /unavailable/);
+  assert.equal(s.repo.samples(c.id, row.routeKey).length, 1);
+  s.fail('');
+  s.writes.length = 0;
+  s.repo.recordBatch([row]);
+  assert.deepEqual(s.writes, [K.history]);
+  assert.equal(s.repo.getSnapshot().notice, null);
+  assert.equal(JSON.parse(s.data.get(K.history)!).histories[0].samples.length, 1);
+  s.fail(K.commutes);
+  s.repo.save({ ...c, name: 'In-memory rename' });
+  s.time(t + 4 * 60_000);
+  s.fail('');
+  s.repo.recordBatch([{ ...row, receivedAt: t + 4 * 60_000 }]);
+  assert.match(
+    s.repo.getSnapshot().notice!,
+    /unavailable/,
+    'history success cannot hide a commute write failure',
+  );
+});
+
+test('batch recording preserves unsupported stores while updating only in memory', () => {
+  const raw = JSON.stringify({ schemaVersion: 99, histories: [] });
+  const s = setup({ [K.commutes]: saved([route()]), [K.history]: raw });
+  const row = { id: 'home', routeKey: commuteRouteKey(route()), minutes: 20, receivedAt: t };
+  s.repo.recordBatch([row]);
+  assert.equal(s.data.get(K.history), raw);
+  assert.equal(s.writes.length, 0);
+  assert.equal(s.repo.samples('home', row.routeKey).length, 1);
+  assert.match(s.repo.getSnapshot().notice!, /stored copy was kept/);
 });

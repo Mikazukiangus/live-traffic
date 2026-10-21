@@ -10,7 +10,8 @@ The first data model fix validates browser-saved commutes/history and isolates t
 - `src/features/commutes/commuteRepository.ts`: storage migration/protection, in-memory state, subscriptions, commands and history integrity. Storage and clock are injected for tests.
 - `src/features/commutes/commuteStorage.ts`: lazy browser adapter using localStorage and the catalogue.
 - `src/utils/commutes.ts` and `commuteHistory.ts`: compatibility entry points and React subscription/notification or trend presentation behavior.
-- `useCommuteHistory.ts`: records only live, non-estimated travel-time receipts and selects current-route samples. It subscribes to the repository instead of retaining a second route's sample state.
+- `MyCommute.tsx`: derives all card summaries once and records eligible live, non-estimated receipts in one repository batch effect.
+- `useCommuteHistory.ts`: selects current-route samples/trends for each card. It subscribes to the repository instead of retaining a second route's sample state or writing per card.
 
 ## Versioned records
 
@@ -20,6 +21,8 @@ New writes use separate keys, preserving the old keys unchanged:
 - `trafficpulse.commuteHistory.v1`: `{schemaVersion: 1, histories: [{commuteId, routeKey, samples: [[receivedAt, minutes], ...]}]}`.
 
 The timestamp in a sample is the browser's receipt time, as in the previous implementation. It is not claimed to be LTA's issue/update time. Samples are finite, nonnegative, ordered, unique by receipt time and limited to the last three hours. Repeated/out-of-order receipts do not add a sample. Existing pacing remains: unchanged values every four minutes or changed values at least one minute apart. Only live, non-estimated totals enter history.
+
+`recordBatch` validates every receipt against the current route/revision, prunes expired/obsolete history, and applies the same sample spacing before committing once. Three eligible commutes therefore need one whole-history write/publication. If neither samples nor pruning change, no write/publication occurs. A previously failed history write is retried even if the latest valid receipt adds no sample; its recovery updates the notice without concealing failures on another key. Protected stores remain untouched. The compatibility `record`/`recordSample` path delegates to the same batch command and retains its previous sample-return contract.
 
 `routeKey` contains the saved `routeRevision` and canonical JSON description of ordered `[code, direction, from, to]` legs. Legacy records receive revision zero; the repository increments it on each route-defining edit and ignores caller-supplied resets. This also prevents old history returning after a partial history-write failure and an A-to-B-to-A edit/reload. It uses normalized endpoint case/spacing and the full description rather than a truncated hash. It contains no name or alert setting and is not a provider route ID. Each commute has at most one active history; a route change removes it. The saved revision is an integrity marker; this slice does not archive previous route revisions.
 

@@ -2,11 +2,13 @@
 
 Reviewed 21 October 2026 against main at `a8005232edbe78b9bf68d00d47607969f66c1c45`.
 
+**Implementation preview (21 October 2026):** `codex/shared-feeds-history-batching` implements shared travel-time/air-quality resources and batched/no-op history recording. This review's pinned evidence and original counts describe the baseline. Main merge requires explicit approval. Optional hidden-camera inference deferral remains a separate improvement.
+
 ## Conclusion
 
 TrafficPulse has no SQL/ORM query path, so there is no confirmed database N+1 query to eager-load or index. Commute cards already receive the complete travel-time dataset through props. Camera metadata also arrives as a collection. Mapping those records does not issue one query per item.
 
-There are two confirmed repeated-work opportunities: completed feed results are lost across some page remounts, and each commute card independently rewrites the whole history store. The examples below are proposals; this review changes documentation only.
+The baseline has two confirmed repeated-work opportunities: completed feed results are lost across some page remounts, and each commute card independently rewrites the whole history store. The implementation preview addresses both; the evidence below records why the changes were recommended.
 
 | Priority | Location | Repeated work | Recommended change |
 |---|---|---|---|
@@ -40,9 +42,9 @@ Keep the existing domain adapter, but subscribe it to a shared resource rather t
 // CURRENT: new state and polling lifecycle for each mounted hook instance.
 const feed = usePolledJson('/api/traveltimes', pollMs, validate);
 
-// PROPOSED: useTravelTimesFeed is a new adapter to implement.
-// A module-owned resource retains its validated snapshot across subscriptions.
-const feed = useTravelTimesFeed();
+// IMPLEMENTED ON PREVIEW: travelFeed is a module-owned browser resource.
+// Its validated snapshot survives gaps between subscriptions.
+const feed = useSharedFeed(travelFeed);
 const byCode = useMemo(() => sumTravelTimes(feed.data?.value ?? []), [feed.data]);
 const routes = useMemo(() => groupStretches(feed.data?.value ?? []), [feed.data]);
 ```
@@ -81,7 +83,7 @@ First avoid persistence/publication when neither samples nor pruning changed his
 // CURRENT, inside every card's effect:
 recordSample(id, routeKey, total, travelFetchedAt);
 
-// PROPOSED controller effect; recordBatch is a new repository command.
+// IMPLEMENTED ON PREVIEW: one controller effect calls the repository batch command.
 // summaries are derived once from the same feed snapshot for all commutes.
 useEffect(() => {
   if (travelStatus !== 'live' || travelFetchedAt == null) return;
@@ -123,6 +125,6 @@ The [`vehicle-counting/engine.ts:29`](https://github.com/Mikazukiangus/live-traf
 
 ## Scope and next step
 
-Recommend a preview implementing shared travel-time/air-quality state first, followed by no-op suppression and optional batch history recording. No application fixes are included in this review.
+The first two recommendations are implemented on the preview branch. Verification confirmed recent remounts reuse the original completed snapshot and deadline; concurrent refresh calls coalesce; failures/offline replies retain honest timestamps/status; cooldowns and disposal remain safe. Batched recording changes three history writes/publications to one, with zero on an unchanged update absent expiry/failure retry. Existing route-revision, protected-store and partial-write safeguards remain covered. Optional image-work deferral and diagnostic-report reuse are not included.
 
-Evidence consists of source inspection and isolated fetch/repository stubs. No live providers, SQL database, real browser storage or signed image URLs were accessed. The full test suite/build were not rerun for these documentation changes; the counts above are new synthetic checks, not production measurements.
+Baseline evidence consists of source inspection and isolated fetch/repository stubs. Preview verification adds deterministic regression tests and a loopback fixture using the actual hooks/commute cards under React Strict Mode, with synthetic responses/storage. Browser checks confirmed no added feed requests on recent page switches, one write for three cards, no unchanged-update write, immediate route-history clearing on failed feeds and no history for estimated routes. These are not production latency measurements. No live providers, SQL database, real saved user data or signed image URLs were used. Final suite/build and publication results are recorded in CHAT_COMMENTS_AND_INSTRUCTIONS.md.

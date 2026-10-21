@@ -10,6 +10,7 @@ import {
   MAX_COMMUTES,
   type Commute,
   type Sample,
+  type RouteHistory,
 } from '../../../shared/commutes/model';
 
 export const COMMUTE_STORAGE_KEYS = {
@@ -25,6 +26,12 @@ export interface StoragePort {
 export interface CommuteSnapshot {
   commutes: Commute[];
   notice: string | null;
+}
+export interface HistoryReceipt {
+  id: string;
+  routeKey: string;
+  minutes: number;
+  receivedAt: number;
 }
 
 /** Application repository: storage policy, validation, migration and route/history integrity. No React. */
@@ -80,9 +87,58 @@ export function createCommuteRepository(
     }
   };
   const persistHistory = () => persist(COMMUTE_STORAGE_KEYS.history, { schemaVersion: 1, histories });
-  const trim = (samples: Sample[], at = now()) => samples.filter(([t]) => t <= at && at - t <= HISTORY_KEEP_MS);
+  const trim = (samples: Sample[], at = now()) =>
+    samples.filter(([t]) => t <= at && at - t <= HISTORY_KEEP_MS);
   const hasRoute = (id: string, key: string) =>
     snapshot.commutes.some((c) => c.id === id && commuteRouteKey(c) === key);
+  const validReceipt = (row: HistoryReceipt, at: number) =>
+    row &&
+    hasRoute(row.id, row.routeKey) &&
+    isSample([row.receivedAt, row.minutes]) &&
+    row.receivedAt <= at &&
+    at - row.receivedAt <= HISTORY_KEEP_MS;
+  const sameHistories = (a: RouteHistory[], b: RouteHistory[]) =>
+    a.length === b.length &&
+    a.every((h, i) => {
+      const other = b[i];
+      return (
+        h.commuteId === other.commuteId &&
+        h.routeKey === other.routeKey &&
+        h.samples.length === other.samples.length &&
+        h.samples.every(
+          ([time, minutes], j) => time === other.samples[j][0] && minutes === other.samples[j][1],
+        )
+      );
+    });
+  const recordBatch = (rows: readonly HistoryReceipt[]) => {
+    const at = now();
+    const next = histories
+      .filter((h) => hasRoute(h.commuteId, h.routeKey))
+      .map((h) => ({ ...h, samples: trim(h.samples, at) }))
+      .filter((h) => h.samples.length);
+    for (const row of rows) {
+      if (!validReceipt(row, at)) continue;
+      let history = next.find((h) => h.commuteId === row.id);
+      if (!history) {
+        history = { commuteId: row.id, routeKey: row.routeKey, samples: [] };
+        next.push(history);
+      }
+      const last = history.samples.at(-1);
+      // Ignore duplicate/out-of-order receipts. A changed value still needs a full minute.
+      if (
+        !last ||
+        row.receivedAt - last[0] >= 4 * 60_000 ||
+        (last[1] !== row.minutes && row.receivedAt - last[0] >= 60_000)
+      )
+        history.samples.push([row.receivedAt, row.minutes]);
+    }
+    const changed = !sameHistories(histories, next);
+    if (!changed && !failedWrites.has(COMMUTE_STORAGE_KEYS.history)) return;
+    histories = next;
+    persistHistory();
+    // A successful retry can change a failure notice even when samples are unchanged.
+    if (changed || snapshot.notice !== notice()) publish();
+  };
 
   return {
     getSnapshot: () => snapshot,
@@ -101,7 +157,12 @@ export function createCommuteRepository(
         name: value.name.trim(),
         alerts: value.alerts,
         routeRevision: previous?.routeRevision ?? 0,
-        legs: value.legs.map((l) => ({ code: l.code, direction: l.direction, from: l.from.trim(), to: l.to.trim() })),
+        legs: value.legs.map((l) => ({
+          code: l.code,
+          direction: l.direction,
+          from: l.from.trim(),
+          to: l.to.trim(),
+        })),
       };
       const changed = previous && commutePathKey(previous) !== commutePathKey(commute);
       if (changed) {
@@ -127,34 +188,18 @@ export function createCommuteRepository(
     },
     samples(id: string, routeKey: string): Sample[] {
       if (!hasRoute(id, routeKey)) return [];
-      return trim(histories.find((h) => h.commuteId === id && h.routeKey === routeKey)?.samples ?? []).map((s) => [
-        ...s,
-      ]);
+      return trim(histories.find((h) => h.commuteId === id && h.routeKey === routeKey)?.samples ?? []).map(
+        (s) => [...s],
+      );
     },
+    recordBatch,
     record(id: string, routeKey: string, minutes: number, receivedAt = now()): Sample[] {
-      const at = now();
-      if (
-        !hasRoute(id, routeKey) ||
-        !isSample([receivedAt, minutes]) ||
-        receivedAt > at ||
-        at - receivedAt > HISTORY_KEEP_MS
-      )
-        return [];
-      const previous = histories.find((h) => h.commuteId === id && h.routeKey === routeKey);
-      const samples = trim(previous?.samples ?? []);
-      const last = samples.at(-1);
-      // Ignore duplicate/out-of-order receipts. A changed value still needs a full minute.
-      if (!last || receivedAt - last[0] >= 4 * 60_000 || (last[1] !== minutes && receivedAt - last[0] >= 60_000))
-        samples.push([receivedAt, minutes]);
-      histories = histories
-        .filter((h) => h.commuteId !== id && hasRoute(h.commuteId, h.routeKey))
-        .map((h) => ({ ...h, samples: trim(h.samples) }))
-        .filter((h) => h.samples.length);
-      histories.push({ commuteId: id, routeKey, samples });
-      persistHistory();
-      // Persistence notices share the same subscription as commute edits.
-      publish();
-      return samples.map((s) => [...s]);
+      const row = { id, routeKey, minutes, receivedAt };
+      if (!validReceipt(row, now())) return [];
+      recordBatch([row]);
+      return (histories.find((h) => h.commuteId === id && h.routeKey === routeKey)?.samples ?? []).map(
+        (s) => [...s],
+      );
     },
     forget(id: string) {
       histories = histories.filter((h) => h.commuteId !== id);

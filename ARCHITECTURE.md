@@ -22,6 +22,7 @@ flowchart LR
 | `src/features/traffic/speedResource.ts` | Speed-feed validation, subscriber demand, coalesced requests, one refresh listener/timer, retained data and offline provenance |
 | `src/features/traffic/useSpeedFeed.ts` | React subscription and browser adapters for that resource |
 | `src/features/weather/` | Shared rain polling/state, Retry-After cooldowns and retained/expired forecast notices |
+| `src/features/feeds/polledResource.ts` / `useSharedFeed.ts` | Validated travel-time/air-quality snapshots retained across page mounts, shared pending requests, subscriber-owned timers/listeners and retry cooldowns |
 | `src/utils/speedSnapshot.ts` | Local snapshot persistence and age limit |
 | `src/features/cameras/cameraClient.ts` / `useCameraFeed.ts` | Provider fallback and camera refresh lifecycle |
 | `src/features/cameras/normalizeCameraFeed.ts` / `cameraReadings.ts` | Camera normalization, traffic/count interpretation, weather enrichment and checkpoint summaries |
@@ -33,7 +34,7 @@ flowchart LR
 | `src/features/radar/useRadarReadings.ts` | Reading composition and map-layer preference state |
 | `src/features/radar/useRadarNavigation.ts` | Radar URL/tab state, keyboard controls, wall cycling and map navigation |
 | Radar panel/card/map components | Rendering of their named reading/navigation subsets |
-| `src/features/commutes/` | Saved-commute list, cards, editor, leg editor, pure summaries, history effect and sparkline |
+| `src/features/commutes/` | Saved-commute list/controller, cards, editor, leg editor, pure summaries, one history batch effect and subscribed trend/sparkline readers |
 | `src/features/vehicle-counting/engine.ts` | Lazy ONNX runtime/session, browser image preprocessing and vehicle inference |
 | `src/features/vehicle-counting/useVehicleCounts.ts` | React queue, visibility, result lifetime and safe diagnostics |
 | `src/features/app/` | Application navigation and wall-display controls |
@@ -72,7 +73,7 @@ The specialized speed fetcher retains its source timestamps and retry behavior. 
 - `config/schema.ts`, `config/client.ts`, `config/server.ts`, `config/policy.ts` and `shared/diagnostics.ts` retain their established validation and security boundaries.
 - `src/data/expressways.ts` is real reference data; `demoData.ts` contains sample fixtures; `emergencyContacts.ts` owns emergency contacts.
 - Compatibility exports in `api/_client.ts`, `src/data/mockData.ts`, `src/utils/vehicleDetection.ts` and `src/components/MyCommute.tsx` preserve existing callers. New code should import the specific owner.
-- Keep lazy page imports and lazy model loading. Main pages mount conditionally and unmount when navigation changes. Camera subtabs retain hidden content for quick switching; shared speed/rain resources retain useful data across subscriptions.
+- Keep lazy page imports and lazy model loading. Main pages mount conditionally and unmount when navigation changes. Camera subtabs retain hidden content for quick switching; shared speed, rain, travel-time and air-quality resources retain useful data across subscriptions.
 
 Run `bun run lint`, `bun run test` and `bun run build` before publishing an implementation. `tests/modularity.test.ts` covers the new ownership boundaries with synthetic fixtures; the existing diagnostics/configuration/parser checks remain required.
 
@@ -81,6 +82,8 @@ Weather retry/cache behavior and its per-instance limits are documented in [WEAT
 For the remaining UI/domain/data-access seams after PRs #6 and #7, see [LAYERING_REVIEW.md](LAYERING_REVIEW.md). It is a proposed plan, not an implemented folder reorganization.
 
 For repeated HTTP acquisition and browser history writes, see [N_PLUS_ONE_REVIEW.md](N_PLUS_ONE_REVIEW.md). It distinguishes page-remount refetches and per-card persistence from SQL N+1 queries, intentional pagination and local image inference.
+
+Travel-time and air-quality hooks now use module-owned browser resources. A recent completed observation is immediately reusable on remount with its original receipt/source times. An expired refresh deadline starts one shared request; no subscriber means no polling timer or refresh listener. Failed validation/requests retain the last valid observation with the existing loading/error behavior. Offline replies retain their cached receipt time and cannot replace a known observation; failures retry on the configured retry interval and respect numeric Retry-After cooldowns. These are in-memory browser caches, not persistent stores or new server caches. Existing speed/rain resources keep their specialized demand/forecast policies.
 
 ## Independent hazard geography
 
@@ -98,6 +101,6 @@ See [DATA_MODEL_REVIEW.md](DATA_MODEL_REVIEW.md) for the source-based review of 
 
 ## Commute storage integrity
 
-`shared/commutes/model.ts` owns saved-data validation and route keys. The injected `commuteRepository.ts` owns versioned storage, recovery, commands and route-specific history; `commuteStorage.ts` supplies browser storage/catalogue access. Existing utility exports delegate to this repository. `useCommuteHistory` selects the current route directly from its subscribed state. See [COMMUTE_STORAGE.md](COMMUTE_STORAGE.md) for the non-destructive migration, protected-store behavior and remaining scope.
+`shared/commutes/model.ts` owns saved-data validation and route keys. The injected `commuteRepository.ts` owns versioned storage, recovery, commands and route-specific history; `commuteStorage.ts` supplies browser storage/catalogue access. The list/controller derives summaries once and records all eligible receipts through `recordBatch`; unchanged histories skip writes/publications, except that a failed history write can retry and clear its own notice. Existing utility exports delegate to this repository. `useCommuteHistory` only selects the current route directly from its subscribed state. See [COMMUTE_STORAGE.md](COMMUTE_STORAGE.md) for the non-destructive migration, protected-store behavior and remaining scope.
 
 Released through [PR #10](https://github.com/Mikazukiangus/live-traffic/pull/10) with explicit approval on 21 October 2026. Persisted route revisions prevent prior history from returning after partial storage failures; later data-model slices remain separate work.
