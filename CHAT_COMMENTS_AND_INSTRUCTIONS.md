@@ -124,6 +124,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 113. [Turn 113: XSS Input-to-Output Audit](#113-turn-113-xss-input-to-output-audit)
 114. [Turn 114: XSS Fixes and Separate CSP Preview](#114-turn-114-xss-fixes-and-separate-csp-preview)
 115. [Turn 115: Continue and Verify Script CSP Preview](#115-turn-115-continue-and-verify-script-csp-preview)
+116. [Turn 116: XSS Fixes and Script CSP Merged to Main](#116-turn-116-xss-fixes-and-script-csp-merged-to-main)
 
 ---
 
@@ -2044,6 +2045,21 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Pushed implementation bcdd48d8106867db651e81be620d3462a13c1bd6 and opened draft PR #15 (https://github.com/Mikazukiangus/live-traffic/pull/15), attached to this chat. It targets codex/xss-output-navigation; merge PR #14 first, then retarget #15 to main. Both GitHub Checks runs, Vercel deployment and preview checks passed. PR #14's final head 636ad42 also has passing GitHub/Vercel checks.
 - Exact CSP deployment dpl_8vD3BGtyqZPbFm6tirfW73CQvs5Z is READY for the intended branch/SHA: https://live-traffic-pugjot7a2-carbon-bc04.vercel.app. Authenticated homepage, referenced entry bundle, theme-init.js and service worker returned HTTP 200. The HTML contains the external bootstrap with no inline script; served headers restrict scripts to self/WASM and deny script attributes. The worker contains shell-v7, bootstrap precaching and the fixed incident route. Protected HTTP access remains available without relaxing script sources or deployment protection.
 - Recorded publication evidence for commit/push on the CSP branch. The browser compatibility/probe/offline results above used synthetic data rather than production storage or live camera photos. Both previews are ready for user review; main/production application code remains unchanged until explicit merge approval.
+
+---
+
+## 116. Turn 116: XSS Fixes and Script CSP Merged to Main
+
+**User Instruction:**
+> "Merge to main"
+
+### Done (21 October 2026, SGT):
+- Received explicit approval to merge both previews. Rechecked passing GitHub/Vercel checks and confirmed exact heads. Marked PR #14 ready/mergeable and merged reviewed head 636ad42aa843fa7e1aed941ab005ebb6111bca3f into main as c0dd11c22be544ccbf5b678d93bf5f26a553fe07. Retargeted stacked PR #15 from codex/xss-output-navigation to main, marked it ready, confirmed it was mergeable, rechecked checks and merged reviewed head 261b448319407d22eaabdfcdcd2a6aac9153a6d0 as f3a9494391c341ae62b5d35283214fe62870f2bd. Retained both review branches and fast-forwarded local main.
+- PRs: https://github.com/Mikazukiangus/live-traffic/pull/14 and https://github.com/Mikazukiangus/live-traffic/pull/15. Released contextual build-metadata encoding/canonical-host validation, fixed same-origin notification navigation, self-only script origins plus required WASM permission, blocked script attributes and offline-safe external preference startup. The previously verified 140 tests, type checks, build, security audit, real-build injection rejection, worker navigation cases and isolated browser/offline/WASM/script-blocking evidence cover the implementation. No new application edits or repeat full local suite were needed for these merges.
+- Main-branch Checks workflow 39608710471 passed for the final merge. Production deployment dpl_3rtpbeMNPYZnhWiFoXZKSUa6HvaG is READY for f3a9494 and aliased to https://live-traffic-carbon-bc04.vercel.app. Metadata confirms the intended project, main branch and production target.
+- Authenticated production homepage, its referenced entry bundle, theme-init.js and service worker returned HTTP 200. The homepage contains the external bootstrap, populated social metadata and no inline script. The served policy restricts script-src to self/wasm-unsafe-eval and script-src-attr to none. The worker contains shell-v7, early-script precaching and the fixed incident route, with no notification-data URL read. No additional live provider fan-out or real browser storage changes were needed for these build/header/worker changes.
+- Marked XSS_AUDIT.md and TRANSPORT_SECURITY.md released. The policy remains an allowlist CSP; inline styles and existing HTTPS resource/connect directives remain, and optional Vercel Toolbar scripts are blocked as documented. Deployment protection was not changed. No credentials, environment values, dependencies, lockfiles, signed camera links or real saved user data were changed/exposed. Pre-existing untracked .claude/ remains untouched.
+- Updated this log/table of contents for commit and push on main under the standing instruction. Both approved merges and production verification are complete; no further confirmation is required.
 
 ---
 
