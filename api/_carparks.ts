@@ -1,3 +1,5 @@
+import { internalFeedSchema } from '../server/http/requestSchemas.ts';
+import { withRequestSchema } from '../server/http/validateRequest.ts';
 import { reportFailure } from '../shared/diagnostics.ts';
 import { config } from '../config/server.ts';
 /**
@@ -6,7 +8,7 @@ import { config } from '../config/server.ts';
  * Returns every car park compactly so the browser picks the nearest ones itself:
  * the visitor's location is never sent here.
  */
-import { fetchLtaAll, getLtaAccountKey, handlePreflight, liveCacheHeaders, sendJson } from './_client.ts';
+import { fetchLtaAll, getLtaAccountKey, liveCacheHeaders, sendJson } from './_client.ts';
 
 const CARPARKS_URL = config.server.upstreams.carParks;
 // LTA updates lots every minute.
@@ -18,10 +20,7 @@ const LOT_KEY: Record<string, 'car' | 'motorcycle' | 'heavy'> = { C: 'car', Y: '
 const titleCase = (s: string) =>
   s.toLowerCase().replace(/\b([a-z])/g, (m) => m.toUpperCase()).replace(/\bBlk\b/g, 'Blk');
 
-export default async function handler(req: any, res?: any) {
-  const preflight = handlePreflight(req, res);
-  if (preflight) return preflight;
-
+const handler = withRequestSchema(internalFeedSchema('carparks'), async (_req, res) => {
   const accountKey = getLtaAccountKey();
   if (!accountKey) return sendJson(res, 503, { success: false, error: 'LTA_ACCOUNT_KEY not configured' });
 
@@ -54,4 +53,5 @@ export default async function handler(req: any, res?: any) {
   } catch (err: any) {
     return sendJson(res, 502, reportFailure('lta', err));
   }
-}
+});
+export default handler;

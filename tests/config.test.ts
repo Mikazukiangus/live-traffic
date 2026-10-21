@@ -100,7 +100,7 @@ test('camera handler uses the shared key resolver, configured timeout and keyles
     return calls.length === 1 ? new Response('', { status: 500 }) : Response.json({ items: [{ timestamp: '2026-10-19T12:00:00+08:00', cameras: [] }] });
   };
   try {
-    const request = { headers: { 'x-lta-account-key': 'header-test-key' } };
+    const request = { method: 'GET', url: '/api/trafficimages', headers: { 'x-lta-account-key': 'header-test-key' } };
     const expectedKey = getLtaAccountKey(request);
     const response = await cameraHandler(request) as Response;
     assert.equal(response.status, 200);

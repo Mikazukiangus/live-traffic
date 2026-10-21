@@ -1,3 +1,5 @@
+import { readRequestAccountKey, requestSchemas } from '../http/requestSchemas.ts';
+import { withRequestSchema } from '../http/validateRequest.ts';
 import { config } from '../../config/server.ts';
 import { InvalidPayloadError, reportFailure, UpstreamHttpError } from '../../shared/diagnostics.ts';
 import { sendJson, setCorsHeaders, setHeaders, liveCacheHeaders } from '../http/responses.ts';
@@ -9,21 +11,8 @@ export interface LtaRequestOptions {
 
 export function getLtaAccountKey(req?: any): string | null {
   // Every handler uses the same validated key and legacy-alias precedence.
-  if (config.server.accountKey) return config.server.accountKey;
-
-  // Check incoming request headers if passed by client
-  if (req && req.headers) {
-    const headerKey =
-      req.headers['accountkey'] ||
-      req.headers['AccountKey'] ||
-      req.headers['x-account-key'] ||
-      req.headers['x-lta-account-key'];
-    if (headerKey && typeof headerKey === 'string' && headerKey.trim() !== '') {
-      return headerKey.trim();
-    }
-  }
-
-  return null;
+  const headerKey = req === undefined ? null : readRequestAccountKey(req);
+  return config.server.accountKey ?? headerKey;
 }
 
 // LTA DataMall incidents, VMS and travel times refresh every 1-5 minutes.
@@ -39,24 +28,15 @@ export async function handleLtaRequest(
   res?: any,
   validate?: (value: unknown) => boolean,
 ): Promise<Response | void> {
-  // Handle CORS preflight
-  if (req && req.method === 'OPTIONS') {
-    if (res && typeof res.status === 'function') {
-      setCorsHeaders(res);
-      return res.status(204).end();
-    }
-    return new Response(null, {
-      status: 204,
-      headers: {
-        'Access-Control-Allow-Origin': config.server.corsOrigin,
-        'Access-Control-Allow-Methods': 'GET, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, AccountKey, Authorization, x-account-key',
-      },
-    });
-  }
+  return withRequestSchema(requestSchemas.lta, async (request, responseTarget, input) => {
+    return runLtaRequest(endpointUrl, responseTarget, input.query, getLtaAccountKey() ?? input.accountKey, validate);
+  })(req, res);
+}
 
-  const accountKey = getLtaAccountKey(req);
-
+async function runLtaRequest(
+  endpointUrl: string, res: any, query: { skip?: number }, accountKey: string | null,
+  validate?: (value: unknown) => boolean,
+): Promise<Response | void> {
   // If AccountKey is missing, return informative 401 response
   if (!accountKey) {
     const errorBody = {
@@ -72,24 +52,8 @@ export async function handleLtaRequest(
   }
 
   try {
-    // Extract query parameters ($skip, etc.)
     const urlObj = new URL(endpointUrl);
-
-    if (req) {
-      if (req.query) {
-        Object.entries(req.query).forEach(([key, val]) => {
-          if (typeof val === 'string') {
-            urlObj.searchParams.set(key, val);
-          }
-        });
-      } else if (req.url && req.url.includes('?')) {
-        const queryPart = req.url.split('?')[1];
-        const searchParams = new URLSearchParams(queryPart);
-        searchParams.forEach((val, key) => {
-          urlObj.searchParams.set(key, val);
-        });
-      }
-    }
+    if (query.skip !== undefined) urlObj.searchParams.set('$skip', String(query.skip));
 
     const response = await fetchProvider(urlObj.toString(), {
       method: 'GET',

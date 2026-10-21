@@ -1,3 +1,5 @@
+import { internalFeedSchema } from '../server/http/requestSchemas.ts';
+import { withRequestSchema } from '../server/http/validateRequest.ts';
 import { reportFailure } from '../shared/diagnostics.ts';
 import { config } from '../config/server.ts';
 /**
@@ -11,7 +13,6 @@ import {
   NO_STORE,
   fetchLtaAll,
   getLtaAccountKey,
-  handlePreflight,
   liveCacheHeaders,
   sendJson,
 } from './_client.ts';
@@ -44,10 +45,7 @@ const sgToday = () => new Date(Date.now() + 8 * 3600_000).toISOString().slice(0,
 const faultKind = (message: string) =>
   /black\s?out/i.test(message) ? 'Blackout' : /flash/i.test(message) ? 'Flashing yellow' : 'Fault';
 
-export default async function handler(req: any, res?: any) {
-  const preflight = handlePreflight(req, res);
-  if (preflight) return preflight;
-
+const handler = withRequestSchema(internalFeedSchema('roadconditions'), async (_req, res) => {
   const accountKey = getLtaAccountKey();
   if (!accountKey) {
     return sendJson(res, 503, { success: false, error: 'LTA_ACCOUNT_KEY not configured' });
@@ -98,4 +96,5 @@ export default async function handler(req: any, res?: any) {
     // A partial answer is not cached, so the next request tries both feeds again.
     roadWorks && faultyLights ? CACHE : NO_STORE
   );
-}
+});
+export default handler;

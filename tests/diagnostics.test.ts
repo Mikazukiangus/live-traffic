@@ -84,7 +84,7 @@ for (const mode of ['web', 'node']) {
           return new Response(status === 500 ? `<html>${secret}</html>` : JSON.stringify({ error: secret }),
             { status, headers: { 'content-type': status === 500 ? 'text/html' : 'application/json' } });
         };
-        const req = { method: 'GET', headers: { accountkey: secret }, url: '/api/traffic?token=' + encodeURIComponent(secret) };
+        const req = { method: 'GET', headers: { accountkey: secret }, url: '/api/traffic' };
         const res = mode === 'node' ? nodeResponse() : undefined;
         const response = await handleLtaRequest('https://example.invalid/provider', req, res) as Response;
         const body = res ? res.body : await response.json();
@@ -101,7 +101,7 @@ for (const mode of ['web', 'node']) {
       for (const malformed of [false, true]) {
         globalThis.fetch = async () => Response.json(malformed ? { error: secret } : payload);
         const res = mode === 'node' ? nodeResponse() : undefined;
-        const response = await handleLtaRequest('https://example.invalid/provider', { headers: {} }, res) as Response;
+        const response = await handleLtaRequest('https://example.invalid/provider', { method: 'GET', url: '/api/traffic', headers: {} }, res) as Response;
         const body = res ? res.body : await response.json();
         assert.equal(res ? res.statusCode : response.status, malformed ? 502 : 200);
         if (malformed) absent([body, logs]); else assert.deepEqual(body, payload);
@@ -113,7 +113,7 @@ for (const mode of ['web', 'node']) {
     await capture(async (logs) => {
       globalThis.fetch = async () => { throw hostileError(); };
       for (const [name, handler] of routes) {
-        const req = { method: 'GET', headers: {}, query: { url: 'https://images.data.gov.sg/test.jpg' } };
+        const req = { method: 'GET', headers: {}, url: name === 'proxy' ? '/api/imageproxy?url=' + encodeURIComponent('https://images.data.gov.sg/test.jpg') : '/api/' + name };
         const res = mode === 'node' ? nodeResponse() : undefined;
         const response = await handler(req, res) as Response;
         const body = res ? res.body : await response.json();
@@ -129,7 +129,7 @@ test('provider 200 errorMsg envelopes cannot escape through weather APIs', async
   await capture(async (logs) => {
     globalThis.fetch = async () => Response.json({ code: 1, errorMsg: secret });
     for (const [name, handler] of routes.filter(([name]) => ['rain', 'forecast', 'air', 'weather', 'floods'].includes(name))) {
-      const response = await handler({}) as Response;
+      const response = await handler({ method: 'GET', url: '/api/test' }) as Response;
       assert.equal(response.status, 502, name);
       absent([await response.json(), logs]);
     }
@@ -141,7 +141,7 @@ test('successful camera links retain required signatures while diagnostics omit 
     const image = `https://images.data.gov.sg/test.jpg?signature=${encodeURIComponent(secret)}`;
     globalThis.fetch = async () => Response.json({ value: [{ CameraID: 2701, ImageLink: image, Latitude: 1.4, Longitude: 103.7 }] });
     const handler = routes.find(([name]) => name === 'cameras')![1];
-    const response = await handler({}) as Response;
+    const response = await handler({ method: 'GET', url: '/api/test' }) as Response;
     assert.equal(response.status, 200);
     assert.equal((await response.json()).cameras[0].image, image);
     absent(logs);
@@ -151,7 +151,7 @@ test('successful camera links retain required signatures while diagnostics omit 
 test('health probes expose fixed failures and status metrics, never raw provider errors', async () => {
   await capture(async (logs) => {
     globalThis.fetch = async () => { throw hostileError(); };
-    const response = await health({}) as Response;
+    const response = await health({ method: 'GET', url: '/api/health' }) as Response;
     const data = await response.json();
     assert.equal(response.status, 200);
     assert.equal(data.totalCount, 15);

@@ -1,5 +1,6 @@
+import { requestSchemas } from '../server/http/requestSchemas.ts';
+import { withRequestSchema } from '../server/http/validateRequest.ts';
 import { reportFailure, UpstreamHttpError } from '../shared/diagnostics.ts';
-import { IMAGE_PROXY_HOSTS } from '../config/policy.ts';
 import { config } from '../config/server.ts';
 import { fetchProvider } from '../server/http/providerFetch.ts';
 /**
@@ -18,37 +19,10 @@ const IMAGE_CACHE = {
   'Vercel-CDN-Cache-Control': `max-age=${config.server.imageCacheSeconds}`,
 };
 
-const ALLOWED_HOSTS = IMAGE_PROXY_HOSTS;
-
-export default async function handler(req: any, res?: any) {
-  if (req && req.method === 'OPTIONS') {
-    if (res && typeof res.status === 'function') {
-      res.setHeader('Access-Control-Allow-Origin', config.server.corsOrigin);
-      res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-      return res.status(204).end();
-    }
-    return new Response(null, { status: 204 });
-  }
-
-  let imageUrl: string | null = null;
-
-  if (req.query && req.query.url) {
-    imageUrl = req.query.url;
-  } else if (req.url && req.url.includes('?')) {
-    const searchParams = new URLSearchParams(req.url.split('?')[1]);
-    imageUrl = searchParams.get('url');
-  }
-
-  if (!imageUrl) {
-    return sendJson(res, 400, { error: 'Missing image url parameter' });
-  }
+const handler = withRequestSchema(requestSchemas.image, async (_req, res, input) => {
+  const { imageUrl } = input.query;
 
   try {
-    const parsed = new URL(imageUrl);
-    if (parsed.protocol !== 'https:' || parsed.username || parsed.password || !ALLOWED_HOSTS.includes(parsed.hostname)) {
-      return sendJson(res, 403, { error: 'Host not permitted in proxy' });
-    }
-
     const response = await fetchProvider(imageUrl, {
       signal: AbortSignal.timeout(config.server.requestTimeoutMs),
       headers: {
@@ -86,7 +60,8 @@ export default async function handler(req: any, res?: any) {
   } catch (error: any) {
     return sendJson(res, 502, reportFailure('camera', error));
   }
-}
+});
+export default handler;
 
 export async function GET(request: Request) {
   return handler(request);

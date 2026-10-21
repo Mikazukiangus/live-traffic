@@ -62,7 +62,7 @@ async function mocked(run: (logs: string[]) => Promise<void>) {
     console.error = previousError;
   }
 }
-const request = { method: 'GET', headers: { accountkey: 'synthetic-only' } };
+const request = { method: 'GET', url: '/api/traffic', headers: { accountkey: 'synthetic-only' } };
 
 test('incident schema requires every field, permits empty feeds, unknown types and added fields', () => {
   assert.ok(isLtaIncidentPayload({ value: [] }));

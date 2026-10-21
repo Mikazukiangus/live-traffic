@@ -1,3 +1,5 @@
+import { requestSchemas } from '../server/http/requestSchemas.ts';
+import { withRequestSchema } from '../server/http/validateRequest.ts';
 import { reportFailure } from '../shared/diagnostics.ts';
 import { config } from '../config/server.ts';
 /**
@@ -25,15 +27,7 @@ function send(res: any, status: number, body: unknown, cache = NO_STORE) {
   });
 }
 
-export default async function handler(req: any, res?: any) {
-  if (req && req.method === 'OPTIONS') {
-    if (res && typeof res.status === 'function') {
-      setCorsHeaders(res);
-      return res.status(204).end();
-    }
-    return new Response(null, { status: 204 });
-  }
-
+const handler = withRequestSchema(requestSchemas.empty, async (_req, res) => {
   try {
     const data = await fetchDataGovV2(TWENTY_FOUR_HR_FORECAST);
 
@@ -72,7 +66,8 @@ export default async function handler(req: any, res?: any) {
   } catch (error: any) {
     return send(res, 502, reportFailure('nea', error));
   }
-}
+});
+export default handler;
 
 export async function GET(request: Request) {
   return handler(request);

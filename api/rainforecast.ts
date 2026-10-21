@@ -1,8 +1,10 @@
+import { requestSchemas } from '../server/http/requestSchemas.ts';
+import { withRequestSchema } from '../server/http/validateRequest.ts';
 import { reportFailure } from '../shared/diagnostics.ts';
 import { config } from '../config/server.ts';
 import { DataGovHttpError } from '../server/providers/dataGovClient.ts';
 import { createRainService } from '../server/weather/rainService.ts';
-import { fetchDataGovV2, handlePreflight, NO_STORE, liveCacheHeaders, sendJson } from './_client.ts';
+import { fetchDataGovV2, NO_STORE, liveCacheHeaders, sendJson } from './_client.ts';
 
 const service = createRainService({
   fetch: () => fetchDataGovV2(config.server.upstreams.rain),
@@ -13,9 +15,7 @@ const service = createRainService({
     reportFailure('nea', error);
   },
 });
-export default async function handler(req: any, res?: any) {
-  const preflight = handlePreflight(req, res);
-  if (preflight) return preflight;
+const handler = withRequestSchema(requestSchemas.empty, async (req, res) => {
   try {
     const { data, cacheSeconds } = await service.get();
     // No stale CDN window: the edge must not serve beyond the forecast's published end.
@@ -32,7 +32,8 @@ export default async function handler(req: any, res?: any) {
       headers['Retry-After'] = String(Math.ceil((error.retryAt - Date.now()) / 1000));
     return sendJson(res, 502, reportFailure('nea', error), headers);
   }
-}
+});
+export default handler;
 export async function GET(request: Request) {
   return handler(request);
 }
