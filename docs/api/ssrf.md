@@ -1,6 +1,6 @@
 # Outbound URL and DNS guard
 
-Published on `codex/ssrf-dns-guard` in [PR #17](https://github.com/Mikazukiangus/live-traffic/pull/17). Both GitHub Checks runs and Vercel checks passed for implementation `a479334`; its exact preview is READY. Main/production release requires explicit merge approval. Publication and continuation evidence are recorded in Turns 120–121 of the project log.
+Released to main through [PR #17](https://github.com/Mikazukiangus/live-traffic/pull/17), merge `c8ec1ff`, on 22 October 2026 after explicit approval. Both GitHub Checks runs and Vercel checks passed at reviewed head `2bd6a2f`. Preview evidence is recorded in Turns 120–121 of the project log; release verification and limits are recorded in Turn 122.
 
 ## Scope and enforcement
 

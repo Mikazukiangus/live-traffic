@@ -130,6 +130,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 119. [Turn 119: Trusted-Origin CORS Merged to Main](#119-turn-119-trusted-origin-cors-merged-to-main)
 120. [Turn 120: DNS-Aware SSRF Guard on Preview](#120-turn-120-dns-aware-ssrf-guard-on-preview)
 121. [Turn 121: Complete SSRF Preview Verification](#121-turn-121-complete-ssrf-preview-verification)
+122. [Turn 122: DNS-Aware SSRF Guard Merged to Main](#122-turn-122-dns-aware-ssrf-guard-merged-to-main)
 
 ---
 
@@ -2155,6 +2156,21 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - The exact deployed preview's /api/imageproxy returned HTTP 200, image/jpeg, Content-Length 176218 and the existing public max-age=900 policy for that unsigned image. This completes deployed public DNS/HTTPS/image compatibility verification. No live private/metadata endpoint was contacted; native-fetch rejection before private connection and rebinding/mixed-answer behavior remain established by the deterministic tests from Turn 120.
 - Updated docs/api/ssrf.md with PR/check status, deployed verification and the signed-probe limitation. The seven new SSRF test groups and all 155 tests, type checks, build, transport audit and frozen installation were already verified; this continuation changes documentation only. No dependency, runtime code, environment setting, TLS/deployment-protection policy, secret or saved user data was changed.
 - Updated this log/table of contents for commit/push on codex/ssrf-dns-guard under the standing instruction. PR #17 is ready for merge approval; main/production remain unchanged until explicit approval. No further implementation input is needed.
+
+---
+
+## 122. Turn 122: DNS-Aware SSRF Guard Merged to Main
+
+**User Instruction:**
+> "Merge to main"
+
+### Released (22 October 2026, SGT):
+- Received explicit approval for PR #17 (https://github.com/Mikazukiangus/live-traffic/pull/17). Rechecked both successful GitHub Checks runs and Vercel checks at exact head 2bd6a2f02953173b2671b13e249d47cd177cd14c, confirmed CLEAN/MERGEABLE against main, marked the draft ready and merged that exact head as c8ec1ff9c81a40336f44443ecad40ebb95aadddd. Retained the preview branch and fast-forwarded local main. The PR remains attached to this chat.
+- Released the shared HTTPS/443/public-address guard, all-answer address validation at the TLS socket lookup, guarded dispatcher/no redirects, redacted errors and pinned Node-24-compatible dependencies. The existing camera hostname allowlist remains in force. The prior 155 passing tests, type checks, build, source audit, frozen installation, native-fetch DNS/redirect cases and deployed public feed/image checks cover the implementation; no additional runtime changes or repeat full local suite were needed for the merge. Marked SSRF/transport documentation released.
+- Main-branch Checks workflow 39682620149 passed for the merge. Production deployment dpl_FE5evvY33imU7gxuuSQwatCeVTu1 is READY for c8ec1ff with production target and the intended project/team. Production aliases include live-traffic-carbon-bc04.vercel.app, live-traffic-kappa.vercel.app and the main branch URL.
+- Authenticated production homepage and referenced entry bundle returned HTTP 200. The rain endpoint returned HTTP 200 with all 47 forecast areas. An independent credential-free public image returned HTTP 200 through the production image proxy as image/jpeg, 176218 bytes, retaining public max-age=900. A forbidden loopback image URL returned no-store 403 IMAGE_HOST_NOT_ALLOWED at the existing request allowlist. These check deployed public-provider/transport compatibility and safe URL rejection; the private-DNS/rebinding matrix remains established by isolated native-fetch tests, not live private-network probes.
+- Automatic approval review rejected the production camera-metadata recheck before execution because its response contains live presigned access links. Did not retry or bypass that rejection. The complete eight-camera metadata check remains verified on the prior preview; no production metadata payload or signed link was obtained/persisted through this blocked check. The successful production public-image/forecast checks provide release evidence without submitting signed access credentials.
+- No environment settings, TLS/deployment-protection policy, real saved browser data or credentials changed during release. Pre-existing .claude/ remains untouched. Updated this log/table of contents and release documentation for commit/push on main under the standing instruction. The approved merge and selected production verification are complete; no further merge confirmation is needed.
 
 ---
 
