@@ -1,6 +1,6 @@
 # Outbound URL and DNS guard
 
-Prepared on `codex/ssrf-dns-guard`; main/production release requires review and explicit merge approval.
+Published on `codex/ssrf-dns-guard` in [PR #17](https://github.com/Mikazukiangus/live-traffic/pull/17). Both GitHub Checks runs and Vercel checks passed for implementation `a479334`; its exact preview is READY. Main/production release requires explicit merge approval. Publication and continuation evidence are recorded in Turns 120–121 of the project log.
 
 ## Scope and enforcement
 
@@ -48,3 +48,5 @@ Seven new regression groups cover:
 7. Native redirect rejection using a MockAgent with real network disabled; no redirect target is dispatched.
 
 All **155 tests**, type checking with unused locals, production build, transport source audit and whitespace checks passed. Existing boundary/CORS, provider response, caching and diagnostics suites continue to pass. Frozen-lockfile installation and deployed preview evidence are recorded in Turn 120 of the project log.
+
+The protected preview returned HTTP 200 for its homepage/entry asset, eight LTA camera records and the two-hour forecast's 47 areas. Its image proxy returned no-store 403 for a forbidden loopback URL. On continuation, a credential-free image from the keyless public camera feed returned HTTP 200 through the proxy as a 176,218-byte JPEG with the existing image cache policy. This verifies deployed public DNS/HTTPS/image compatibility; private DNS/rebinding cases are covered by the isolated native-fetch tests, not live private-network probes. Automatic approval review rejected a presigned-camera-URL probe before execution because it contained access credentials; the successful image check used an independent unsigned public URL instead.
