@@ -24,6 +24,19 @@ function parseUrl(value: string): string {
   return url.toString().replace(/\/$/, '');
 }
 const url = (scope: Scope, description: string, fallback: string) => field(scope, description, fallback, parseUrl);
+function siteOrigin(value: string): string {
+  // URL parsing alone permits quote-bearing hosts and normalizes some control characters.
+  if (/["'<>`\\\x00-\x20\x7f]/.test(value)) throw new Error('must be a valid canonical origin');
+  const parsed = parseUrl(value);
+  const location = new URL(parsed);
+  const host = location.hostname;
+  const dns = host.replace(/\.$/, '');
+  const validHost = /^\[[0-9a-f:.]+\]$/i.test(host) ||
+    (dns.length <= 253 && dns.split('.').every((label) =>
+      /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i.test(label)));
+  if (!validHost || location.origin !== parsed) throw new Error('must be an origin with a valid hostname and no path');
+  return parsed;
+}
 const secret = (description: string) => field('server', description, '', (value) => {
   if (/[\r\n]/.test(value) || /^(YOUR_|MY_|REPLACE_|CHANGE_ME)/i.test(value)) throw new Error('must be a real key or empty for keyless mode');
   return value || null;
@@ -63,9 +76,7 @@ export const ENV_SCHEMA = {
     return parsed;
   }),
   VITE_SITE_URL: field('public', 'Public canonical site origin used in build-time social metadata. Rebuild after changing VITE_ values.', 'https://live-traffic-carbon-bc04.vercel.app', (v) => {
-    const parsed = parseUrl(v);
-    if (new URL(parsed).origin !== parsed) throw new Error('must be an origin without a path');
-    return parsed;
+    return siteOrigin(v);
   }),
   VITE_TRAFFIC_IMAGES_URL: url('public', 'Public keyless traffic-images fallback used by browser and server.', 'https://api.data.gov.sg/v1/transport/traffic-images'),
   VITE_LIVE_POLL_MS: poll('Expressway speeds, incidents and VMS refresh interval in milliseconds.', 60000),

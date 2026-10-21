@@ -122,6 +122,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 111. [Turn 111: Request Boundary Validation on Preview](#111-turn-111-request-boundary-validation-on-preview)
 112. [Turn 112: Request Validation Merged to Main](#112-turn-112-request-validation-merged-to-main)
 113. [Turn 113: XSS Input-to-Output Audit](#113-turn-113-xss-input-to-output-audit)
+114. [Turn 114: XSS Fixes and Separate CSP Preview](#114-turn-114-xss-fixes-and-separate-csp-preview)
 
 ---
 
@@ -2002,6 +2003,20 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Synthetic React static renders confirmed escaped output on five actual surfaces: incidents, dispatch fields, call text/telephone attribute, VMS location labels/link titles and saved-commute editing. A tag-like commute name also passed the existing storage decoder, illustrating why output context matters. VMS message JSX, query/history encoding, preferences, maps, camera/image contexts and JSON output were reviewed without inventing additional XSS findings. The transport/cookie audit is explicitly not an XSS-specific gate.
 - Consulted primary OWASP, React and MDN guidance for contextual encoding, raw-HTML bypasses, CSP and worker navigation limits. Read the Canvas audit skill; no matching managed Canvas workspace was provisioned, so the durable source-linked report is in the repository. No real user/browser storage, notifications, production settings, credentials, dependencies, lockfiles or application code were changed. Removed the temporary build directory; pre-existing .claude/ remains untouched. Full tests/build were not repeated for documentation-only changes; the isolated rendering/build/VM checks above provide the new evidence.
 - Updated this log/table of contents for commit/push on main under the standing instruction. Proposed application fixes remain unapplied and can be implemented on a preview branch after approval.
+
+---
+
+## 114. Turn 114: XSS Fixes and Separate CSP Preview
+
+**User Instruction:**
+> "go with your recommendation"
+
+### Metadata and notification fixes on `codex/xss-output-navigation` (21 October 2026, SGT):
+- Implemented the first audit slice from main at 8dde5f6. Canonical site-origin validation now rejects HTML delimiters/control/backslash normalization tricks and malformed DNS labels while retaining valid DNS/punycode, IPv4, IPv6, ports, trailing-dot domains and explicit local-test HTTP behavior. Error messages retain setting names without submitted values.
+- Added a dedicated quoted-attribute metadata serializer used by the actual Vite HTML transform. It encodes HTML metacharacters at the output sink and uses callback replacement so dollar tokens cannot be interpreted as template replacements. JSON, React text and signed camera URLs are not globally escaped or altered.
+- Notification clicks now use the fixed same-origin incident view for both existing-window focus/navigation and new-window navigation. Notification-supplied data is never read to choose a URL. Existing incident notifications keep their destination. Worker data/font/asset/shell cache names and observation receipt ages are unchanged in this slice; the worker file update installs the new click handler.
+- Added three XSS-boundary regression groups plus a real-build rejection case. Coverage includes canonical-host cases, safe rejected-value diagnostics, HTML attribute/replacement-token serialization, both worker navigation branches, external/scheme-relative/credential/javascript/data/malformed destinations and proof that notification data is not read. All 138 tests, type checking with unused locals, production build, transport audit and whitespace checks passed.
+- Updated XSS_AUDIT.md with preview status and ARCHITECTURE.md with serializer ownership. No dependency, lockfile, credential, environment setting or real browser/user data was changed. Pre-existing untracked .claude/ remains untouched. This log/table of contents is included in the commit/push under the standing instruction. Publication follows below; CSP tightening will be prepared as a separate preview on top so each change remains reviewable. Main merge requires explicit approval.
 
 ---
 

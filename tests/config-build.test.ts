@@ -75,3 +75,17 @@ test('production build rejects HTTP resource configuration even when NODE_ENV is
     return true;
   });
 });
+
+test('production build rejects the audited metadata injection without exposing its supplied value', () => {
+  const injected = 'https://private-marker.test"tabindex="0"autofocus="autofocus"onfocus="alert(1)"x="';
+  assert.throws(() => execFileSync(process.execPath, ['node_modules/vite/bin/vite.js', 'build'], {
+    cwd: root, env: { ...process.env, NODE_ENV: 'production', LTA_ACCOUNT_KEY: sentinel, VITE_SITE_URL: injected },
+    stdio: 'pipe', timeout: 30000,
+  }), (error: unknown) => {
+    const stderr = String((error as { stderr?: Buffer }).stderr || '');
+    assert.match(stderr, /Invalid configuration/);
+    assert.match(stderr, /VITE_SITE_URL/);
+    for (const value of [sentinel, injected, 'private-marker', 'onfocus']) assert.ok(!stderr.includes(value));
+    return true;
+  });
+});

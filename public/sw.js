@@ -104,7 +104,8 @@ self.addEventListener('fetch', (event) => {
 // Commute alerts: tapping one opens (or focuses) the app on the Incidents tab.
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const url = event.notification.data?.url || '/';
+  // All current notifications concern incidents. Never navigate from notification-supplied data.
+  const url = new URL('/?page=radar&tab=incidents', self.location.origin).href;
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((wins) => {
       const win = wins.find((w) => new URL(w.url).origin === self.location.origin);

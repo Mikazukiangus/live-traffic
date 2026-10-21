@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 import { defineConfig, loadEnv, Plugin } from 'vite';
 import { createConfig, ENV_KEYS } from './config/schema.ts';
 import { createApiMiddleware } from './server/apiMiddleware.ts';
+import { renderSiteMetadata } from './server/html/metadata.ts';
 
 // Import handlers only after .env files have been loaded and validated below.
 const handlers: Record<string, () => Promise<{ default: (req: any, res?: any) => any }>> = {
@@ -63,7 +64,7 @@ export default defineConfig(({ mode, command, isPreview }) => {
           this.error('Server config cannot be included in the browser bundle. Use config/client.ts.');
         }
       },
-      transformIndexHtml(html) { return html.replaceAll('__TRAFFICPULSE_SITE_URL__', config.siteUrl); },
+      transformIndexHtml(html) { return renderSiteMetadata(html, config.siteUrl); },
     }],
     resolve: {
       alias: {
