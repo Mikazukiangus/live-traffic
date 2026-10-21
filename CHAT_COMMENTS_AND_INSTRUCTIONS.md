@@ -127,6 +127,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 116. [Turn 116: XSS Fixes and Script CSP Merged to Main](#116-turn-116-xss-fixes-and-script-csp-merged-to-main)
 117. [Turn 117: Cookie Authentication and CSRF Review](#117-turn-117-cookie-authentication-and-csrf-review)
 118. [Turn 118: Restrict API CORS to Trusted Frontend Origins](#118-turn-118-restrict-api-cors-to-trusted-frontend-origins)
+119. [Turn 119: Trusted-Origin CORS Merged to Main](#119-turn-119-trusted-origin-cors-merged-to-main)
 
 ---
 
@@ -2100,6 +2101,20 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Deployment dpl_6aej88otkJt1BD8voKZveTEDdzyi is READY for the intended branch/SHA: https://live-traffic-dbhmsleea-carbon-bc04.vercel.app, with branch alias live-traffic-git-codex-restrict-api-cors-carbon-bc04.vercel.app. Checked deployment metadata for project/team/branch identity and preview target. Used the protected-deployment access skill with the existing Vercel connection; no protection setting or credential was changed.
 - Authenticated preview homepage and its referenced entry bundle returned HTTP 200. An unknown incident query returned no-store 400 with fixed safe metadata and Vary Origin. A valid camera request returned HTTP 200 with eight current LTA camera records, Vary Origin and no allow-origin/allow-credentials headers on the request without Origin. Signed image URLs/raw camera bodies were not printed or persisted. The connector's protected-fetch interface does not accept custom request headers: the complete Origin/preflight matrix was verified in deterministic Node/Web tests and real isolated HTTP checks, not replayed against the protected deployment.
 - Recorded publication results for a documentation commit/push on the same preview branch. Main/production remain at the prior approved release; explicit approval is required to merge PR #16 under the standing preview-review instruction.
+
+---
+
+## 119. Turn 119: Trusted-Origin CORS Merged to Main
+
+**User Instruction:**
+> "Merge"
+
+### Released (21 October 2026, SGT):
+- Received explicit approval to merge PR #16 (https://github.com/Mikazukiangus/live-traffic/pull/16). Rechecked passing GitHub/Vercel checks at exact head 2032891163e8a3d28c66e6fbc1f7db32a0ac2929 and confirmed CLEAN/MERGEABLE against main. Marked it ready, merged that exact head as df32e08dc9256dee7640587fb9b6a81e47098e99, retained the review branch and fast-forwarded local main. Attached the PR to this chat.
+- Released exact trusted frontend-origin matching, validated optional API_CORS_ORIGINS, no wildcard/credentialed CORS, preflight rejection before provider work, cache-safe Vary headers and local Vite camera support. The previous 148 passing tests, type checking, build, transport audit and isolated real HTTP cases cover the implementation; no application edits or repeat full local suite were needed for this merge. Marked the CORS policy and CSRF follow-up documentation released.
+- Main-branch Checks workflow 39614312874 passed for the merge. Production deployment dpl_2Pcf3Sf2ao8bycuf28m8ZvzYQavR is READY for df32e08 with production target and the intended project/team. Aliases include live-traffic-carbon-bc04.vercel.app, live-traffic-kappa.vercel.app and the main branch URL.
+- Authenticated production homepage and its referenced entry bundle returned HTTP 200. An unknown incident query returned no-store 400 with fixed INVALID_REQUEST metadata and Vary Origin. Valid camera metadata returned HTTP 200 with all eight LTA cameras, Vary Origin and the existing live cache policy. Requests without Origin returned no allow-origin or allow-credentials header, confirming the wildcard default is removed. Signed links, raw camera bodies and credentials were not printed or persisted. The protected-fetch connector cannot set custom request headers, so the complete Origin/preflight matrix remains covered by the deterministic Node/Web tests and isolated real HTTP evidence, not an asserted production replay.
+- Used the existing Vercel deployment/protected-access workflows without changing environment settings or deployment protection. No runtime edits, dependencies, lockfiles, cookies, credentials or real saved browser data were changed during release. Pre-existing untracked .claude/ remains untouched. Updated this log/table of contents and release documents for commit/push on main under the standing instruction. The approved merge and selected production checks are complete; no further confirmation is required.
 
 ---
 

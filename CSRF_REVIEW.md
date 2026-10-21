@@ -2,7 +2,7 @@
 
 Reviewed on 21 October 2026 against main at `d8a3ef587ca1f8d7df397f8c85c6a6cf89ebd2ab`.
 
-Follow-up: the [CORS allowlist preview](docs/api/cors.md) replaces the wildcard policy described at that pinned baseline and rejects untrusted origins before application work. The historical verification below describes the reviewed baseline; CORS remains separate from authentication/CSRF protection for future writes.
+Follow-up: the [CORS allowlist](docs/api/cors.md), released through PR #16 on 21 October 2026, replaces the wildcard policy described at that pinned baseline and rejects untrusted origins before application work. The historical verification below describes the reviewed baseline; CORS remains separate from authentication/CSRF protection for future writes.
 
 ## Result
 

@@ -1,6 +1,6 @@
 # API CORS policy
 
-Prepared on `codex/restrict-api-cors` in [PR #16](https://github.com/Mikazukiangus/live-traffic/pull/16); production changes require review and merge approval. Implementation `5ad6848` passed both GitHub Checks runs and Vercel checks; its exact preview deployment is READY. Publication evidence and verification limits are recorded in Turn 118 of the project log.
+Released to main through [PR #16](https://github.com/Mikazukiangus/live-traffic/pull/16), merge `df32e08`, on 21 October 2026 after explicit approval. Both GitHub Checks runs and Vercel checks passed at reviewed head `2032891`. Preview evidence is recorded in Turn 118 of the project log; release verification and its limits are recorded in Turn 119.
 
 ## Allowed frontend origins
 
