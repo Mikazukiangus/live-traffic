@@ -2,6 +2,8 @@
 
 Reviewed 21 October 2026, main at `288043387f65d0aad9216fb818ed3bf6aca822a1`.
 
+Implementation status: metadata encoding/canonical-host validation and fixed notification navigation are implemented on preview branch `codex/xss-output-navigation` (Turn 114). Main merge requires approval. The findings below describe the audited baseline; CSP tightening is a separate preview change.
+
 ## Conclusion
 
 No confirmed visitor-reachable reflected, stored or DOM XSS was found in the reviewed first-party code. Incident/VMS/weather text, saved commute names, search results and dispatch details use React text/attribute rendering. Searches found no application use of `dangerouslySetInnerHTML`, `innerHTML`, `outerHTML`, `insertAdjacentHTML`, `document.write`, HTML parsers, `eval`, `new Function` or string-based timers as an injection sink.

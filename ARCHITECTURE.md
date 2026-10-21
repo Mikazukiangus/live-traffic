@@ -49,6 +49,7 @@ A newer summary does not relabel retained segment speeds as current: current seg
 | Module | Owns |
 |---|---|
 | `server/http/responses.ts` | Node/Web JSON responses, CORS, preflight and cache headers |
+| `server/html/metadata.ts` | Quoted HTML-attribute serialization for build-time site metadata, preserving literal replacement tokens |
 | `server/http/requestSchemas.ts` / `validateRequest.ts` | Explicit inbound HTTP contracts, scalar/encoding/body/header checks and safe rejection before application handlers; see [request validation](docs/api/request-validation.md) |
 | `server/http/providerFetch.ts` | Pre-request HTTPS/credential checks and mandatory no-redirect provider transport; explicit local-test loopback exception |
 | `server/providers/lta.ts` | LTA credential resolution, proxy transport and general paginated datasets |
