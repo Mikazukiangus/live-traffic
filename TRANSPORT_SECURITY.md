@@ -1,12 +1,12 @@
 # HTTPS, cookies and mixed content
 
-Implemented on preview branch `codex/https-transport-hardening`, 21 October 2026. Main merge requires approval.
+Released to main through [PR #12](https://github.com/Mikazukiangus/live-traffic/pull/12), merge `7d700bc`, on 21 October 2026. Production headers, HTTP redirects and selected endpoint transport were verified after release; see Turn 110 in CHAT_COMMENTS_AND_INSTRUCTIONS.md.
 
 ## Findings
 
-| Area | Verified baseline | Preview change |
+| Area | Verified baseline | Released change |
 |---|---|---|
-| Public HTTP navigation | Production returns 308 to the same HTTPS hostname, preserving path/query | Retain Vercel's edge redirect; verify the preview separately |
+| Public HTTP navigation | Production returns 308 to the same HTTPS hostname, preserving path/query | Retain Vercel's edge redirect; verified on preview and production |
 | HSTS | Production sends `max-age=63072000; includeSubDomains; preload` | Record the same policy explicitly for every route in `vercel.json` |
 | Browser resources | No active insecure URL literals found; cameras already reject HTTP URLs | Enforce a transport-focused Content Security Policy and add source/console checks |
 | Provider requests | HTTPS URLs configured, but fetch followed redirects by default | Validate each provider URL before sending; reject all redirects |

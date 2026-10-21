@@ -118,6 +118,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 107. [Turn 107: Shared Feeds and Batched History on Preview](#107-turn-107-shared-feeds-and-batched-history-on-preview)
 108. [Turn 108: Shared Feeds and Batched History Merged to Main](#108-turn-108-shared-feeds-and-batched-history-merged-to-main)
 109. [Turn 109: HTTPS and Mixed Content Safeguards on Preview](#109-turn-109-https-and-mixed-content-safeguards-on-preview)
+110. [Turn 110: HTTPS Safeguards Merged to Main](#110-turn-110-https-safeguards-merged-to-main)
 
 ---
 
@@ -1931,6 +1932,21 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Live preview camera metadata returned HTTP 200 with eight cameras and zero non-HTTPS image links. Two-hour rain returned HTTP 200 with 47 areas. These selected checks verify the guarded transport against live providers; no image/signature URLs or raw provider bodies were printed or persisted in the repository. Sampled responses had no Set-Cookie header; no claim is made about every platform authentication or third-party cookie.
 - A credential-free preview HTTP request with redirects disabled returned 308 to the same HTTPS hostname and preserved ?page=cameras&tab=signs. No extra redirect chain or preview-to-production redirection was introduced. No TLS certificate-validation bypasses were found in the scanned runtime/config/tool source.
 - Recorded these publication results for commit/push on the same branch. Header and transport behavior is concrete and reviewable; merging PR #12 to main still requires explicit user approval under the established preview workflow.
+
+---
+
+## 110. Turn 110: HTTPS Safeguards Merged to Main
+
+**User Instruction:**
+> "merge"
+
+### Done (21 October 2026, SGT):
+- Received explicit approval to merge PR #12. Confirmed reviewed head 949332c8d50ace2f1564d5cd3ef7fe6b4dafc309 had passing GitHub/Vercel checks, marked the PR ready and confirmed it was mergeable, then merged that exact head as 7d700bc6f3bc354a27d3c6e19a4bc5ee067ad194. PR: https://github.com/Mikazukiangus/live-traffic/pull/12. Retained the review branch and fast-forwarded local main.
+- Released explicit HSTS/CSP/nosniff/referrer headers, production HTTPS configuration, provider redirect rejection, redacted mixed-content notices, the transport/cookie source gate and shell-v6. The previously verified 126 tests, type checks, build, source audit and isolated offline/ONNX-WASM browser cases cover the implementation. No further application edits or repeat full local test run were needed for this merge.
+- Main-branch Checks workflow 39567376130 passed for the merge commit. Production deployment dpl_2YhPHQZKMJEEe6noPUBYjXN2ASJS is READY for 7d700bc and aliased to https://live-traffic-carbon-bc04.vercel.app. Deployment metadata confirms main, the intended project and the production target.
+- Authenticated production homepage, its referenced entry asset and service worker returned HTTP 200 with the configured HSTS/CSP/nosniff/referrer headers. The worker contains shell-v6. The image proxy without its required parameter returned the expected 400 with the same protections. Camera metadata returned HTTP 200 with eight cameras and zero non-HTTPS image links. No signed URLs or raw camera response bodies were printed or persisted.
+- A credential-free production HTTP request with redirects disabled returned 308 to the same HTTPS hostname and preserved ?page=cameras&tab=signs. All sampled HTTPS responses had no Set-Cookie. The app currently creates no cookies; platform authentication and third-party cookies are outside this app change and were not comprehensively audited. The CSP is transport-focused, not a nonce-based strict XSS policy.
+- Marked TRANSPORT_SECURITY.md released. No credentials, environment settings, dependencies, lockfiles or real saved user data were changed. Pre-existing untracked .claude/ remains untouched. Updated this log/table of contents for commit and push on main under the standing instruction. The approved merge is complete; no further confirmation is required.
 
 ---
 
