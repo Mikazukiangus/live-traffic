@@ -134,6 +134,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 123. [Turn 123: Password Hashing and Auth Storage Review](#123-turn-123-password-hashing-and-auth-storage-review)
 124. [Turn 124: Credential Verification and Session Issuance Review](#124-turn-124-credential-verification-and-session-issuance-review)
 125. [Turn 125: Role and Record-Ownership Authorization Review](#125-turn-125-role-and-record-ownership-authorization-review)
+126. [Turn 126: Clarify Login Target for Brute-Force Lockout](#126-turn-126-clarify-login-target-for-brute-force-lockout)
 
 ---
 
@@ -2221,6 +2222,20 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Reran the relevant existing request-boundary and commute-storage suites: all 24 tests passed. They verify callable-route participation/rejection before provider work, schema bounds and local data/history integrity; they do not test nonexistent user-A/user-B or admin/member authorization. No new permanent tests, real accounts, real browser records or live provider requests were needed. No full suite/build was repeated for this documentation-only review.
 - Recommendation for future protected functionality: establish identity server-side, deny access by default, check the operation's role permission and scope every record read/write/delete/export to the authenticated owner's accessible dataset; define broader admin/tenant access explicitly. Derive owner/role from trusted server identity, not request fields, localStorage or hidden buttons. Random record IDs and route keys do not replace access checks. Add anonymous, cross-user, role-escalation and explicit administrator-exception tests when real private records are introduced. No unused policy/session/database framework was added during this review.
 - Added the browser/account distinction and future server authorization contract to COMMUTE_STORAGE.md, clarifying its module-ownership heading. Consulted primary [OWASP Authorization](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html) and [IDOR prevention](https://cheatsheetseries.owasp.org/cheatsheets/Insecure_Direct_Object_Reference_Prevention_Cheat_Sheet.html) guidance. This targeted factual review is recorded in existing project artifacts. No runtime code, dependencies, lockfiles, credentials, hosting settings or real saved user data changed. Pre-existing .claude/ remains untouched. Updated this log/table of contents for commit/push on main under the standing instruction; no implementation approval is needed.
+
+---
+
+## 126. Turn 126: Clarify Login Target for Brute-Force Lockout
+
+**User Instruction:**
+> "Add brute-force lockout to my login with sensible thresholds and a cooldown."
+
+### Investigation and required clarification (22 October 2026, SGT):
+- Rechecked main at ada4c4c2719becfcd84a3491d2379ccbc940338a: there is still no application login/credential-verification route, password verifier, session/auth library or account store to attach a lockout to. All application APIs allow GET/OPTIONS only. Existing data.gov.sg cooldowns protect upstream request pacing and are unrelated to login attempts. A frontend-only counter or unused limiter would not fulfill the request.
+- Protected deployments redirect to Vercel-owned authentication. Application code does not receive those login attempts and cannot configure the lockout thresholds on Vercel's own account login. This review does not certify Vercel's internal brute-force policy or claim an application lockout was added. No login attempts, real account lockouts, identity-provider changes, firewall changes or deployment-protection changes were performed.
+- Asked a required clarification through the user-input tool: which login should be protected, with choices for the existing Vercel login, adding a new application login, or a login in another repository/service. Adding an entire account/authentication system is a material scope expansion, not a routine lockout implementation choice. Implementation depends on the user's answer; no further permission is needed for the already authorized repository investigation/log update.
+- Proposed starting policy for a future application password login: five failed attempts for an account identifier within 15 minutes, followed by a 15-minute cooldown, with separate source-IP throttling and generic responses. The exact thresholds are a proposed engineering baseline, not an OWASP-mandated value or an active setting. Apply atomically in a shared TTL-backed store across serverless instances, cover equivalent sign-in paths, avoid extending a lock indefinitely from blocked attempts, and clear the account failure state after an allowed successful verification. Account-enumeration, distributed guessing and malicious account-lockout denial of service need explicit handling alongside the chosen auth integration. Never count only in browser storage or per-process memory.
+- Consulted primary [OWASP login-throttling/account-lockout guidance](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html) and [Vercel Authentication documentation](https://vercel.com/docs/deployment-protection/methods-to-protect-deployments/vercel-authentication). No runtime code, dependencies, lockfiles, secrets, saved user data or hosting settings changed. Pre-existing .claude/ remains untouched. No full suite/build was repeated for this documentation-only clarification. Updated this log/table of contents for commit/push on main under the standing instruction. The requested lockout is not implemented and awaits identification of the login target.
 
 ---
 
