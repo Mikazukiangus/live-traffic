@@ -123,6 +123,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 112. [Turn 112: Request Validation Merged to Main](#112-turn-112-request-validation-merged-to-main)
 113. [Turn 113: XSS Input-to-Output Audit](#113-turn-113-xss-input-to-output-audit)
 114. [Turn 114: XSS Fixes and Separate CSP Preview](#114-turn-114-xss-fixes-and-separate-csp-preview)
+115. [Turn 115: Continue and Verify Script CSP Preview](#115-turn-115-continue-and-verify-script-csp-preview)
 
 ---
 
@@ -2021,6 +2022,28 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 ### First preview published and verified:
 - Pushed implementation 77ceb1e926e94783d2c62a7c84a78ff2086cb10e and opened draft PR #14 (https://github.com/Mikazukiangus/live-traffic/pull/14), attached to this chat. Both GitHub Checks runs, Vercel deployment and preview checks passed. Deployment dpl_EXPu9MyK3WyP5a7JKyem12NKUrZw is READY for that branch/SHA: https://live-traffic-66yd9pzwd-carbon-bc04.vercel.app.
 - Authenticated preview homepage and service worker returned HTTP 200. Social metadata was populated without the template placeholder; the served worker contains the fixed incident route and no notification-data URL read. No live provider calls or saved user data were needed for these checks. Main remains unchanged; the CSP follow-up is prepared separately and main merge requires approval.
+
+---
+
+## 115. Turn 115: Continue and Verify Script CSP Preview
+
+**User Instruction:**
+> "Continue last action"
+
+### Implemented on `codex/xss-script-csp` (21 October 2026, SGT):
+- Continued the authorized XSS recommendation after the first metadata/notification preview. This separate branch is stacked on PR #14 at 636ad42; its PR targets that branch so the CSP change is reviewable independently. Main has not changed. PR #14's implementation remains verified with 138 passing tests and deployed preview evidence in Turn 114.
+- Tightened script-src to self plus the required wasm-unsafe-eval and explicitly denied script event attributes. Removed arbitrary HTTPS script origins and inline script permission. Moved the early theme/text-size bootstrap into a synchronous same-origin public/theme-init.js that accepts only known preference values. Existing style/font/image/connect and blob-worker permissions remain; no nonce middleware, dependency, environment or hosting-access change was introduced.
+- Refreshed the HTML shell cache only to shell-v7, precached the early preference script and added its network-first shell fallback. Existing data/font/asset cache names and original API receipt ages are preserved. Full offline use still depends on acquired application assets; the first cold offline attempt lacked those cached assets, so the browser check warmed them before its offline verification. The new script's precache/fallback is independently covered by a deterministic worker test.
+- Added two CSP/bootstrap regression groups and strengthened the deployed-policy assertion. All 140 tests, type checking with unused locals, transport source audit, production build and whitespace checks passed. Existing metadata, request validation, provider guards and cache-age tests pass.
+- Used isolated loopback fixtures with built app assets, synthetic provider responses/storage and the exact header policy. Browser verification showed radar and lazy-loaded camera page rendering, saved dark/large preferences, and zero unexpected CSP/JavaScript errors. After warming assets and stopping the app listener, a reload rendered the camera page with offline/failed-feed notices, saved preferences and zero policy/script errors; the cached HTML retained CSP.
+- A separately production-built fixture ran the actual ONNX/WASM proxy-worker engine over a synthetic road frame: completed with zero detections and zero policy violations before negative probes. Benign injected inline-script, inline-event and external-script probes then produced three expected policy violations, with none of the test flags executing. This establishes compatibility and blocking behavior, not vehicle-count accuracy. Saved a local verification screenshot, closed the owned test tabs and stopped the fixture server. No real user storage, permissions, notifications, cameras or signed URLs were involved.
+- The in-app browser became unavailable at continuation, so verification used an isolated Chrome task session instead. No user tabs were changed. Optional Vercel Toolbar script execution is blocked by the self-only script policy; protected preview HTTP access is tested separately, and no broad production script exception is added for tooling. Documented this boundary in TRANSPORT_SECURITY.md and updated XSS_AUDIT.md's implementation status.
+- Updated this log/table of contents for commit/push under the standing instruction. Pre-existing untracked .claude/ remains untouched; no credentials, dependencies, lockfiles, production environment values or real saved user data changed. Publication and protected-deployment evidence follow below. Explicit approval is required before merging either preview into main.
+
+### CSP preview published and verified:
+- Pushed implementation bcdd48d8106867db651e81be620d3462a13c1bd6 and opened draft PR #15 (https://github.com/Mikazukiangus/live-traffic/pull/15), attached to this chat. It targets codex/xss-output-navigation; merge PR #14 first, then retarget #15 to main. Both GitHub Checks runs, Vercel deployment and preview checks passed. PR #14's final head 636ad42 also has passing GitHub/Vercel checks.
+- Exact CSP deployment dpl_8vD3BGtyqZPbFm6tirfW73CQvs5Z is READY for the intended branch/SHA: https://live-traffic-pugjot7a2-carbon-bc04.vercel.app. Authenticated homepage, referenced entry bundle, theme-init.js and service worker returned HTTP 200. The HTML contains the external bootstrap with no inline script; served headers restrict scripts to self/WASM and deny script attributes. The worker contains shell-v7, bootstrap precaching and the fixed incident route. Protected HTTP access remains available without relaxing script sources or deployment protection.
+- Recorded publication evidence for commit/push on the CSP branch. The browser compatibility/probe/offline results above used synthetic data rather than production storage or live camera photos. Both previews are ready for user review; main/production application code remains unchanged until explicit merge approval.
 
 ---
 
