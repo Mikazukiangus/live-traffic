@@ -2,6 +2,8 @@
 
 Released to main through [PR #12](https://github.com/Mikazukiangus/live-traffic/pull/12), merge `7d700bc`, on 21 October 2026. Production headers, HTTP redirects and selected endpoint transport were verified after release; see Turn 110 in CHAT_COMMENTS_AND_INSTRUCTIONS.md.
 
+Pending follow-up: `codex/xss-script-csp` tightens script sources as a separate preview on top of the metadata/notification fixes in PR #14. The script/offline details below describe that preview; main keeps its existing policy until the follow-up is approved and merged.
+
 ## Findings
 
 | Area | Verified baseline | Released change |
@@ -27,11 +29,11 @@ HSTS is learned from HTTPS responses and does not secure a first HTTP visit by i
 
 ### Content policy and offline pages
 
-`upgrade-insecure-requests` upgrades eligible HTTP resources to HTTPS without an HTTP fallback. Explicit source directives restrict scripts/styles/connections to secure network schemes while allowing the existing Google Fonts, HTTPS images, inline theme bootstrap, data/blob images, WASM compilation and same-origin/blob workers. `object-src 'none'` and a same-origin base URL prevent legacy object loading and external base changes. Secure WebSockets remain available.
+`upgrade-insecure-requests` upgrades eligible HTTP resources to HTTPS without an HTTP fallback. On the CSP preview, scripts are restricted to `'self'` plus the narrowly required `'wasm-unsafe-eval'`; `script-src-attr 'none'` explicitly blocks inline event handlers. Arbitrary HTTPS scripts, inline scripts and ordinary JavaScript eval are not authorized. The early preference bootstrap is an external, synchronous same-origin `/theme-init.js`, preserving saved theme/text size before paint. Google Fonts, HTTPS images, data/blob images, WASM compilation and same-origin/blob workers remain supported by their existing directives. `object-src 'none'` and a same-origin base URL prevent legacy object loading and external base changes. Secure WebSockets remain available.
 
-This policy focuses on transport. It permits HTTPS origins and necessary inline script/style behavior; it is not a nonce-based strict XSS policy. It does not replace HTTPS redirects or input validation. See [MDN's upgrade-insecure-requests documentation](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/upgrade-insecure-requests). The deprecated `block-all-mixed-content` directive was not added.
+This is an allowlist policy, not a nonce-based strict CSP or a substitute for contextual output encoding. Existing inline React styles and HTTPS resource/connect directives remain; script permissions are tightened independently. Optional third-party scripts, including an injected Vercel Toolbar, are not permitted by the application script policy. Protected preview HTTP access does not require authorizing that toolbar; no broad production exception or account setting change was added. If toolbar execution is later needed, review a narrowly scoped preview-only exception first. See [MDN's script-src reference](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/script-src) and [Vercel Toolbar CSP requirements](https://vercel.com/docs/vercel-toolbar/managing-toolbar).
 
-The service worker changes only its HTML shell cache to `shell-v6`, so an upgraded offline shell retains the new response policy. Existing data/font/asset caches and observation ages are preserved. Network-first/cached receipt-time semantics remain unchanged.
+The CSP preview refreshes only the shell cache to `shell-v7` and precaches `/theme-init.js` with the HTML shell. That script has a network-first shell fallback so offline startup can still apply preferences. Existing data/font/asset caches and observation ages are preserved. Network-first/cached receipt-time semantics remain unchanged. Full offline rendering still requires a previously warmed application asset cache; this change does not promise every page is available offline before its assets have been acquired.
 
 ### Server and configuration
 

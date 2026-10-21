@@ -6,7 +6,7 @@
 const VERSION = 'v5';
 // Refresh cached HTML so offline navigation also receives the deployed security policy.
 // Preserve existing data/font/asset caches and their original observation timestamps.
-const SHELL = 'shell-v6';
+const SHELL = 'shell-v7';
 const ASSETS = `assets-${VERSION}`;
 const DATA = `data-${VERSION}`;
 const FONTS = `fonts-${VERSION}`;
@@ -19,7 +19,7 @@ const BYPASS = [/^\/api\/imageproxy/, /^\/api\/health/, /^\/models\//, /\.wasm$/
 const MAX_ASSETS = 40;
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(SHELL).then((c) => c.addAll(['/', '/manifest.webmanifest', '/icons/icon-192.png'])));
+  event.waitUntil(caches.open(SHELL).then((c) => c.addAll(['/', '/theme-init.js', '/manifest.webmanifest', '/icons/icon-192.png'])));
   self.skipWaiting();
 });
 
@@ -94,6 +94,9 @@ self.addEventListener('fetch', (event) => {
   if (request.mode === 'navigate') {
     // Every page is the same app shell; ?page=… is read by the app.
     event.respondWith(networkFirst(request, SHELL, '/'));
+  } else if (url.pathname === '/theme-init.js') {
+    // The early preference script must be available with the offline HTML shell.
+    event.respondWith(networkFirst(request, SHELL));
   } else if (url.pathname.startsWith('/assets/')) {
     event.respondWith(cacheFirst(request, ASSETS));
   } else if (url.pathname.startsWith('/api/')) {

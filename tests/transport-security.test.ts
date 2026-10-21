@@ -100,11 +100,13 @@ test('all deployed routes have HSTS and an HTTPS-only resource policy compatible
     }),
   );
   assert.ok(policy.has('upgrade-insecure-requests'));
-  for (const directive of ['default-src', 'script-src', 'style-src', 'connect-src']) {
+  for (const directive of ['default-src', 'style-src', 'connect-src']) {
     assert.ok(policy.get(directive)?.includes('https:'));
     for (const bad of ['http:', 'ws:', '*']) assert.ok(!policy.get(directive)?.includes(bad));
   }
   assert.ok(policy.get('script-src')?.includes("'wasm-unsafe-eval'"));
+  assert.deepEqual(policy.get('script-src'), ["'self'", "'wasm-unsafe-eval'"]);
+  assert.deepEqual(policy.get('script-src-attr'), ["'none'"]);
   assert.deepEqual(policy.get('worker-src'), ["'self'", 'blob:']);
   assert.equal(headers['x-content-type-options'], 'nosniff');
 });
