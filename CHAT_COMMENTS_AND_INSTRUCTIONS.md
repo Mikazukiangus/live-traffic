@@ -2018,6 +2018,10 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Added three XSS-boundary regression groups plus a real-build rejection case. Coverage includes canonical-host cases, safe rejected-value diagnostics, HTML attribute/replacement-token serialization, both worker navigation branches, external/scheme-relative/credential/javascript/data/malformed destinations and proof that notification data is not read. All 138 tests, type checking with unused locals, production build, transport audit and whitespace checks passed.
 - Updated XSS_AUDIT.md with preview status and ARCHITECTURE.md with serializer ownership. No dependency, lockfile, credential, environment setting or real browser/user data was changed. Pre-existing untracked .claude/ remains untouched. This log/table of contents is included in the commit/push under the standing instruction. Publication follows below; CSP tightening will be prepared as a separate preview on top so each change remains reviewable. Main merge requires explicit approval.
 
+### First preview published and verified:
+- Pushed implementation 77ceb1e926e94783d2c62a7c84a78ff2086cb10e and opened draft PR #14 (https://github.com/Mikazukiangus/live-traffic/pull/14), attached to this chat. Both GitHub Checks runs, Vercel deployment and preview checks passed. Deployment dpl_EXPu9MyK3WyP5a7JKyem12NKUrZw is READY for that branch/SHA: https://live-traffic-66yd9pzwd-carbon-bc04.vercel.app.
+- Authenticated preview homepage and service worker returned HTTP 200. Social metadata was populated without the template placeholder; the served worker contains the fixed incident route and no notification-data URL read. No live provider calls or saved user data were needed for these checks. Main remains unchanged; the CSP follow-up is prepared separately and main merge requires approval.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*
