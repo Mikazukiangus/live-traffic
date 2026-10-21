@@ -135,6 +135,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 124. [Turn 124: Credential Verification and Session Issuance Review](#124-turn-124-credential-verification-and-session-issuance-review)
 125. [Turn 125: Role and Record-Ownership Authorization Review](#125-turn-125-role-and-record-ownership-authorization-review)
 126. [Turn 126: Clarify Login Target for Brute-Force Lockout](#126-turn-126-clarify-login-target-for-brute-force-lockout)
+127. [Turn 127: New Application Login Scope and Storage Preparation](#127-turn-127-new-application-login-scope-and-storage-preparation)
 
 ---
 
@@ -2236,6 +2237,21 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Asked a required clarification through the user-input tool: which login should be protected, with choices for the existing Vercel login, adding a new application login, or a login in another repository/service. Adding an entire account/authentication system is a material scope expansion, not a routine lockout implementation choice. Implementation depends on the user's answer; no further permission is needed for the already authorized repository investigation/log update.
 - Proposed starting policy for a future application password login: five failed attempts for an account identifier within 15 minutes, followed by a 15-minute cooldown, with separate source-IP throttling and generic responses. The exact thresholds are a proposed engineering baseline, not an OWASP-mandated value or an active setting. Apply atomically in a shared TTL-backed store across serverless instances, cover equivalent sign-in paths, avoid extending a lock indefinitely from blocked attempts, and clear the account failure state after an allowed successful verification. Account-enumeration, distributed guessing and malicious account-lockout denial of service need explicit handling alongside the chosen auth integration. Never count only in browser storage or per-process memory.
 - Consulted primary [OWASP login-throttling/account-lockout guidance](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html) and [Vercel Authentication documentation](https://vercel.com/docs/deployment-protection/methods-to-protect-deployments/vercel-authentication). No runtime code, dependencies, lockfiles, secrets, saved user data or hosting settings changed. Pre-existing .claude/ remains untouched. No full suite/build was repeated for this documentation-only clarification. Updated this log/table of contents for commit/push on main under the standing instruction. The requested lockout is not implemented and awaits identification of the login target.
+
+---
+
+## 127. Turn 127: New Application Login Scope and Storage Preparation
+
+**User Instruction:**
+> "A new application login"
+
+### Preparation and pending product decisions (22 October 2026, SGT):
+- The user selected new application authentication for the requested brute-force lockout. Rechecked main at 4b9bdd3 and the existing Vite/React/Node API, validated config, exact CORS/read-only boundaries and service worker. No existing application credential verifier or account store is available to extend. This resolves Turn 126's login-target question; it does not choose enrollment or privatize the existing traffic service.
+- Asked two concise product questions using the asynchronous input tool: invite/admin-created versus open-signup accounts, and personal features only versus the whole website requiring login. Recommended invite/admin-created enrollment and keeping shared traffic/cameras public. These choices remain pending; elapsed time is not approval. Continued independent implementation/resource preparation while awaiting an answer.
+- Applied Vercel authentication/storage guidance and consulted official Better Auth database/rate-limit documentation. Recommended maintained Better Auth with Postgres-backed accounts, revocable sessions and atomic shared lockout state. The current retrieved documentation identifies 1.7.12; no package was installed or version locked. Built-in IP request limiting alone is insufficient for the requested account-failure policy.
+- Read non-decrypted hosted environment metadata: only LTA_ACCOUNT_KEY is listed for production/preview. The team's installed Neon integration icfg_vbRd0nLxCxSVGbNNRALwWqmt lists no connected projects. Product metadata supports Singapore and a Free plan without a payment method. A database for this app is not yet connected/verified; no resource, billing subscription, environment value, migration or account was created or changed. No secrets were decrypted or emitted.
+- Added AUTHENTICATION_PLAN.md with the concrete proposed five-failures/15-minute-window/15-minute-cooldown policy, separate trusted-IP throttle, atomic concurrency/failure handling, secure sessions, dedicated write-boundary/CSRF validation, future ownership checks, storage/account-isolation requirements and release tests. Identified the service worker's broad successful GET /api caching as a prerequisite to fix before exposing auth/private GET routes; no private responses exist yet. Existing device-local commutes are not automatically account-private or cloud-synced.
+- Login/lockout is not implemented. Runtime implementation waits for the two material product choices; no preview runtime change or merge is implied. No runtime source, package/lockfile, secret, real browser data or hosting security setting changed. Pre-existing .claude/ remains untouched. No full tests/build are needed for this documentation-only preparation. Updated this log/table of contents for commit/push on main under the standing instruction.
 
 ---
 
