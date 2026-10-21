@@ -111,6 +111,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 100. [Turn 100: SQL Query Requirements and Database Discovery](#100-turn-100-sql-query-requirements-and-database-discovery)
 101. [Turn 101: Check Whether TrafficPulse Has a Database](#101-turn-101-check-whether-trafficpulse-has-a-database)
 102. [Turn 102: Data Model Duplication and Relationship Review](#102-turn-102-data-model-duplication-and-relationship-review)
+103. [Turn 103: Commute Storage Integrity on Preview](#103-turn-103-commute-storage-integrity-on-preview)
 
 ---
 
@@ -1789,6 +1790,36 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Recommended the first implementation preview focus on validated/versioned commute storage and route-change history invalidation, followed by directed-path integrity. Later observation provenance and real dispatch/history design require separate review. Did not recommend provisioning a database merely to fix the current browser models.
 - Read the Canvas skill for an analytical review, but no managed canvas workspace for this checkout was available in the provisioned workspace inventory. Delivered the linked repository document with a Mermaid relationship diagram instead; no unrecognized canvas directory was created.
 - No live APIs, database, account resources, images, notification permissions or dispatch submissions were accessed. Application code, dependencies, settings, storage and test suite remain unchanged. Full tests/build were not rerun for this documentation-only review; synthetic helper outputs are the new evidence. Updated this log/table of contents for commit and push under the standing instruction.
+
+---
+
+## 103. Turn 103: Commute Storage Integrity on Preview
+
+**User Instruction:**
+> "proceed with your recommendations"
+
+### Implemented on `codex/commute-storage-integrity` (20 October 2026, SGT):
+- Started with the first recommended implementation slice from the data model review: saved commute/history validation and route-change integrity. Directed path connectivity and later incident/camera, tariff and dispatch model changes remain separate previews; no database is required or provisioned.
+- Added shared saved-data contracts, limits, validators/decoders and full canonical ordered route keys. Reused supported road codes from the existing catalogue. Added an injected, React-free repository and lazy browser adapter; existing utility exports/hooks delegate to those owners.
+- New version-1 envelopes use separate commute/history keys. Loading never writes. Valid legacy commutes recover safely and migrate on a later edit; original legacy keys remain unchanged. Unversioned legacy history starts fresh because it cannot establish which route it measured, with an explanatory notice. Empty current stores prevent legacy resurrection after deletion.
+- Unknown, malformed or partly invalid current stores retain their original bytes and remain protected from writes for that session. Valid recovered entries and new edits can work in memory with a visible, accessible notice. Blocked reads/writes degrade safely; independent write-failure tracking prevents one successful store write from concealing another failed write. No rejected values or raw saved contents enter diagnostics.
+- Route-defining edits clear current history immediately, reject stale-route samples and prevent old trends from reappearing during unavailable feeds or A-to-B-to-A edits. Renames, alert toggles and endpoint case/spacing changes preserve history. The history hook subscribes to repository state rather than holding previous-route samples. Existing live-only/non-estimated recording, sample pacing, three-hour retention and three-commute/four-leg limits remain.
+- Added eleven focused regression tests and adapted the existing steady-history test to the injected repository. Initial type checking and all 106 tests passed. Browser checks on an isolated loopback fixture used the real editor/card: editing PIE to AYE with a paused feed removed the old trend immediately; resuming produced one new sample; renaming kept it. Damaged and unsupported version fixtures displayed protective notices and preserved valid content without crashes; console checks found no errors or warnings. No live provider requests, real browser storage, notification permissions or dispatch actions were used.
+- Reviewed the changed React hooks/components against the React best-practices skill for stable subscriptions/dependencies, derived route samples and accessible notices. Closed the owned fixture tab and stopped its local server after verification. Documented migration/limits in COMMUTE_STORAGE.md and ownership in ARCHITECTURE.md; pinned historical review source links and marked its first slice as preview work.
+- Final formatting, type checking with unused locals, all 106 tests, the production build and whitespace checks passed. A redacted scan of all 15 changed/new files found no secret candidates. Kept unrelated test-file formatting out of the final diff. Updated this log/table of contents for commit and push under the standing instruction; PR/CI and deployment outcomes are recorded after publication below. Main merge requires explicit user approval. No dependencies, lockfiles, credentials or remote environment settings were changed; pre-existing .claude/ remains untouched.
+
+
+### Published preview:
+- Pushed implementation `4312260`, opened draft PR #10 (https://github.com/Mikazukiangus/live-traffic/pull/10) and attached it to this chat. GitHub branch and PR Checks, Vercel deployment and preview checks all passed; the PR is mergeable.
+- Exact implementation deployment `dpl_GDcWh5DwTRJAt9vm9Wr4MaxZkVeo` is READY: https://live-traffic-dm46uhem7-carbon-bc04.vercel.app. Authenticated homepage and its referenced entry asset returned HTTP 200. The served bundle contains the v1 storage keys, protected-store notice and route-key history implementation. No remote user storage was modified; behavior was exercised through the isolated local UI fixture and injected repository tests.
+- No additional live provider/health calls were needed for this browser-storage-only implementation. Main and production remain unchanged. The old route history restart is intentional and documented; original legacy keys are preserved. The later directed-path, observation, tariff and dispatch slices remain separate work. Main merge still requires explicit user approval.
+
+
+### Final partial-write safeguard:
+- Final review identified a further failure case: if a route save succeeds while clearing its history fails, an A-to-B-to-A edit could match older persisted history after reload. Added a repository-owned, persisted routeRevision (legacy zero; incremented only for route changes) to the history key. Callers cannot reset the revision. This preserves the full canonical route description while preventing old records from matching a later revision after partial failures.
+- Added a focused regression simulating two failed history clears with successful route saves and a fresh repository/reload. The restored revision is two, old history remains unmatched and a new sample starts alone. All 107 tests and type checking pass; the production build passes. A final isolated browser check with the revised model again confirmed that a paused-feed route edit removes the old samples/trend immediately, including a KPE whole-road leg, without console warnings/errors. Closed the owned tab/server afterward.
+- Updated COMMUTE_STORAGE.md to explain the persisted revision and partial-write guarantee. Latest implementation `a3f8194` is pushed to the same PR #10; both GitHub Checks runs, Vercel deployment and preview checks passed. A fresh redacted scan of all 15 branch files found no secret candidates.
+- Exact final implementation deployment `dpl_61XuyX6sKCXReqMxiaGVpih2cEto` is READY: https://live-traffic-6dkp5fve9-carbon-bc04.vercel.app. Authenticated homepage and its referenced entry bundle returned HTTP 200; the served asset includes routeRevision, versioned storage and the protected-store notice. This supersedes the earlier preview implementation verification above. Main/production remain unchanged; explicit merge approval is the only remaining step for this first slice.
 
 ---
 

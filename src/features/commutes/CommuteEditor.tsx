@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { TravelRoute } from '../../utils/ltaTravelTimes';
 import { Commute, CommuteLeg, deleteCommute, saveCommute } from '../../utils/commutes';
-import { forgetCommute } from '../../utils/commuteHistory';
+import { isCommute, MAX_LEGS, MAX_NAME_LENGTH } from '../../../shared/commutes/model';
+import { EXPRESSWAY_CORRIDORS } from '../../data/expressways';
 import { LegEditor } from './LegEditor';
-const UNPUBLISHED = ['KPE', 'MCE'];
+const CODES = new Set(EXPRESSWAY_CORRIDORS.map((c) => c.code));
 
 export const CommuteEditor: React.FC<{ initial: Commute; routes: TravelRoute[]; onClose: () => void }> = ({
   initial,
@@ -18,13 +19,11 @@ export const CommuteEditor: React.FC<{ initial: Commute; routes: TravelRoute[]; 
 
   const update = (i: number, change: Partial<CommuteLeg>) =>
     setLegs((ls) => ls.map((l, j) => (j === i ? { ...l, ...change } : l)));
-  const complete = (l: CommuteLeg) => l.code && (UNPUBLISHED.includes(l.code) || (l.direction && l.from && l.to));
-  const valid = name.trim() && legs.length > 0 && legs.every(complete);
+  const valid = isCommute({ ...initial, name, legs }, CODES);
 
   const save = () => {
     if (!valid) return;
-    saveCommute({ ...initial, name: name.trim(), legs });
-    onClose();
+    if (saveCommute({ ...initial, name: name.trim(), legs })) onClose();
   };
 
   return (
@@ -55,7 +54,7 @@ export const CommuteEditor: React.FC<{ initial: Commute; routes: TravelRoute[]; 
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Home to work"
-            maxLength={40}
+            maxLength={MAX_NAME_LENGTH}
             className="h-10 px-3 rounded-lg border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
           />
         </label>
@@ -72,7 +71,7 @@ export const CommuteEditor: React.FC<{ initial: Commute; routes: TravelRoute[]; 
               onRemove={legs.length > 1 ? () => setLegs((ls) => ls.filter((_, j) => j !== i)) : undefined}
             />
           ))}
-          {legs.length < 4 && (
+          {legs.length < MAX_LEGS && (
             <button
               onClick={() => setLegs((ls) => [...ls, { code: '', direction: 0, from: '', to: '' }])}
               className="self-start text-xs font-bold text-sky-700 hover:underline cursor-pointer flex items-center gap-1"
@@ -91,7 +90,6 @@ export const CommuteEditor: React.FC<{ initial: Commute; routes: TravelRoute[]; 
             <button
               onClick={() => {
                 deleteCommute(initial.id);
-                forgetCommute(initial.id);
                 onClose();
               }}
               className="text-sm font-semibold text-red-700 hover:underline cursor-pointer"

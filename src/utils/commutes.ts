@@ -7,55 +7,19 @@ import { IncidentAlert } from '../types/traffic';
  * KPE and MCE have no LTA points, so their legs cover the whole expressway.
  */
 
-export interface CommuteLeg {
-  code: string;
-  // LTA direction (1 or 2); 0 for KPE/MCE, which LTA doesn't publish
-  direction: number;
-  from: string;
-  to: string;
-}
+export type { Commute, CommuteLeg } from '../../shared/commutes/model';
+export { MAX_COMMUTES, commuteRouteKey } from '../../shared/commutes/model';
+import type { Commute } from '../../shared/commutes/model';
+import { getCommuteRepository } from '../features/commutes/commuteStorage';
 
-export interface Commute {
-  id: string;
-  name: string;
-  legs: CommuteLeg[];
-  alerts: boolean;
-}
-
-const KEY = 'trafficpulse.commutes';
-export const MAX_COMMUTES = 3;
-
-const read = (): Commute[] => {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(KEY) || '[]');
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-};
-
-let commutes: Commute[] = read();
-const listeners = new Set<() => void>();
-const write = (next: Commute[]) => {
-  commutes = next;
-  try {
-    localStorage.setItem(KEY, JSON.stringify(next));
-  } catch {
-    // Storage blocked; commutes last until the page closes
-  }
-  listeners.forEach((l) => l());
-};
-const subscribe = (l: () => void) => {
-  listeners.add(l);
-  return () => listeners.delete(l);
-};
-
-export const useCommutes = () => useSyncExternalStore(subscribe, () => commutes);
-
-export const saveCommute = (c: Commute) =>
-  write(commutes.some((x) => x.id === c.id) ? commutes.map((x) => (x.id === c.id ? c : x)) : [...commutes, c].slice(0, MAX_COMMUTES));
-export const deleteCommute = (id: string) => write(commutes.filter((c) => c.id !== id));
-export const commuteCodes = (c: Commute) => [...new Set(c.legs.map((l) => l.code))];
+const subscribe = (fn: () => void) => getCommuteRepository().subscribe(fn);
+const commutesSnapshot = () => getCommuteRepository().getSnapshot().commutes;
+const noticeSnapshot = () => getCommuteRepository().getSnapshot().notice;
+export const useCommutes = () => useSyncExternalStore(subscribe, commutesSnapshot);
+export const useCommuteStorageNotice = () => useSyncExternalStore(subscribe, noticeSnapshot);
+export const saveCommute = (commute: Commute) => getCommuteRepository().save(commute);
+export const deleteCommute = (id: string) => getCommuteRepository().remove(id);
+export const commuteCodes = (commute: Commute) => [...new Set(commute.legs.map((l) => l.code))];
 
 // ---- Alerts: a browser notification when a new incident appears on a commute with alerts on ----
 
@@ -73,7 +37,13 @@ export async function enableNotifications(): Promise<boolean> {
 const incidentKey = (i: IncidentAlert) => `${i.id}|${i.type}`;
 
 async function notify(title: string, body: string) {
-  const options = { body, icon: '/icons/icon-192.png', badge: '/icons/icon-192.png', tag: title, data: { url: '/?page=radar&tab=incidents' } };
+  const options = {
+    body,
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
+    tag: title,
+    data: { url: '/?page=radar&tab=incidents' },
+  };
   try {
     // Through the service worker where there is one (required on Android), else directly.
     const reg = await navigator.serviceWorker?.getRegistration();
@@ -105,7 +75,11 @@ export function useCommuteAlerts(incidents: IncidentAlert[], status: string) {
       incidents.forEach((inc, i) => {
         if (seen.current!.has(keys[i]) || !inc.corridorCode) return;
         const commute = watched.find((c) => commuteCodes(c).includes(inc.corridorCode!));
-        if (commute) notify(`${inc.type} on ${inc.corridorCode} · ${commute.name}`, `${inc.location}${inc.lane ? ` · ${inc.lane}` : ''}`);
+        if (commute)
+          notify(
+            `${inc.type} on ${inc.corridorCode} · ${commute.name}`,
+            `${inc.location}${inc.lane ? ` · ${inc.lane}` : ''}`,
+          );
       });
     }
     keys.forEach((k) => seen.current!.add(k));
