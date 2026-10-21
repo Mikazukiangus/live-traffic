@@ -112,6 +112,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 101. [Turn 101: Check Whether TrafficPulse Has a Database](#101-turn-101-check-whether-trafficpulse-has-a-database)
 102. [Turn 102: Data Model Duplication and Relationship Review](#102-turn-102-data-model-duplication-and-relationship-review)
 103. [Turn 103: Commute Storage Integrity on Preview](#103-turn-103-commute-storage-integrity-on-preview)
+104. [Turn 104: Commute Storage Integrity Merged to Main](#104-turn-104-commute-storage-integrity-merged-to-main)
 
 ---
 
@@ -1820,6 +1821,21 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Added a focused regression simulating two failed history clears with successful route saves and a fresh repository/reload. The restored revision is two, old history remains unmatched and a new sample starts alone. All 107 tests and type checking pass; the production build passes. A final isolated browser check with the revised model again confirmed that a paused-feed route edit removes the old samples/trend immediately, including a KPE whole-road leg, without console warnings/errors. Closed the owned tab/server afterward.
 - Updated COMMUTE_STORAGE.md to explain the persisted revision and partial-write guarantee. Latest implementation `a3f8194` is pushed to the same PR #10; both GitHub Checks runs, Vercel deployment and preview checks passed. A fresh redacted scan of all 15 branch files found no secret candidates.
 - Exact final implementation deployment `dpl_61XuyX6sKCXReqMxiaGVpih2cEto` is READY: https://live-traffic-6dkp5fve9-carbon-bc04.vercel.app. Authenticated homepage and its referenced entry bundle returned HTTP 200; the served asset includes routeRevision, versioned storage and the protected-store notice. This supersedes the earlier preview implementation verification above. Main/production remain unchanged; explicit merge approval is the only remaining step for this first slice.
+
+---
+
+## 104. Turn 104: Commute Storage Integrity Merged to Main
+
+**User Instruction:**
+> "merge to main"
+
+### Done (21 October 2026, SGT):
+- Received explicit approval. Confirmed exact reviewed head af156c8 was mergeable with all GitHub/Vercel checks passing, marked PR #10 ready and merged it into main as 5b6e1d2. PR: https://github.com/Mikazukiangus/live-traffic/pull/10. Retained the review branch and fast-forwarded local main.
+- Released validated/versioned commute storage, non-destructive legacy recovery, route-specific history with persisted revisions, protected-store notices and safe in-memory fallback. The implementation includes the previously verified 107 tests, type checking, production build and isolated browser cases. No additional application code change was required during this merge.
+- Main-branch Checks workflow 39530811991 passed for the merge commit. Production deployment dpl_9qwfPj91N4MkQxhbWuU227teXcVS is READY for 5b6e1d2 and assigned to https://live-traffic-carbon-bc04.vercel.app.
+- Authenticated production homepage and its referenced entry asset returned HTTP 200. The served bundle contains the persisted route revision, v1 commute storage keys and protected-store notice. The browser behavior remains covered by the isolated preview verification; no production user storage was changed. No extra provider/health calls were needed for this browser-storage-only release.
+- Marked the first data-model slice released in ARCHITECTURE.md and DATA_MODEL_REVIEW.md. Saved routes are preserved; unversioned recent travel-time history deliberately starts fresh once because it cannot identify its route. The path-connectivity and later observation/dispatch/tariff slices remain separate work.
+- No credentials, environment settings, dependencies or lockfiles were changed. No keys, signed camera URLs or real saved user data were printed or modified during verification. Pre-existing untracked .claude/ remains untouched. Recorded this turn/table of contents for commit and push under the standing instruction. The approved merge is complete; no further confirmation is required.
 
 ---
 

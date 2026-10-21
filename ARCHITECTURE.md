@@ -94,6 +94,8 @@ To refresh the reference data, inspect the official `area_metadata`, retain only
 
 See [DATA_MODEL_REVIEW.md](DATA_MODEL_REVIEW.md) for the source-based review of commute history, storage contracts, route connectivity, asset/observation identity, demo dispatch relationships and ERP versioning. It documents confirmed synthetic cases and a proposed implementation order; it does not change the running model or provision a database.
 
-## Commute storage integrity preview
+## Commute storage integrity
 
 `shared/commutes/model.ts` owns saved-data validation and route keys. The injected `commuteRepository.ts` owns versioned storage, recovery, commands and route-specific history; `commuteStorage.ts` supplies browser storage/catalogue access. Existing utility exports delegate to this repository. `useCommuteHistory` selects the current route directly from its subscribed state. See [COMMUTE_STORAGE.md](COMMUTE_STORAGE.md) for the non-destructive migration, protected-store behavior and remaining scope.
+
+Released through [PR #10](https://github.com/Mikazukiangus/live-traffic/pull/10) with explicit approval on 21 October 2026. Persisted route revisions prevent prior history from returning after partial storage failures; later data-model slices remain separate work.
