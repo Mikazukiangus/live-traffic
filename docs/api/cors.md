@@ -1,6 +1,6 @@
 # API CORS policy
 
-Prepared on `codex/restrict-api-cors`; production changes require review and merge approval.
+Prepared on `codex/restrict-api-cors` in [PR #16](https://github.com/Mikazukiangus/live-traffic/pull/16); production changes require review and merge approval. Implementation `5ad6848` passed both GitHub Checks runs and Vercel checks; its exact preview deployment is READY. Publication evidence and verification limits are recorded in Turn 118 of the project log.
 
 ## Allowed frontend origins
 

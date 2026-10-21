@@ -2095,4 +2095,12 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 
 ---
 
+### Preview published and checked:
+- Pushed implementation 5ad6848fec071305aea5c3f27400ed1c073e549b and opened draft PR #16 (https://github.com/Mikazukiangus/live-traffic/pull/16), attached to this chat. Both GitHub Checks runs, Vercel deployment and preview feedback checks passed for that exact implementation. No unresolved preview feedback was reported.
+- Deployment dpl_6aej88otkJt1BD8voKZveTEDdzyi is READY for the intended branch/SHA: https://live-traffic-dbhmsleea-carbon-bc04.vercel.app, with branch alias live-traffic-git-codex-restrict-api-cors-carbon-bc04.vercel.app. Checked deployment metadata for project/team/branch identity and preview target. Used the protected-deployment access skill with the existing Vercel connection; no protection setting or credential was changed.
+- Authenticated preview homepage and its referenced entry bundle returned HTTP 200. An unknown incident query returned no-store 400 with fixed safe metadata and Vary Origin. A valid camera request returned HTTP 200 with eight current LTA camera records, Vary Origin and no allow-origin/allow-credentials headers on the request without Origin. Signed image URLs/raw camera bodies were not printed or persisted. The connector's protected-fetch interface does not accept custom request headers: the complete Origin/preflight matrix was verified in deterministic Node/Web tests and real isolated HTTP checks, not replayed against the protected deployment.
+- Recorded publication results for a documentation commit/push on the same preview branch. Main/production remain at the prior approved release; explicit approval is required to merge PR #16 under the standing preview-review instruction.
+
+---
+
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*
