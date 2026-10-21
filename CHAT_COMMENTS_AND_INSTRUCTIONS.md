@@ -113,6 +113,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 102. [Turn 102: Data Model Duplication and Relationship Review](#102-turn-102-data-model-duplication-and-relationship-review)
 103. [Turn 103: Commute Storage Integrity on Preview](#103-turn-103-commute-storage-integrity-on-preview)
 104. [Turn 104: Commute Storage Integrity Merged to Main](#104-turn-104-commute-storage-integrity-merged-to-main)
+105. [Turn 105: Slow Query and Index Availability Check](#105-turn-105-slow-query-and-index-availability-check)
 
 ---
 
@@ -1836,6 +1837,19 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Authenticated production homepage and its referenced entry asset returned HTTP 200. The served bundle contains the persisted route revision, v1 commute storage keys and protected-store notice. The browser behavior remains covered by the isolated preview verification; no production user storage was changed. No extra provider/health calls were needed for this browser-storage-only release.
 - Marked the first data-model slice released in ARCHITECTURE.md and DATA_MODEL_REVIEW.md. Saved routes are preserved; unversioned recent travel-time history deliberately starts fresh once because it cannot identify its route. The path-connectivity and later observation/dispatch/tariff slices remain separate work.
 - No credentials, environment settings, dependencies or lockfiles were changed. No keys, signed camera URLs or real saved user data were printed or modified during verification. Pre-existing untracked .claude/ remains untouched. Recorded this turn/table of contents for commit and push under the standing instruction. The approved merge is complete; no further confirmation is required.
+
+---
+
+## 105. Turn 105: Slow Query and Index Availability Check
+
+**User Instruction:**
+> "find my slowest or most frequent queries and tell me exactly which indexes to add."
+
+### Checked (21 October 2026, SGT):
+- Rechecked the current repository after PR #10: no SQL schema/migrations, database driver, query execution path or database connection configuration was found. The recent commute repository still uses browser localStorage; external traffic/weather data is acquired through HTTP APIs and delivery caches.
+- Rechecked Vercel project environment-variable metadata with decrypt explicitly false: one variable name, LTA_ACCOUNT_KEY, zero hidden production variables and no database connection-variable names. The Carbon team's Neon integration still reports projectSelection selected with no linked projects. No SQL/query-performance connector is available in this session. These checks concern TrafficPulse and do not establish whether a separate database exists elsewhere.
+- No connected application database or SQL workload statistics were available, so no slowest/most-frequent SQL ranking, query timings, call counts or execution plans could be measured. Exact index recommendation for this app's current architecture: none. Did not invent tables, CREATE INDEX statements or evidence of an SQL bottleneck. A separate database would need to be identified/connected before its workload, schema and existing indexes can be assessed.
+- No database, schema, index, environment variable or application code was created or changed, and no SQL was executed. No secret values were decrypted or printed. No tests/build were required for this read-only discovery and log update. Updated this log/table of contents for commit and push under the standing instruction.
 
 ---
 
