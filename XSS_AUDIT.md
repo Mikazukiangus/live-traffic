@@ -2,7 +2,7 @@
 
 Reviewed 21 October 2026, main at `288043387f65d0aad9216fb818ed3bf6aca822a1`.
 
-Implementation status: metadata encoding/canonical-host validation and fixed notification navigation are implemented in PR #14 on `codex/xss-output-navigation` (Turn 114). Script-source tightening is a separate stacked preview on `codex/xss-script-csp` (Turn 115). Both main merges require approval. The findings below describe the audited baseline.
+Implementation status: metadata encoding/canonical-host validation and fixed notification navigation are implemented in [PR #14](https://github.com/Mikazukiangus/live-traffic/pull/14) on `codex/xss-output-navigation` (Turn 114). Script-source tightening is a separate stacked preview in [PR #15](https://github.com/Mikazukiangus/live-traffic/pull/15) on `codex/xss-script-csp` (Turn 115). Both main merges require approval. The findings below describe the audited baseline.
 
 ## Conclusion
 

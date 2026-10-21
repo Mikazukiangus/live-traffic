@@ -2040,6 +2040,11 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - The in-app browser became unavailable at continuation, so verification used an isolated Chrome task session instead. No user tabs were changed. Optional Vercel Toolbar script execution is blocked by the self-only script policy; protected preview HTTP access is tested separately, and no broad production script exception is added for tooling. Documented this boundary in TRANSPORT_SECURITY.md and updated XSS_AUDIT.md's implementation status.
 - Updated this log/table of contents for commit/push under the standing instruction. Pre-existing untracked .claude/ remains untouched; no credentials, dependencies, lockfiles, production environment values or real saved user data changed. Publication and protected-deployment evidence follow below. Explicit approval is required before merging either preview into main.
 
+### CSP preview published and verified:
+- Pushed implementation bcdd48d8106867db651e81be620d3462a13c1bd6 and opened draft PR #15 (https://github.com/Mikazukiangus/live-traffic/pull/15), attached to this chat. It targets codex/xss-output-navigation; merge PR #14 first, then retarget #15 to main. Both GitHub Checks runs, Vercel deployment and preview checks passed. PR #14's final head 636ad42 also has passing GitHub/Vercel checks.
+- Exact CSP deployment dpl_8vD3BGtyqZPbFm6tirfW73CQvs5Z is READY for the intended branch/SHA: https://live-traffic-pugjot7a2-carbon-bc04.vercel.app. Authenticated homepage, referenced entry bundle, theme-init.js and service worker returned HTTP 200. The HTML contains the external bootstrap with no inline script; served headers restrict scripts to self/WASM and deny script attributes. The worker contains shell-v7, bootstrap precaching and the fixed incident route. Protected HTTP access remains available without relaxing script sources or deployment protection.
+- Recorded publication evidence for commit/push on the CSP branch. The browser compatibility/probe/offline results above used synthetic data rather than production storage or live camera photos. Both previews are ready for user review; main/production application code remains unchanged until explicit merge approval.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*
