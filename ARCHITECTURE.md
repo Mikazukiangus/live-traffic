@@ -72,13 +72,15 @@ The specialized speed fetcher retains its source timestamps and retry behavior. 
 - `config/schema.ts`, `config/client.ts`, `config/server.ts`, `config/policy.ts` and `shared/diagnostics.ts` retain their established validation and security boundaries.
 - `src/data/expressways.ts` is real reference data; `demoData.ts` contains sample fixtures; `emergencyContacts.ts` owns emergency contacts.
 - Compatibility exports in `api/_client.ts`, `src/data/mockData.ts`, `src/utils/vehicleDetection.ts` and `src/components/MyCommute.tsx` preserve existing callers. New code should import the specific owner.
-- Keep lazy page imports and lazy model loading. Tabs retain mounted content so switching views preserves data and state.
+- Keep lazy page imports and lazy model loading. Main pages mount conditionally and unmount when navigation changes. Camera subtabs retain hidden content for quick switching; shared speed/rain resources retain useful data across subscriptions.
 
 Run `bun run lint`, `bun run test` and `bun run build` before publishing an implementation. `tests/modularity.test.ts` covers the new ownership boundaries with synthetic fixtures; the existing diagnostics/configuration/parser checks remain required.
 
 Weather retry/cache behavior and its per-instance limits are documented in [WEATHER_FEEDS.md](WEATHER_FEEDS.md). `tests/weather-reliability.test.ts` covers pacing, provider cooldowns, cache age/expiry, retained response headers and shared browser polling.
 
 For the remaining UI/domain/data-access seams after PRs #6 and #7, see [LAYERING_REVIEW.md](LAYERING_REVIEW.md). It is a proposed plan, not an implemented folder reorganization.
+
+For repeated HTTP acquisition and browser history writes, see [N_PLUS_ONE_REVIEW.md](N_PLUS_ONE_REVIEW.md). It distinguishes page-remount refetches and per-card persistence from SQL N+1 queries, intentional pagination and local image inference.
 
 ## Independent hazard geography
 

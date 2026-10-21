@@ -114,6 +114,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 103. [Turn 103: Commute Storage Integrity on Preview](#103-turn-103-commute-storage-integrity-on-preview)
 104. [Turn 104: Commute Storage Integrity Merged to Main](#104-turn-104-commute-storage-integrity-merged-to-main)
 105. [Turn 105: Slow Query and Index Availability Check](#105-turn-105-slow-query-and-index-availability-check)
+106. [Turn 106: N+1 and Repeated Work Review](#106-turn-106-n1-and-repeated-work-review)
 
 ---
 
@@ -1850,6 +1851,21 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Rechecked Vercel project environment-variable metadata with decrypt explicitly false: one variable name, LTA_ACCOUNT_KEY, zero hidden production variables and no database connection-variable names. The Carbon team's Neon integration still reports projectSelection selected with no linked projects. No SQL/query-performance connector is available in this session. These checks concern TrafficPulse and do not establish whether a separate database exists elsewhere.
 - No connected application database or SQL workload statistics were available, so no slowest/most-frequent SQL ranking, query timings, call counts or execution plans could be measured. Exact index recommendation for this app's current architecture: none. Did not invent tables, CREATE INDEX statements or evidence of an SQL bottleneck. A separate database would need to be identified/connected before its workload, schema and existing indexes can be assessed.
 - No database, schema, index, environment variable or application code was created or changed, and no SQL was executed. No secret values were decrypted or printed. No tests/build were required for this read-only discovery and log update. Updated this log/table of contents for commit and push under the standing instruction.
+
+---
+
+## 106. Turn 106: N+1 and Repeated Work Review
+
+**User Instruction:**
+> "Scan my code for N+1 query patterns and show me how to batch or eager-load them."
+
+### Reviewed (21 October 2026, SGT):
+- Reviewed main at a800523 across page composition, feed hooks/transport, commute cards/repository, camera counting, server provider pagination and health probes. No SQL/ORM query path or query per rendered commute/camera was found. Existing complete travel-time datasets, shared speed/rain resources, bounded bulk-page waves and shared model loading already avoid several forms of repeated work.
+- Added N_PLUS_ONE_REVIEW.md with pinned source references, prioritized findings and proposed shared-feed and recordBatch examples. Shared-feed reuse across page remounts is the first recommended preview; suppressing unchanged history writes and optionally batching all eligible commute samples is the second. No proposed API or application fix was implemented by this review.
+- Confirmed main pages mount conditionally: camera and radar hooks do not currently poll as concurrent mounted pages. Only camera subtabs retain hidden content. Corrected the overly broad mounted-tabs statement in ARCHITECTURE.md and linked the review.
+- An isolated fetch stub confirmed overlapping same-URL consumers make one HTTP request, while a later consumer after completion increases the total to two. An injected in-memory repository confirmed three commutes cause three whole-history writes/publications per update; unchanged totals two minutes later still cause three writes/publications while each commute retains one sample. These demonstrate request-sharing lifetime and bounded write amplification, not production latency or upstream request counts.
+- Documented optional deferral of hidden camera image analysis, necessary image acquisition, local inference tiles, continuation-token dependencies, existing provider pacing and intentional health fan-out. Examples preserve source/offline age, retry timing, live-only sample eligibility, current route revisions, retention and protected-store/partial-write guarantees.
+- No live provider or database requests, real browser storage, signed camera URLs, credentials, settings, dependencies or application source changes were involved. Full tests/build were not rerun for documentation-only changes; the isolated helper checks are the new behavioral evidence. Updated this log/table of contents for commit and push under the standing instruction. Implementation remains a proposed preview.
 
 ---
 
