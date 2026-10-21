@@ -136,6 +136,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 125. [Turn 125: Role and Record-Ownership Authorization Review](#125-turn-125-role-and-record-ownership-authorization-review)
 126. [Turn 126: Clarify Login Target for Brute-Force Lockout](#126-turn-126-clarify-login-target-for-brute-force-lockout)
 127. [Turn 127: New Application Login Scope and Storage Preparation](#127-turn-127-new-application-login-scope-and-storage-preparation)
+128. [Turn 128: Application Login Work on Hold](#128-turn-128-application-login-work-on-hold)
 
 ---
 
@@ -2252,6 +2253,18 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Read non-decrypted hosted environment metadata: only LTA_ACCOUNT_KEY is listed for production/preview. The team's installed Neon integration icfg_vbRd0nLxCxSVGbNNRALwWqmt lists no connected projects. Product metadata supports Singapore and a Free plan without a payment method. A database for this app is not yet connected/verified; no resource, billing subscription, environment value, migration or account was created or changed. No secrets were decrypted or emitted.
 - Added AUTHENTICATION_PLAN.md with the concrete proposed five-failures/15-minute-window/15-minute-cooldown policy, separate trusted-IP throttle, atomic concurrency/failure handling, secure sessions, dedicated write-boundary/CSRF validation, future ownership checks, storage/account-isolation requirements and release tests. Identified the service worker's broad successful GET /api caching as a prerequisite to fix before exposing auth/private GET routes; no private responses exist yet. Existing device-local commutes are not automatically account-private or cloud-synced.
 - Login/lockout is not implemented. Runtime implementation waits for the two material product choices; no preview runtime change or merge is implied. No runtime source, package/lockfile, secret, real browser data or hosting security setting changed. Pre-existing .claude/ remains untouched. No full tests/build are needed for this documentation-only preparation. Updated this log/table of contents for commit/push on main under the standing instruction.
+
+---
+
+## 128. Turn 128: Application Login Work on Hold
+
+**User Instruction:**
+> "Can put it on hold first as I have no login now"
+
+### Recorded (22 October 2026, SGT):
+- Put the proposed application login and brute-force lockout work on hold at the user's explicit request. The enrollment/access-scope questions no longer require an answer now. Resume only if the user explicitly requests it.
+- Marked AUTHENTICATION_PLAN.md on hold and retained the proposal for future reference. No application login or lockout was implemented; no runtime code, dependency, database, environment setting or deployment-access policy changed. Pre-existing .claude/ remains untouched.
+- Updated this log/table of contents for commit/push on main under the standing instruction. Documentation-only change; checked the diff without rerunning runtime tests.
 
 ---
 

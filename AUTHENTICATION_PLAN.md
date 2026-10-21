@@ -1,12 +1,13 @@
 # Application login implementation plan
 
-Status: proposed, 22 October 2026. Login and lockout are not implemented yet.
+Status: **on hold at the user's request**, 22 October 2026. Login and lockout
+are not implemented. Resume only when the user explicitly requests it.
 
 The user selected a **new application login** in response to the login-target question.
-This authorizes implementation on a preview branch. It does not specify account
-enrollment or which existing public features should become private.
+The user subsequently put this work on hold because the app has no login now.
+The proposal below is retained for future reference; it is not active work.
 
-## Product choices awaiting an answer
+## Product choices to revisit if work resumes
 
 1. **Enrollment:** invite/admin-created accounts (recommended starting point), or
    public signup. Public signup also needs a verified-email delivery and recovery
