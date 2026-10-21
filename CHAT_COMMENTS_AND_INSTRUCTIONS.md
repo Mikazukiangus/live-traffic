@@ -120,6 +120,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 109. [Turn 109: HTTPS and Mixed Content Safeguards on Preview](#109-turn-109-https-and-mixed-content-safeguards-on-preview)
 110. [Turn 110: HTTPS Safeguards Merged to Main](#110-turn-110-https-safeguards-merged-to-main)
 111. [Turn 111: Request Boundary Validation on Preview](#111-turn-111-request-boundary-validation-on-preview)
+112. [Turn 112: Request Validation Merged to Main](#112-turn-112-request-validation-merged-to-main)
 
 ---
 
@@ -1969,6 +1970,21 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Exact preview deployment dpl_BZJ5K3xA9zMBJzCJighZLanLsHKw is READY for the intended branch/SHA: https://live-traffic-pby986f6a-carbon-bc04.vercel.app. Authenticated homepage and its referenced entry bundle returned HTTP 200.
 - Deployed negative checks returned no-store 400 with safe fixed issue metadata for negative $skip, unsupported include, duplicate feed selectors, an unknown health query and a malformed image URL. A disallowed image hostname returned 403 with IMAGE_HOST_NOT_ALLOWED. Signed/provider URL values and raw response bodies were not printed.
 - Valid deployed incident pagination returned HTTP 200 with 17 incident records; camera metadata returned HTTP 200 with eight cameras and zero non-HTTPS links. The live dispatcher with feed=weatheralerts returned HTTP 200 with zero current strikes and 30 heat-stress stations, confirming the nested feed guard accepts real valid requests. No production settings, data or code were changed. Recorded these results for commit/push on the same preview branch; explicit approval is required to merge PR #13.
+
+---
+
+## 112. Turn 112: Request Validation Merged to Main
+
+**User Instruction:**
+> "merge"
+
+### Done (21 October 2026, SGT):
+- Received explicit approval to merge PR #13. Rechecked all GitHub/Vercel checks at reviewed head 9c1260b3173cf93fa51db1a3f388da45a49b3ccb, marked it ready and confirmed it was mergeable, then merged that exact head into main as 8e9be300f848ab2c6fe3769383bd868528d3ef3b. PR: https://github.com/Mikazukiangus/live-traffic/pull/13. Retained the preview branch and fast-forwarded local main.
+- Released request schemas/guards for all 16 callable API modules, with safe method/body/query/credential rejection before application work. Valid success payloads and signed image bytes remain unchanged. Unknown query parameters now return 400; unsupported methods return 405 with Allow; disallowed image destinations return 403. The previously verified 134 tests, type checks, production build, security audit and real loopback HTTP cases cover the implementation. No application edits or repeat full local test run were required for this merge.
+- Main-branch Checks workflow 39569490792 passed for the merge commit. Production deployment dpl_3aHG1NMfPnYgRbjm4Y6ALhmbGGkF is READY for 8e9be30 and aliased to https://live-traffic-carbon-bc04.vercel.app. Deployment metadata confirms the intended project, main branch and production target.
+- Authenticated production checks returned no-store 400 with fixed metadata for negative $skip, duplicate live feed selectors and a malformed image URL. A disallowed image destination returned no-store 403 with IMAGE_HOST_NOT_ALLOWED. The production homepage and its referenced entry asset returned HTTP 200.
+- Valid incident pagination returned HTTP 200 with 16 active records; camera metadata returned HTTP 200 with all eight cameras and zero non-HTTPS image links. No signed links, raw provider bodies or credentials were printed/persisted. These are selected production checks; the comprehensive method/body/header/no-provider-work matrix remains covered by the deterministic Node/Web tests and isolated HTTP verification.
+- Marked docs/api/request-validation.md released. No environment settings, dependencies, lockfiles or real saved browser data were changed. Pre-existing untracked .claude/ remains untouched. Updated this log/table of contents for commit and push on main under the standing instruction. The approved merge is complete; no further confirmation is required.
 
 ---
 

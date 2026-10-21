@@ -1,6 +1,6 @@
 # API request contracts
 
-Implemented on preview branch `codex/request-boundary-validation` (21 October 2026). Main merge requires approval.
+Released to main through [PR #13](https://github.com/Mikazukiangus/live-traffic/pull/13), merge `8e9be30`, on 21 October 2026. Production verification is recorded in Turn 112 of CHAT_COMMENTS_AND_INSTRUCTIONS.md.
 
 Every HTTP API entry point validates its request before entering the handler's application logic, looking up a cached feed or making provider/health requests. Pure schemas live in `server/http/requestSchemas.ts`; `withRequestSchema` adapts their results to Node and Web responses. No new dependency is required.
 
