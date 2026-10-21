@@ -1,3 +1,5 @@
+import { requestSchemas } from '../server/http/requestSchemas.ts';
+import { withRequestSchema } from '../server/http/validateRequest.ts';
 import { reportFailure } from '../shared/diagnostics.ts';
 import { config } from '../config/server.ts';
 /**
@@ -38,15 +40,7 @@ async function fetchLatest(url: string) {
 
 const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null);
 
-export default async function handler(req: any, res?: any) {
-  if (req && req.method === 'OPTIONS') {
-    if (res && typeof res.status === 'function') {
-      setCorsHeaders(res);
-      return res.status(204).end();
-    }
-    return new Response(null, { status: 204 });
-  }
-
+const handler = withRequestSchema(requestSchemas.empty, async (_req, res) => {
   const [psi, pm25] = await Promise.allSettled([fetchLatest(PSI_URL), fetchLatest(PM25_URL)]);
   if (psi.status === 'rejected' && pm25.status === 'rejected') {
     const body = reportFailure('nea', psi.reason);
@@ -82,7 +76,8 @@ export default async function handler(req: any, res?: any) {
     // A partial answer is served but not cached, so the next request tries both feeds again.
     psiData && pm25Data ? CACHE : NO_STORE,
   );
-}
+});
+export default handler;
 
 export async function GET(request: Request) {
   return handler(request);

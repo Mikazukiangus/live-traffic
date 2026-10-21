@@ -119,6 +119,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 108. [Turn 108: Shared Feeds and Batched History Merged to Main](#108-turn-108-shared-feeds-and-batched-history-merged-to-main)
 109. [Turn 109: HTTPS and Mixed Content Safeguards on Preview](#109-turn-109-https-and-mixed-content-safeguards-on-preview)
 110. [Turn 110: HTTPS Safeguards Merged to Main](#110-turn-110-https-safeguards-merged-to-main)
+111. [Turn 111: Request Boundary Validation on Preview](#111-turn-111-request-boundary-validation-on-preview)
 
 ---
 
@@ -1947,6 +1948,27 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Authenticated production homepage, its referenced entry asset and service worker returned HTTP 200 with the configured HSTS/CSP/nosniff/referrer headers. The worker contains shell-v6. The image proxy without its required parameter returned the expected 400 with the same protections. Camera metadata returned HTTP 200 with eight cameras and zero non-HTTPS image links. No signed URLs or raw camera response bodies were printed or persisted.
 - A credential-free production HTTP request with redirects disabled returned 308 to the same HTTPS hostname and preserved ?page=cameras&tab=signs. All sampled HTTPS responses had no Set-Cookie. The app currently creates no cookies; platform authentication and third-party cookies are outside this app change and were not comprehensively audited. The CSP is transport-focused, not a nonce-based strict XSS policy.
 - Marked TRANSPORT_SECURITY.md released. No credentials, environment settings, dependencies, lockfiles or real saved user data were changed. Pre-existing untracked .claude/ remains untouched. Updated this log/table of contents for commit and push on main under the standing instruction. The approved merge is complete; no further confirmation is required.
+
+---
+
+## 111. Turn 111: Request Boundary Validation on Preview
+
+**User Instruction:**
+> "Add schema validation to every input boundary so malformed requests are rejected before my logic runs."
+
+### Implemented on `codex/request-boundary-validation` (21 October 2026, SGT):
+- Reviewed all incoming HTTP API entry points on main after Turn 110. These are read-only feeds with no body/path-parameter contracts. Most accepted arbitrary methods/ignored malformed queries; the generic LTA proxy forwarded arbitrary query keys. Existing environment, incident/camera/rain response and commute-storage validation retain their own boundaries.
+- Added pure runtime request schemas and one Node/Web guard. Every public API and callable internal live-feed module rejects invalid envelopes, unsupported methods, bodies, ambiguous query values and malformed consumed credential headers before handler application logic, cache reads, provider requests or diagnostic fan-out. Named Web exports follow the same path. The route-coverage matrix detects newly added callable API modules missing from its cases.
+- Explicit queries cover bounded OData Int32 $skip, exact include=segments, four live feed selectors and required HTTPS image URLs under the existing host allowlist. Other feed routes accept no query parameters. Unknown/duplicate/encoded-alias keys, nested/array/coerced Node values, raw-versus-parsed conflicts, invalid encoding and oversized values are rejected. Arbitrary LTA query forwarding is removed; current application requests remain valid. Signed image query bytes are preserved.
+- Added matching Node/Web rules for bounded printable scalar key headers, alias conflicts and duplicate headers, retaining server environment precedence and the existing fallback only on the proxy/camera routes. The fallback now also supports Web Headers. Validation failures use fixed field/code metadata, no input values or log output, no-store, 400 for malformed input, 405 with Allow for unsupported methods and 403 for disallowed image destinations. Preflights do no application work and consistently advertise the supported aliases.
+- Added eight regression groups covering all 16 callable API modules, both response adapters, named exports, zero provider calls on rejection, CORS, canonical query/header shapes, signed image transport and valid pagination. Existing diagnostics/weather/camera tests now supply valid method/URL envelopes, preserving their upstream failure assertions. All 134 tests, type checking with unused locals, production build, transport source audit and whitespace checks pass. Reviewed the changed request/response paths and reran the targeted boundary suite after the final preflight adjustment. A real loopback HTTP check through the actual API middleware confirmed six rejection/preflight requests made zero provider calls, while valid pagination returned 200 with one synthetic provider call. Closed its temporary server; no live provider/user data was involved. Deployed preview results follow below.
+- Documented contracts, limits and intentional rejection/status changes in docs/api/request-validation.md and linked the schema/guard ownership in ARCHITECTURE.md. This change validates incoming requests; it does not replace every third-party response/browser-form/storage schema or introduce authentication/rate limiting. No dependencies, lockfiles, credentials, environment values, real saved browser data or production changes were introduced. Pre-existing untracked .claude/ remains untouched. Updated this log/table of contents for commit/push under the standing instruction. Main merge requires explicit approval after preview verification.
+
+### Published and verified:
+- Pushed implementation 338c62657cb3857bb1ebdb75fb9a755a73bcc92d and opened draft PR #13 (https://github.com/Mikazukiangus/live-traffic/pull/13), attached to this chat. Both GitHub Checks runs, Vercel deployment and preview checks passed for that exact implementation.
+- Exact preview deployment dpl_BZJ5K3xA9zMBJzCJighZLanLsHKw is READY for the intended branch/SHA: https://live-traffic-pby986f6a-carbon-bc04.vercel.app. Authenticated homepage and its referenced entry bundle returned HTTP 200.
+- Deployed negative checks returned no-store 400 with safe fixed issue metadata for negative $skip, unsupported include, duplicate feed selectors, an unknown health query and a malformed image URL. A disallowed image hostname returned 403 with IMAGE_HOST_NOT_ALLOWED. Signed/provider URL values and raw response bodies were not printed.
+- Valid deployed incident pagination returned HTTP 200 with 17 incident records; camera metadata returned HTTP 200 with eight cameras and zero non-HTTPS links. The live dispatcher with feed=weatheralerts returned HTTP 200 with zero current strikes and 30 heat-stress stations, confirming the nested feed guard accepts real valid requests. No production settings, data or code were changed. Recorded these results for commit/push on the same preview branch; explicit approval is required to merge PR #13.
 
 ---
 

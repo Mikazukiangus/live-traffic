@@ -3,7 +3,7 @@ export function setCorsHeaders(res: any) {
   if (res && typeof res.setHeader === 'function') {
     res.setHeader('Access-Control-Allow-Origin', config.server.corsOrigin);
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, AccountKey, Authorization, x-account-key');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, AccountKey, Authorization, x-account-key, x-lta-account-key');
   }
 }
 
@@ -45,7 +45,13 @@ export function handlePreflight(req: any, res?: any) {
   if (!req || req.method !== 'OPTIONS') return undefined;
   if (res && typeof res.status === 'function') {
     setCorsHeaders(res);
+    setHeaders(res, NO_STORE);
     return res.status(204).end();
   }
-  return new Response(null, { status: 204 });
+  return new Response(null, { status: 204, headers: {
+    'Access-Control-Allow-Origin': config.server.corsOrigin,
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, AccountKey, Authorization, x-account-key, x-lta-account-key',
+    ...NO_STORE,
+  } });
 }

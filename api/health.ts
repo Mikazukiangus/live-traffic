@@ -1,3 +1,5 @@
+import { requestSchemas } from '../server/http/requestSchemas.ts';
+import { withRequestSchema } from '../server/http/validateRequest.ts';
 import { isLtaIncidentPayload } from '../shared/traffic/incidents.ts';
 import { isDataMallCameras, isPublicCameras } from '../shared/traffic/cameras.ts';
 import { probe, probeDataGov, missingKey } from '../server/healthProbes.ts';
@@ -20,15 +22,7 @@ const NEA_LIGHTNING = config.server.upstreams.lightning;
 const NEA_WBGT = config.server.upstreams.wbgt;
 const PUB_FLOOD_ALERTS = config.server.upstreams.floods;
 
-export default async function handler(req: any, res?: any) {
-  if (req && req.method === 'OPTIONS') {
-    if (res && typeof res.status === 'function') {
-      setCorsHeaders(res);
-      return res.status(204).end();
-    }
-    return new Response(null, { status: 204 });
-  }
-
+const handler = withRequestSchema(requestSchemas.empty, async (_req, res) => {
   // Only the server-side environment key is checked; the key value is never echoed back.
   const accountKey = getLtaAccountKey();
   const ltaHeaders: Record<string, string> = accountKey ? { AccountKey: accountKey } : {};
@@ -127,7 +121,8 @@ export default async function handler(req: any, res?: any) {
       ...cache,
     },
   });
-}
+});
+export default handler;
 
 export async function GET(request: Request) {
   return handler(request);

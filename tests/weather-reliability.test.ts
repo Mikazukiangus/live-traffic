@@ -397,12 +397,12 @@ test('rain Node/Web adapters preserve delivery age, mark retained data no-store,
       });
       globalThis.fetch = async () => Response.json({ code: 0, data });
       const res = mode === 'node' ? nodeRes() : undefined;
-      const current = (await handler({ method: 'GET' }, res)) as Response;
+      const current = (await handler({ method: 'GET', url: '/api/rainforecast' }, res)) as Response;
       const first = res ? res.body : await current.json();
       assert.equal(first.delivery.state, 'current');
       globalThis.fetch = async () => new Response('private-provider-body', { status: 500 });
       const failedRes = mode === 'node' ? nodeRes() : undefined;
-      const retained = (await handler({ method: 'GET' }, failedRes)) as Response;
+      const retained = (await handler({ method: 'GET', url: '/api/rainforecast' }, failedRes)) as Response;
       const fallback = failedRes ? failedRes.body : await retained.json();
       assert.equal(fallback.delivery.state, 'retained');
       assert.equal(fallback.delivery.fetchedAt, first.delivery.fetchedAt);
@@ -414,7 +414,7 @@ test('rain Node/Web adapters preserve delivery age, mark retained data no-store,
     }
     globalThis.fetch = async () =>
       new Response('private-provider-body', { status: 429, headers: { 'Retry-After': '60' } });
-    const response = (await handler({ method: 'GET' })) as Response;
+    const response = (await handler({ method: 'GET', url: '/api/rainforecast' })) as Response;
     assert.equal(response.headers.get('Cache-Control'), 'no-store');
     assert.ok(Number(response.headers.get('Retry-After')) > 0);
     const limited = await probeDataGov('https://example.test/other');

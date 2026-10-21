@@ -1,3 +1,5 @@
+import { requestSchemas } from '../server/http/requestSchemas.ts';
+import { withRequestSchema } from '../server/http/validateRequest.ts';
 import { reportFailure, UpstreamHttpError } from '../shared/diagnostics.ts';
 import { config } from '../config/server.ts';
 import {
@@ -8,17 +10,14 @@ import {
 } from '../shared/traffic/cameras.ts';
 import { readValidatedJson } from '../shared/traffic/validation.ts';
 import { getLtaAccountKey, liveCacheHeaders, sendJson } from './_client.ts';
-import { handlePreflight } from '../server/http/responses.ts';
 import { fetchProvider } from '../server/http/providerFetch.ts';
 
 // LTA captures every 1-5 minutes; the page polls every 30 seconds.
 const CACHE = liveCacheHeaders(...config.server.cache.proxy);
 
 /** Validate both official providers before publishing a normalized camera snapshot. */
-export default async function handler(req: any, res?: any) {
-  const preflight = handlePreflight(req, res);
-  if (preflight) return preflight;
-  const accountKey = getLtaAccountKey(req);
+const handler = withRequestSchema(requestSchemas.empty, async (_req, res, input) => {
+  const accountKey = getLtaAccountKey() ?? input.accountKey;
   if (accountKey) {
     try {
       const response = await fetchProvider(config.server.upstreams.images, {
@@ -51,7 +50,8 @@ export default async function handler(req: any, res?: any) {
   } catch (error) {
     return sendJson(res, 502, reportFailure('camera', error));
   }
-}
+});
+export default handler;
 
 export async function GET(request: Request) {
   return handler(request);

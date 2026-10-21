@@ -1,3 +1,5 @@
+import { internalFeedSchema } from '../server/http/requestSchemas.ts';
+import { withRequestSchema } from '../server/http/validateRequest.ts';
 import { reportFailure } from '../shared/diagnostics.ts';
 import { config } from '../config/server.ts';
 /**
@@ -7,7 +9,7 @@ import { config } from '../config/server.ts';
  * Lightning: strikes in NEA's latest observation (every few minutes).
  * Heat stress: Wet Bulb Globe Temperature (WBGT) and NEA's Low / Moderate / High per station.
  */
-import { NO_STORE, fetchDataGovV2, handlePreflight, liveCacheHeaders, sendJson } from './_client.ts';
+import { NO_STORE, fetchDataGovV2, liveCacheHeaders, sendJson } from './_client.ts';
 
 const LIGHTNING_URL = config.server.upstreams.lightning;
 const WBGT_URL = config.server.upstreams.wbgt;
@@ -18,10 +20,7 @@ const num = (v: unknown) => {
   return Number.isFinite(n) ? n : null;
 };
 
-export default async function handler(req: any, res?: any) {
-  const preflight = handlePreflight(req, res);
-  if (preflight) return preflight;
-
+const handler = withRequestSchema(internalFeedSchema('weatheralerts'), async (_req, res) => {
   const [lightning, wbgt] = await Promise.allSettled([fetchDataGovV2(LIGHTNING_URL), fetchDataGovV2(WBGT_URL)]);
   if (lightning.status === 'rejected' && wbgt.status === 'rejected') {
     const body = reportFailure('nea', lightning.reason);
@@ -68,4 +67,5 @@ export default async function handler(req: any, res?: any) {
     },
     strikes && heatStations ? CACHE : NO_STORE
   );
-}
+});
+export default handler;
