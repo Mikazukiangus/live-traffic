@@ -125,6 +125,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 114. [Turn 114: XSS Fixes and Separate CSP Preview](#114-turn-114-xss-fixes-and-separate-csp-preview)
 115. [Turn 115: Continue and Verify Script CSP Preview](#115-turn-115-continue-and-verify-script-csp-preview)
 116. [Turn 116: XSS Fixes and Script CSP Merged to Main](#116-turn-116-xss-fixes-and-script-csp-merged-to-main)
+117. [Turn 117: Cookie Authentication and CSRF Review](#117-turn-117-cookie-authentication-and-csrf-review)
 
 ---
 
@@ -2060,6 +2061,20 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Authenticated production homepage, its referenced entry bundle, theme-init.js and service worker returned HTTP 200. The homepage contains the external bootstrap, populated social metadata and no inline script. The served policy restricts script-src to self/wasm-unsafe-eval and script-src-attr to none. The worker contains shell-v7, early-script precaching and the fixed incident route, with no notification-data URL read. No additional live provider fan-out or real browser storage changes were needed for these build/header/worker changes.
 - Marked XSS_AUDIT.md and TRANSPORT_SECURITY.md released. The policy remains an allowlist CSP; inline styles and existing HTTPS resource/connect directives remain, and optional Vercel Toolbar scripts are blocked as documented. Deployment protection was not changed. No credentials, environment values, dependencies, lockfiles, signed camera links or real saved user data were changed/exposed. Pre-existing untracked .claude/ remains untouched.
 - Updated this log/table of contents for commit and push on main under the standing instruction. Both approved merges and production verification are complete; no further confirmation is required.
+
+---
+
+## 117. Turn 117: Cookie Authentication and CSRF Review
+
+**User Instruction:**
+> "Check my CSRF protection on cookie-authenticated routes and fix any gaps."
+
+### Reviewed (21 October 2026, SGT):
+- Reviewed main at d8a3ef5 across API handlers, request/CORS guards, provider credentials, dependencies, cookie/session paths, forms and browser persistence. No app-owned cookie session, cookie-authenticated route or server-side user mutation exists. All 16 callable API modules allow GET/OPTIONS only. Booking/dispatch/SLA behavior is local demo state, and commutes/preferences use browser storage. No application CSRF gap requiring a code change was identified; no unused token/session system or CORS restriction was introduced.
+- Verified an isolated Node/Web handler matrix with synthetic cookies/credentials, a foreign Origin and cross-site Fetch Metadata: 512 unsafe requests across four methods and four content types returned no-store 405 with Allow GET/OPTIONS; 64 GET body/query method-override variants returned 400; 32 preflights advertised only GET/OPTIONS; 12 named Web GET exports also rejected POST. Zero provider calls and zero unexpected logs occurred. No .env.local, real platform cookies or live production/provider requests were used.
+- Existing request-boundary and transport regression suites passed all 15 tests. Existing coverage discovers callable API modules and checks rejection before provider work; no duplicate permanent test matrix was added. No full suite/build was needed for documentation-only changes.
+- Added CSRF_REVIEW.md with source-linked evidence, verification limits and requirements for future authenticated writes; linked it from TRANSPORT_SECURITY.md. Consulted primary OWASP CSRF guidance and Vercel Authentication documentation. CORS and SameSite are not presented as complete CSRF defenses. Vercel's deployment-access cookies are platform-owned; its full login/logout flow and internal CSRF implementation were not audited or changed.
+- No runtime code, dependencies, lockfiles, credentials, environment settings or real saved browser data changed. Pre-existing untracked .claude/ remains untouched. Updated this log/table of contents for a documentation commit and push on main under the standing instruction; no implementation preview or merge approval is needed.
 
 ---
 

@@ -45,6 +45,8 @@ Production/default server config, Vercel deployments and public build projection
 
 ## Cookie policy
 
+The [CSRF review](CSRF_REVIEW.md) found no app-owned cookie-authenticated write routes on 21 October 2026. All 16 callable API modules reject unsafe methods before application work. See that review for verification and the defenses required before introducing authenticated writes.
+
 TrafficPulse currently keeps preferences/commutes in localStorage and has no app login/session cookie. No cookie was introduced just to exercise cookie attributes. The source audit flags common cookie writes, Set-Cookie headers, Cookie Store API use and cookie-library dependencies for explicit review.
 
 If application sessions are added, implement them on the server and update the gate only alongside the reviewed cookie implementation and tests. The expected session-cookie attributes are:
