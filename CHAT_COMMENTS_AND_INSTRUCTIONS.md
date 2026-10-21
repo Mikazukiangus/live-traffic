@@ -116,6 +116,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 105. [Turn 105: Slow Query and Index Availability Check](#105-turn-105-slow-query-and-index-availability-check)
 106. [Turn 106: N+1 and Repeated Work Review](#106-turn-106-n1-and-repeated-work-review)
 107. [Turn 107: Shared Feeds and Batched History on Preview](#107-turn-107-shared-feeds-and-batched-history-on-preview)
+108. [Turn 108: Shared Feeds and Batched History Merged to Main](#108-turn-108-shared-feeds-and-batched-history-merged-to-main)
 
 ---
 
@@ -1888,6 +1889,20 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Pushed implementation 71e4d08 and opened draft PR #11 (https://github.com/Mikazukiangus/live-traffic/pull/11), attached to this chat. Both GitHub Checks runs, Vercel deployment and preview checks passed for that implementation.
 - Exact implementation deployment dpl_HhcZEFMzTePGaGDYbCjHaSTbPzL4 is READY: https://live-traffic-hfyoqpk8u-carbon-bc04.vercel.app. Deployment metadata confirms the intended preview branch and full implementation SHA. Authenticated homepage, entry/shared assets and radar asset returned HTTP 200; the served radar bundle contains recordBatch. This verifies delivery of the implementation; lifecycle and write-count behavior was exercised in the isolated browser and regression checks above.
 - Closed the owned synthetic browser tab and stopped its loopback server after verification. No production user storage was modified and no live provider probes were required for these browser-side changes. Updated this publication record for commit/push on the same preview branch. Main/production remain unchanged; explicit user approval is required to merge PR #11.
+
+---
+
+## 108. Turn 108: Shared Feeds and Batched History Merged to Main
+
+**User Instruction:**
+> "merge"
+
+### Done (21 October 2026, SGT):
+- Received explicit approval to merge PR #11. Confirmed reviewed head 63c9fed had passing GitHub/Vercel checks and was mergeable, marked the PR ready, then merged that exact head into main as 671e6d01b2c26faac0e0462a82d827897e893a43. PR: https://github.com/Mikazukiangus/live-traffic/pull/11. Retained the review branch and fast-forwarded local main.
+- Released shared validated travel-time/air-quality snapshots across page switches and one batched/no-op-aware commute-history recording path. Source/receipt ages, offline handling, retry cooldowns, subscription cleanup, route revisions, protected stores and write-failure notices remain covered by the previously verified 118 tests, type checking, production build and isolated browser cases. No application change or repeat full local test run was needed for this merge.
+- Main-branch Checks workflow 39535269919 passed for the merge commit. Production deployment dpl_NinqGtYc4rPuKnvuChzYNixwXLiD is READY for 671e6d0 and aliased to https://live-traffic-carbon-bc04.vercel.app. Deployment metadata confirms the intended project, main branch and production target; GitHub reports Vercel success.
+- Authenticated production homepage, its referenced entry asset and its radar asset returned HTTP 200. The served radar bundle contains recordBatch. This confirms delivery; detailed lifecycle/write-count behavior remains verified by the isolated preview fixture and regression cases. No production saved user data was modified and no additional live provider/health probes were required for these browser-side changes.
+- Marked the implementation released in N_PLUS_ONE_REVIEW.md. Optional hidden-camera inference deferral and diagnostic-report reuse remain separate improvements. No credentials, environment settings, dependencies or lockfiles were changed. Pre-existing untracked .claude/ remains untouched. Updated this log/table of contents for commit and push on main under the standing instruction. The approved merge is complete; no further confirmation is required.
 
 ---
 
