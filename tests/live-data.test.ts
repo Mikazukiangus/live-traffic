@@ -1,4 +1,5 @@
 import { test } from 'node:test';
+import { serviceWorkerSource, workerGlobals } from './helpers/serviceWorker.ts';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { runInNewContext } from 'node:vm';
@@ -165,12 +166,12 @@ test('service worker marks offline API data and preserves its original saved tim
   const key = (r: Request | string) => typeof r === 'string' ? r : r.url;
   let online = true;
   const context = {
-    URL, Headers, Response, Date,
+    ...workerGlobals(),
     self: { location: { origin: 'https://traffic.test' }, addEventListener: (name: string, fn: (event: any) => void) => { handlers[name] = fn; } },
     caches: { open: async () => ({ put: async (r: Request | string, response: Response) => { saved.set(key(r), response); } }), match: async (r: Request | string) => saved.get(key(r))?.clone() },
     fetch: async () => { if (!online) throw new Error('offline'); return Response.json({ alerts: [{ endsAt: '2026-10-10T08:00:00+08:00' }] }); },
   };
-  runInNewContext(await readFile(new URL('../public/sw.js', import.meta.url), 'utf8'), context);
+  runInNewContext(await serviceWorkerSource(), context);
   const load = () => {
     let result: Promise<Response> | undefined;
     handlers.fetch({ request: new Request('https://traffic.test/api/live?feed=floods'), respondWith: (r: Promise<Response>) => { result = r; } });

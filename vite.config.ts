@@ -6,6 +6,7 @@ import { defineConfig, loadEnv, Plugin } from 'vite';
 import { createConfig, ENV_KEYS } from './config/schema.ts';
 import { createApiMiddleware } from './server/apiMiddleware.ts';
 import { renderSiteMetadata } from './server/html/metadata.ts';
+import { renderServiceWorker } from './server/serviceWorker.ts';
 
 // Import handlers only after .env files have been loaded and validated below.
 const handlers: Record<string, () => Promise<{ default: (req: any, res?: any) => any }>> = {
@@ -58,6 +59,13 @@ export default defineConfig(({ mode, command, isPreview }) => {
 
   return {
     plugins: [react(), tailwindcss(), apiDevServerPlugin(), {
+      name: 'service-worker-timeouts',
+      generateBundle() {
+        this.emitFile({ type: 'asset', fileName: 'sw.js', source: renderServiceWorker(
+          readFileSync(new URL('./public/sw.js', import.meta.url), 'utf8'), config.timeouts,
+        ) });
+      },
+    }, {
       name: 'validated-config-boundary',
       transform(_source, id) {
         if (id.split('?')[0].replaceAll('\\', '/').endsWith('/config/server.ts')) {

@@ -92,6 +92,9 @@ export const ENV_SCHEMA = {
   VITE_FEED_RETRY_MS: poll('Retry interval for feeds without a complete initial answer.', 30000),
   VITE_HEALTH_POLL_MS: poll('Shared footer/modal health refresh interval.', 300000),
   VITE_HEALTH_TIMEOUT_MS: integer('public', 'Browser health request timeout; includes paced weather probes.', 30000, 100, 180000),
+  VITE_REQUEST_TIMEOUT_MS: integer('public', 'Browser API/camera request deadline, including response body reads.', 30000, 100, 180000),
+  VITE_SPEED_REQUEST_TIMEOUT_MS: integer('public', 'Browser speed request deadline; allows cold paginated aggregation.', 90000, 100, 300000),
+  VITE_ASSET_TIMEOUT_MS: integer('public', 'Asset/model download and vehicle-runtime initialization deadline.', 60000, 100, 300000),
   VITE_SPEED_STALE_MS: poll('Speed readings older than this are labelled stale.', 900000),
   VITE_CAMERA_STALE_MS: poll('Camera captures older than this are labelled delayed.', 900000),
   VITE_AIR_STALE_MS: poll('Air-quality readings older than this are labelled stale.', 10800000),
@@ -179,6 +182,7 @@ function publicConfig(v: Values) {
     freshness: { speeds: v.VITE_SPEED_STALE_MS, cameras: v.VITE_CAMERA_STALE_MS, air: v.VITE_AIR_STALE_MS,
       lightning: v.VITE_LIGHTNING_STALE_MS, speedSnapshot: v.VITE_SPEED_SNAPSHOT_MAX_AGE_MS },
     healthTimeoutMs: v.VITE_HEALTH_TIMEOUT_MS,
+    timeouts: { request: v.VITE_REQUEST_TIMEOUT_MS, speeds: v.VITE_SPEED_REQUEST_TIMEOUT_MS, assets: v.VITE_ASSET_TIMEOUT_MS },
     wallCycleMs: v.VITE_WALL_CYCLE_MS,
     vehicleCountingEnabled: v.VITE_VEHICLE_COUNTING_ENABLED,
   };

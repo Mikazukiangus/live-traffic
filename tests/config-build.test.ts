@@ -13,6 +13,7 @@ test('real production build applies public overrides while excluding private key
   try {
     execFileSync(process.execPath, ['node_modules/vite/bin/vite.js', 'build', '--outDir', directory], {
       cwd: root, env: { ...process.env, LTA_ACCOUNT_KEY: sentinel, VITE_SITE_URL: 'https://config-test.example', VITE_CAMERA_POLL_MS: '45678',
+        VITE_REQUEST_TIMEOUT_MS: '21000', VITE_SPEED_REQUEST_TIMEOUT_MS: '110000', VITE_ASSET_TIMEOUT_MS: '65000',
         VITE_VERCEL_PROJECT_ID: 'platform-project', VITE_VERCEL_DEPLOYMENT_ID: 'platform-deployment', VITE_VERCEL_OBSERVABILITY_CLIENT_CONFIG: '{}' },
       stdio: 'pipe', timeout: 30000,
     });
@@ -24,6 +25,10 @@ test('real production build applies public overrides while excluding private key
     const bundle = scripts.join('\n');
     assert.ok(!bundle.includes(sentinel), 'Private LTA key entered a public asset');
     assert.ok(bundle.includes('45678'), 'Public camera interval override was not included');
+    const worker = await readFile(path.join(directory, 'sw.js'), 'utf8');
+    assert.ok(worker.includes('const NETWORK_TIMEOUTS = {"request":21000,"speeds":110000,"assets":65000};'));
+    assert.ok(!worker.includes('__TRAFFICPULSE_NETWORK_TIMEOUTS__'), 'worker policy must be rendered in the actual build');
+    assert.ok(!worker.includes(sentinel), 'worker receives no private configuration');
   } finally { await rm(directory, { recursive: true, force: true }); }
 });
 

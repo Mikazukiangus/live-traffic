@@ -1,4 +1,8 @@
 import { config } from '../../../config/client';
+import { withRequestDeadline } from '../../../shared/requestDeadline';
+import { UpstreamHttpError } from '../../../shared/diagnostics';
+import { fetchWithTimeout } from '../../utils/request';
+import { loadImage } from './loadImage';
 /**
  * Counts vehicles in a traffic camera photo on the viewer's device with YOLOX-Nano
  * (Megvii, Apache-2.0; see public/models/YOLOX-LICENSE.txt) running in ONNX Runtime Web (MIT).
@@ -9,7 +13,7 @@ import { config } from '../../../config/client';
  * overlapping tiles that are each scaled up to the model's 416x416 input. Tested on the
  * Woodlands cameras, this finds most cars and lorries but undercounts motorcycles.
  */
-import { InferenceSession, Tensor } from 'onnxruntime-web';
+import type { InferenceSession, Tensor } from 'onnxruntime-web';
 
 const MODEL_URL = '/models/yolox_nano.onnx';
 const SIZE = 416;
@@ -29,12 +33,32 @@ type Box = [number, number, number, number]; // x, y, width, height
 let runtime: Promise<{ ort: Ort; session: InferenceSession }> | null = null;
 
 function loadRuntime() {
-  runtime ??= (async () => {
-    const ort = await import('onnxruntime-web/wasm');
+  runtime ??= withRequestDeadline(config.timeouts.assets, async (signal) => {
+    const [ort, { wasmUrl }] = await Promise.all([
+      import('onnxruntime-web/wasm'), import('./runtimeAssets'),
+    ]);
+    signal.throwIfAborted();
     ort.env.wasm.proxy = true; // run inference in a worker so the page stays responsive
-    const session = await ort.InferenceSession.create(MODEL_URL, { executionProviders: ['wasm'] });
+    const binary = (url: string) => fetchWithTimeout(url, async (response) => {
+      if (!response.ok) {
+        await response.body?.cancel();
+        throw new UpstreamHttpError(response.status);
+      }
+      return response.arrayBuffer();
+    }, { signal }, config.timeouts.assets);
+    // Fetch explicitly: the runtime's internal model/WASM downloads have no abort signal.
+    const [model, wasm] = await Promise.all([binary(MODEL_URL), binary(wasmUrl)]);
+    signal.throwIfAborted();
+    ort.env.wasm.wasmBinary = wasm;
+    ort.env.wasm.initTimeout = config.timeouts.assets;
+    const creating = ort.InferenceSession.create(model, { executionProviders: ['wasm'] });
+    void creating.then((session) => {
+      if (signal.aborted) return session.release();
+    }).catch(() => undefined);
+    const session = await creating;
+    signal.throwIfAborted();
     return { ort: ort as unknown as Ort, session };
-  })().catch((err) => {
+  }).catch((err) => {
     runtime = null; // allow a later retry
     throw err;
   });
@@ -102,16 +126,6 @@ function iou(a: Box, b: Box) {
   const y2 = Math.min(a[1] + a[3], b[1] + b[3]);
   const inter = Math.max(0, x2 - x1) * Math.max(0, y2 - y1);
   return inter / (a[2] * a[3] + b[2] * b[3] - inter || 1);
-}
-
-function loadImage(url: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous'; // served by our image proxy, which allows this, so pixels can be read
-    img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error('Camera image failed to load'));
-    img.src = url;
-  });
 }
 
 /** Number of vehicles found in the photo at `url` (must be same-origin or CORS-enabled). */
