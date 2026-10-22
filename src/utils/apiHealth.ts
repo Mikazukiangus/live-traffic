@@ -1,6 +1,7 @@
 import { config } from '../../config/client';
 import { safeFailure, UpstreamHttpError } from '../../shared/diagnostics.ts';
 import { useSyncExternalStore } from 'react';
+import { fetchWithTimeout } from './request';
 
 class UnexpectedHealthResponse extends Error {}
 
@@ -49,9 +50,13 @@ export function refreshApiHealth(): Promise<void> {
   pending = (async () => {
     const start = performance.now();
     try {
-      const res = await fetch('/api/health', { cache: 'no-store', signal: AbortSignal.timeout(config.healthTimeoutMs) });
-      if (!res.ok) throw new UpstreamHttpError(res.status);
-      const data: unknown = await res.json();
+      const data: unknown = await fetchWithTimeout('/api/health', async (res) => {
+        if (!res.ok) {
+          await res.body?.cancel();
+          throw new UpstreamHttpError(res.status);
+        }
+        return res.json();
+      }, { cache: 'no-store' }, config.healthTimeoutMs);
       if (!isHealthData(data)) throw new UnexpectedHealthResponse();
       publish({ data, checkedAt: Date.parse(data.timestamp), latencyMs: Math.round(performance.now() - start) });
     } catch (err) {

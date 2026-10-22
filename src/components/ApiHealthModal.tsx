@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 import { refreshApiHealth, useApiHealth } from '../utils/apiHealth';
 import { sgtClock } from '../utils/freshness';
+import { fetchWithTimeout } from '../utils/request';
 
 interface ApiHealthModalProps {
   isOpen: boolean;
@@ -22,11 +23,15 @@ export const ApiHealthModal: React.FC<ApiHealthModalProps> = ({ isOpen, onClose 
     setTestingEndpoint(path);
     const start = performance.now();
     try {
-      const res = await fetch(path);
+      const code = await fetchWithTimeout(path, async (res) => {
+        // A ping measures headers only; do not keep downloading photos/large feed bodies.
+        await res.body?.cancel();
+        return res.status;
+      });
       const latency = Math.round(performance.now() - start);
       setEndpointPings((prev) => ({
         ...prev,
-        [path]: { latency, code: res.status },
+        [path]: { latency, code },
       }));
     } catch {
       setEndpointPings((prev) => ({

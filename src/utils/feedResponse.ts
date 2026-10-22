@@ -1,4 +1,5 @@
 import { retryAfterMs } from '../../shared/httpRetry';
+import { fetchWithTimeout } from './request';
 
 /** Fixed status text and parsed timing only; never keep a response body or raw header in errors. */
 export class FeedHttpError extends Error {
@@ -20,8 +21,7 @@ export interface FeedResponse<T> {
 export function fetchFeed<T>(url: string): Promise<FeedResponse<T>> {
   let request = pending.get(url);
   if (!request) {
-    request = (async () => {
-      const res = await fetch(url);
+    request = fetchWithTimeout(url, async (res) => {
       if (!res.ok) {
         const delay = retryAfterMs(res.headers.get('Retry-After'));
         await res.body?.cancel().catch(() => undefined);
@@ -30,7 +30,7 @@ export function fetchFeed<T>(url: string): Promise<FeedResponse<T>> {
       const offline = res.headers.get('X-TrafficPulse-Offline') === '1';
       const cachedAt = Number(res.headers.get('X-TrafficPulse-Cached-At'));
       return { data: await res.json(), offline, receivedAt: offline ? (cachedAt > 0 ? cachedAt : null) : Date.now() };
-    })().finally(() => pending.delete(url));
+    }).finally(() => pending.delete(url));
     pending.set(url, request);
   }
   return request as Promise<FeedResponse<T>>;

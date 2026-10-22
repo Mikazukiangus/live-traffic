@@ -11,6 +11,8 @@ const ASSETS = `assets-${VERSION}`;
 const DATA = `data-${VERSION}`;
 const FONTS = `fonts-${VERSION}`;
 const KEEP = [SHELL, ASSETS, DATA, FONTS];
+// Replaced at build time from validated public configuration; never fetch config to start the worker.
+const NETWORK_TIMEOUTS = '__TRAFFICPULSE_NETWORK_TIMEOUTS__';
 
 // Never cached: camera photos (large, only useful live), the vehicle-count model and its 14 MB
 // runtime (the browser's HTTP cache keeps those), and the health check.
@@ -19,7 +21,13 @@ const BYPASS = [/^\/api\/imageproxy/, /^\/api\/health/, /^\/models\//, /\.wasm$/
 const MAX_ASSETS = 40;
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(SHELL).then((c) => c.addAll(['/', '/theme-init.js', '/manifest.webmanifest', '/icons/icon-192.png'])));
+  event.waitUntil(Promise.all(['/', '/theme-init.js', '/manifest.webmanifest', '/icons/icon-192.png'].map(async (path) => {
+    const request = new Request(new URL(path, self.location.origin));
+    const response = await boundedFetch(request, NETWORK_TIMEOUTS.assets);
+    if (!response.ok) throw new Error('Offline shell unavailable');
+    const cache = await caches.open(SHELL);
+    await cache.put(path, response);
+  })));
   self.skipWaiting();
 });
 
@@ -32,9 +40,41 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+async function boundedFetch(request, timeoutMs, consume = async (response) => response) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(new DOMException('Request timed out', 'TimeoutError')), timeoutMs);
+  const signal = AbortSignal.any([request.signal, controller.signal]);
+  let rejectAbort;
+  const aborted = new Promise((_, reject) => {
+    rejectAbort = () => reject(signal.reason);
+    signal.addEventListener('abort', rejectAbort, { once: true });
+    if (signal.aborted) rejectAbort();
+  });
+  try {
+    return await Promise.race([(async () => {
+      signal.throwIfAborted();
+      const response = await fetch(request, { signal });
+      // Reading a clone preserves response type, headers and navigation behavior.
+      await response.clone().blob();
+      signal.throwIfAborted();
+      return consume(response);
+    })(), aborted]);
+  } finally {
+    clearTimeout(timer);
+    signal.removeEventListener('abort', rejectAbort);
+  }
+}
+
+function dataTimeout(request) {
+  const fullBudget = new URL(request.url).pathname === '/api/expresswayspeeds'
+    ? NETWORK_TIMEOUTS.speeds : NETWORK_TIMEOUTS.request;
+  // Let a cached fallback reach the page before its own deadline expires.
+  return Math.max(1, Math.floor(fullBudget * 0.8));
+}
+
 async function networkFirst(request, cacheName, fallbackUrl) {
   try {
-    const response = await fetch(request);
+    const response = await boundedFetch(request, cacheName === DATA ? dataTimeout(request) : NETWORK_TIMEOUTS.request);
     if (response.ok) {
       try {
         const cache = await caches.open(cacheName);
@@ -51,6 +91,7 @@ async function networkFirst(request, cacheName, fallbackUrl) {
     }
     return response;
   } catch (err) {
+    if (request.signal.aborted) throw err;
     const cached = await caches.match(fallbackUrl || request);
     if (cached) {
       if (cacheName !== DATA) return cached;
@@ -65,16 +106,18 @@ async function networkFirst(request, cacheName, fallbackUrl) {
 async function cacheFirst(request, cacheName) {
   const cached = await caches.match(request);
   if (cached) return cached;
-  const response = await fetch(request);
-  if (response.ok || response.type === 'opaque') {
-    const cache = await caches.open(cacheName);
-    await cache.put(request, response.clone());
-    if (cacheName === ASSETS) {
-      const keys = await cache.keys();
-      await Promise.all(keys.slice(0, Math.max(0, keys.length - MAX_ASSETS)).map((k) => cache.delete(k)));
+  return boundedFetch(request, cacheName === FONTS ? NETWORK_TIMEOUTS.request : NETWORK_TIMEOUTS.assets, async (response) => {
+    // Keep cancellation live through cache.put too: opaque font bodies cannot be read by JS.
+    if (response.ok || response.type === 'opaque') {
+      const cache = await caches.open(cacheName);
+      await cache.put(request, response.clone());
+      if (cacheName === ASSETS) {
+        const keys = await cache.keys();
+        await Promise.all(keys.slice(0, Math.max(0, keys.length - MAX_ASSETS)).map((k) => cache.delete(k)));
+      }
     }
-  }
-  return response;
+    return response;
+  });
 }
 
 self.addEventListener('fetch', (event) => {

@@ -137,6 +137,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 126. [Turn 126: Clarify Login Target for Brute-Force Lockout](#126-turn-126-clarify-login-target-for-brute-force-lockout)
 127. [Turn 127: New Application Login Scope and Storage Preparation](#127-turn-127-new-application-login-scope-and-storage-preparation)
 128. [Turn 128: Application Login Work on Hold](#128-turn-128-application-login-work-on-hold)
+129. [Turn 129: Bound Outbound Requests on Preview](#129-turn-129-bound-outbound-requests-on-preview)
 
 ---
 
@@ -2265,6 +2266,27 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Put the proposed application login and brute-force lockout work on hold at the user's explicit request. The enrollment/access-scope questions no longer require an answer now. Resume only if the user explicitly requests it.
 - Marked AUTHENTICATION_PLAN.md on hold and retained the proposal for future reference. No application login or lockout was implemented; no runtime code, dependency, database, environment setting or deployment-access policy changed. Pre-existing .claude/ remains untouched.
 - Updated this log/table of contents for commit/push on main under the standing instruction. Documentation-only change; checked the diff without rerunning runtime tests.
+
+---
+
+## 129. Turn 129: Bound Outbound Requests on Preview
+
+**User Instruction:**
+> "Find every outbound call in my code without a timeout and add sensible ones."
+
+### Implemented and verified locally (22 October 2026, SGT):
+- Created preview branch codex/outbound-timeouts from main d2e956a. Traced direct fetches, injected resource transports, image/model loading, service-worker cache/install requests, Python tooling and CI curl. Existing server/provider, map-generator and health-workflow timeouts were present. Found gaps in shared browser feeds, camera primary/fallback metadata, individual health pings, worker networking/precache and vehicle image/model/runtime loading. Recorded the complete inventory and browser-managed resource limitations in docs/api/timeouts.md.
+- Added a shared deadline primitive and browser fetch/consume wrapper: default 30 seconds for API/camera requests, 90 seconds for cold speed aggregation and 60 seconds for model/asset startup. Body reads remain inside the deadline, caller cancellation is preserved, timeout errors contain fixed text only, and timers/listeners/shared pending entries are released. Existing health timing remains 30 seconds. Added validated public settings and regenerated .env.example without reading/modifying local secrets. Added the server transport's omitted-signal default while preserving existing feed-specific signals, redirects and guarded DNS/dispatcher.
+- Camera timeouts trigger the validated public fallback and release polling state; pings cancel unused response bodies. Vehicle image loading now cancels/removes stalled sources and handlers. Explicitly fetched the pinned model/WASM bytes with shared cancellation and set runtime initialization deadlines; a late-created timed-out session is released. Browser-managed native imports cannot themselves accept AbortSignal, so the runtime consumer is bounded and that limitation is documented rather than claimed as full browser network cancellation.
+- Added bounded service-worker network/body reads, font/asset misses and individual precache downloads. API worker budgets use 80% of the browser budget to leave time for cached fallback; retained observation times remain unchanged and incomplete bodies cannot replace complete data. Replaced unbounded cache.addAll networking with bounded explicit fetches. Vite renders only public numeric settings into the standalone worker; existing worker tests now run that same renderer and a production-build regression verifies overrides/secret exclusion.
+- Added nine meaningful timeout test groups including actual loopback HTTP headers followed by a stalled body and connection closure, caller cancellation, timeout cleanup, shared-feed recovery, camera fallback, vehicle-image cleanup, worker body/cache/font/install cases and validated defaults. The first loopback check hit the filesystem/network sandbox's listen EPERM; reran through approved escalation. An existing transport assertion needed its expected new default signal; corrected it without weakening the security assertions. All 164 tests then passed, with type checking, transport audit and production build. No optional repeat broad testing is needed after these gates.
+- Applied Vercel verification guidance to an isolated local browser flow using a synthetic blank image. Actual model/WASM/worker initialization and counting returned Success: 0 vehicles in synthetic image. Removed the temporary fixture/tab and stopped its dev server. No real camera metadata, presigned provider URLs or real user storage was fetched for this check. No authentication work resumed, no dependency/lockfile or hosted setting changed; pre-existing .claude/ remains untouched.
+- Updated this log/table of contents for commit/push and preview publication under the standing instruction. Main merge and production rollout still require explicit approval.
+
+### Preview publication:
+- Pushed implementation 27b8b25ec32e6c5b6040f3a955771aaf5ca03b15 and opened draft PR #18 (https://github.com/Mikazukiangus/live-traffic/pull/18), attached to this chat. Both GitHub Checks runs 39698264654 and 39698311866 completed successfully at that exact implementation head; Vercel deployment/feedback checks also succeeded.
+- Deployment dpl_CZxbzQqsJ91YppmEXZomX6zpxVf4 is READY for the intended project/team, preview branch and implementation SHA: https://live-traffic-qaz26yspt-carbon-bc04.vercel.app. Authenticated homepage, its actual entry bundle and /sw.js returned HTTP 200. The worker contains the rendered 30000/90000/60000 policy and no template marker. /api/rainforecast returned HTTP 200 with 47 areas. No camera-metadata/presigned-link probe or hosting-access change was needed.
+- Recorded these results in docs/api/timeouts.md and removed a now-unused test import. This follow-up changes documentation/test imports only; runtime verification is pinned to the implementation commit above. No further implementation input is needed; PR #18 awaits explicit approval to merge into main.
 
 ---
 

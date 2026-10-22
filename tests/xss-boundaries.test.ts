@@ -1,4 +1,5 @@
 import { test } from 'node:test';
+import { serviceWorkerSource } from './helpers/serviceWorker.ts';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { runInNewContext } from 'node:vm';
@@ -43,7 +44,7 @@ test('HTML serialization encodes only the attribute context and preserves litera
 });
 
 test('notification data cannot choose navigation in either existing-window or new-window branches', async () => {
-  const worker = await readFile(new URL('../public/sw.js', import.meta.url), 'utf8');
+  const worker = await serviceWorkerSource();
   for (const existing of [false, true]) {
     const handlers: Record<string, (event: any) => void> = {};
     const navigations: string[] = [];

@@ -83,7 +83,9 @@ test('provider transport rejects insecure/credential URLs before sending anythin
   const url = 'https://images.example.test/photo.jpg?signature=synthetic%2Bvalue%2fexact';
   const headers = { AccountKey: 'synthetic-key' };
   await fetchProvider(url, { headers, redirect: 'follow' }, transport);
-  assert.deepEqual(recorded, { url, init: { headers, redirect: 'error', dispatcher: providerDispatcher } });
+  const actual = recorded as { url: string; init: RequestInit };
+  assert.ok(actual.init.signal instanceof AbortSignal, 'omitted caller signals receive the default server deadline');
+  assert.deepEqual(recorded, { url, init: { headers, signal: actual.init.signal, redirect: 'error', dispatcher: providerDispatcher } });
   assert.equal(calls, 1);
 });
 
