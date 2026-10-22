@@ -138,6 +138,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 127. [Turn 127: New Application Login Scope and Storage Preparation](#127-turn-127-new-application-login-scope-and-storage-preparation)
 128. [Turn 128: Application Login Work on Hold](#128-turn-128-application-login-work-on-hold)
 129. [Turn 129: Bound Outbound Requests on Preview](#129-turn-129-bound-outbound-requests-on-preview)
+130. [Turn 130: Outbound Timeouts Merged to Main](#130-turn-130-outbound-timeouts-merged-to-main)
 
 ---
 
@@ -2287,6 +2288,20 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Pushed implementation 27b8b25ec32e6c5b6040f3a955771aaf5ca03b15 and opened draft PR #18 (https://github.com/Mikazukiangus/live-traffic/pull/18), attached to this chat. Both GitHub Checks runs 39698264654 and 39698311866 completed successfully at that exact implementation head; Vercel deployment/feedback checks also succeeded.
 - Deployment dpl_CZxbzQqsJ91YppmEXZomX6zpxVf4 is READY for the intended project/team, preview branch and implementation SHA: https://live-traffic-qaz26yspt-carbon-bc04.vercel.app. Authenticated homepage, its actual entry bundle and /sw.js returned HTTP 200. The worker contains the rendered 30000/90000/60000 policy and no template marker. /api/rainforecast returned HTTP 200 with 47 areas. No camera-metadata/presigned-link probe or hosting-access change was needed.
 - Recorded these results in docs/api/timeouts.md and removed a now-unused test import. This follow-up changes documentation/test imports only; runtime verification is pinned to the implementation commit above. No further implementation input is needed; PR #18 awaits explicit approval to merge into main.
+
+---
+
+## 130. Turn 130: Outbound Timeouts Merged to Main
+
+**User Instruction:**
+> "merge to main."
+
+### Released (22 October 2026, SGT):
+- Received explicit approval for PR #18 (https://github.com/Mikazukiangus/live-traffic/pull/18), retained its chat attachment and rechecked exact final head e2d1a6e0ffc2cd811948925f2918772fd60cbf9f. Both GitHub Checks runs 39698457321 and 39698461823 and Vercel deployment/feedback checks completed successfully. Marked the draft ready, confirmed its main target and mergeable state, and merged with that expected head SHA as dc910351ad6703424d17b07c55312d77ea56dd48. Fast-forwarded local main; retained the preview branch.
+- Released the reviewed browser/worker/model deadlines and generated public configuration without additional runtime edits. The 164 passing tests, type checks, transport audit, production build and isolated synthetic-image browser count already cover implementation behavior; no optional repeat full local suite was necessary for this merge. Updated docs/api/timeouts.md to mark the release and selected production coverage.
+- Production deployment dpl_kPTPCPYusXt3AT8JBYh4JdRV4Rnb is READY for the intended project/team, main merge SHA and production target. Aliases include live-traffic-carbon-bc04.vercel.app, live-traffic-kappa.vercel.app and the main branch URL.
+- Authenticated production homepage, its actual referenced entry bundle and /sw.js returned HTTP 200. The worker contains the expected 30000/90000/60000 timeout policy with no unresolved build marker. /api/rainforecast returned HTTP 200 with all 47 areas. No camera metadata or presigned-link probe was needed; the native stalled-body/cancellation/fallback guarantees remain established by the isolated regression tests, not by intentionally disrupting a live provider.
+- No environment values, deployment-access policy, dependency/lockfile, real browser storage or credentials changed. Application login work remains on hold. Pre-existing .claude/ remains untouched. Updated this log/table of contents and release documentation for commit/push on main under the standing instruction. The approved merge and selected production checks are complete; no further merge approval is needed.
 
 ---
 

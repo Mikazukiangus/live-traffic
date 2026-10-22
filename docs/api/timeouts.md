@@ -1,11 +1,15 @@
 # Outbound request timeouts
 
-Implemented on preview branch `codex/outbound-timeouts`; not merged to main.
+Released to main through PR #18 as `dc91035` on 22 October 2026 (SGT).
 Audit date: 22 October 2026 (SGT).
 
 Review: [PR #18](https://github.com/Mikazukiangus/live-traffic/pull/18).
 Implementation commit `27b8b25` passed both GitHub Checks runs and Vercel checks.
 Its [preview](https://live-traffic-qaz26yspt-carbon-bc04.vercel.app) is READY.
+The final PR head `e2d1a6e` also passed both GitHub Checks runs and Vercel checks
+before the approved merge. Production deployment `dpl_kPTPCPYusXt3AT8JBYh4JdRV4Rnb`
+is READY for the merge commit and assigned to the
+[production site](https://live-traffic-carbon-bc04.vercel.app).
 
 ## Request inventory
 
@@ -89,3 +93,8 @@ and [combined signals](https://developer.mozilla.org/en-US/docs/Web/API/AbortSig
   public timeout policy with no unresolved build marker. The rain endpoint returned
   HTTP 200 with all 47 forecast areas. No signed camera feed was used for this smoke
   check. Hosted environment and deployment-protection settings were unchanged.
+- After the approved merge, production homepage, actual entry bundle and worker
+  returned HTTP 200. The worker contains the expected 30000/90000/60000 timeout
+  policy with no unresolved marker. The production rain endpoint returned HTTP 200
+  with 47 areas. This is selected release smoke coverage; the deterministic stall,
+  cancellation and fallback matrix remains established by the 164 passing tests.
