@@ -1,7 +1,6 @@
 import { test } from 'node:test';
 import { serviceWorkerSource, workerGlobals } from './helpers/serviceWorker.ts';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
 import { runInNewContext } from 'node:vm';
 import { activeFloodAlerts } from '../api/_floods.ts';
 import { unexpiredFloodAlerts } from '../src/utils/floodAlerts.ts';

@@ -3,6 +3,10 @@
 Implemented on preview branch `codex/outbound-timeouts`; not merged to main.
 Audit date: 22 October 2026 (SGT).
 
+Review: [PR #18](https://github.com/Mikazukiangus/live-traffic/pull/18).
+Implementation commit `27b8b25` passed both GitHub Checks runs and Vercel checks.
+Its [preview](https://live-traffic-qaz26yspt-carbon-bc04.vercel.app) is READY.
+
 ## Request inventory
 
 | Request path | Deadline and behavior |
@@ -80,3 +84,8 @@ and [combined signals](https://developer.mozilla.org/en-US/docs/Web/API/AbortSig
   (`Success: 0 vehicles in synthetic image`) using the actual model, WASM runtime
   and worker. No real camera metadata, presigned image links or provider credentials
   were requested by this fixture. Temporary fixture/tab/server were removed.
+- Authenticated deployed preview requests returned HTTP 200 for the homepage,
+  its actual entry bundle and the service worker. The worker contains the expected
+  public timeout policy with no unresolved build marker. The rain endpoint returned
+  HTTP 200 with all 47 forecast areas. No signed camera feed was used for this smoke
+  check. Hosted environment and deployment-protection settings were unchanged.
