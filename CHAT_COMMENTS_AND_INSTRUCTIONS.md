@@ -139,6 +139,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 128. [Turn 128: Application Login Work on Hold](#128-turn-128-application-login-work-on-hold)
 129. [Turn 129: Bound Outbound Requests on Preview](#129-turn-129-bound-outbound-requests-on-preview)
 130. [Turn 130: Outbound Timeouts Merged to Main](#130-turn-130-outbound-timeouts-merged-to-main)
+131. [Turn 131: Cloud Workspace Handoff Note](#131-turn-131-cloud-workspace-handoff-note)
 
 ---
 
@@ -2302,6 +2303,19 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Production deployment dpl_kPTPCPYusXt3AT8JBYh4JdRV4Rnb is READY for the intended project/team, main merge SHA and production target. Aliases include live-traffic-carbon-bc04.vercel.app, live-traffic-kappa.vercel.app and the main branch URL.
 - Authenticated production homepage, its actual referenced entry bundle and /sw.js returned HTTP 200. The worker contains the expected 30000/90000/60000 timeout policy with no unresolved build marker. /api/rainforecast returned HTTP 200 with all 47 areas. No camera metadata or presigned-link probe was needed; the native stalled-body/cancellation/fallback guarantees remain established by the isolated regression tests, not by intentionally disrupting a live provider.
 - No environment values, deployment-access policy, dependency/lockfile, real browser storage or credentials changed. Application login work remains on hold. Pre-existing .claude/ remains untouched. Updated this log/table of contents and release documentation for commit/push on main under the standing instruction. The approved merge and selected production checks are complete; no further merge approval is needed.
+
+---
+
+## 131. Turn 131: Cloud Workspace Handoff Note
+
+**User Instruction:**
+> "I want to move this project into a cloud environment. Write me a handoff note when I open the new cloud environment chat."
+
+### Prepared (22 October 2026, SGT):
+- Reviewed main at 121496926c6376d94ee0b04619db5ad672e6c201, repository/development/config/security/architecture documentation, CI scripts and latest release state. Added CLOUD_HANDOFF.md as a self-contained note for the next cloud workspace/chat, with current main and release references, Node 24/Bun 1.4.1 setup, frozen install/check commands, dev/preview ports, architecture owners, data/live-versus-demo constraints, Vercel scope/aliases and safe verification guidance.
+- Preserved the standing every-turn log/TOC/commit/push rule and preview/explicit-main-merge approval policy. Recorded that PR #18 is merged, latest baseline checks passed with 164 tests, and the application login/lockout project remains explicitly on hold with no enrollment/scope answers required now. No implementation remains to recover from the old local checkout.
+- Explained that local .env.local/.venv/node_modules, browser saved commutes/history, connector sessions and a prior local-app ERP reminder do not automatically transfer through Git. New cloud secrets must be configured privately through the approved environment interface; no hosted secret should be decrypted or placed in chat. Listed the current keyless fallback and known protected-fetch/presigned-camera restrictions. No actual cloud workspace, database, automation, secret transfer or hosting migration was performed.
+- This is a documentation-only handoff; no runtime source, dependencies, deployment settings, credentials or real browser data changed. Pre-existing .claude/ remains untouched. Checked whitespace and internal file references; no repeat full runtime suite/build was needed. Updated this log/table of contents for commit/push on main under the standing instruction and provided a short opening prompt for the new chat.
 
 ---
 
