@@ -1,7 +1,8 @@
+import { airObservationTime, airStatusText } from '../weather/airFreshness';
 import { WeatherOutlook24h } from '../../components/WeatherOutlook24h';
 import { RAIN_LEVEL_STYLE, describeCorridorRain } from '../../utils/rainForecast';
 import { REGION_LABEL, pm25Band, psiBand, sgtHour } from '../../utils/airQuality';
-import { sgtClock } from '../../utils/freshness';
+import { sgtClock, useNow } from '../../utils/freshness';
 import { HEAT_STYLE } from '../../utils/weatherAlerts';
 import { floodLabel } from '../../utils/floodAlerts';
 import { RadarReadings } from './useRadarReadings';
@@ -12,6 +13,7 @@ type Props = {
     | 'rainForecast'
     | 'rainFeed'
     | 'airQuality'
+    | 'airFeed'
     | 'weatherAlerts'
     | 'floodFeed'
     | 'floodAlerts'
@@ -29,6 +31,7 @@ export function WeatherPanel({ readings, navigation }: Props) {
     rainForecast,
     rainFeed,
     airQuality,
+    airFeed,
     weatherAlerts,
     floodFeed,
     floodAlerts,
@@ -39,6 +42,8 @@ export function WeatherPanel({ readings, navigation }: Props) {
     rainByCode,
   } = readings;
   const { corridors, activeTab } = navigation;
+  const now = useNow();
+  const airNotice = airStatusText(airFeed, now);
 
   return (
     <section className={activeTab === 'weather' ? 'flex flex-col gap-6' : 'hidden'}>
@@ -52,13 +57,12 @@ export function WeatherPanel({ readings, navigation }: Props) {
           </div>
           {airQuality && (
             <span className="text-xs text-slate-500 font-mono">
-              {sgtHour(airQuality.psiTimestamp ?? airQuality.pm25Timestamp)} SGT reading
+              PSI {airObservationTime(airQuality.psiTimestamp)} · PM2.5 {airObservationTime(airQuality.pm25Timestamp)}
             </span>
           )}
         </div>
-        {!airQuality ? (
-          <div className="text-xs text-slate-400">Loading NEA air quality…</div>
-        ) : (
+        {airNotice && <p role="status" className={`text-xs ${airFeed.status === 'loading' ? 'text-slate-500' : 'text-amber-800'}`}>{airNotice}</p>}
+        {airQuality && (
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-xs">
             {airQuality.regions.map((r) => {
               const psi = r.psi24h != null ? psiBand(r.psi24h) : null;

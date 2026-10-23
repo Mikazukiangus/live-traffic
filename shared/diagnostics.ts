@@ -1,4 +1,6 @@
 // This module has no environment access and is safe for server, browser and CI use.
+const FAILURE_SOURCES = new Set(['psi', 'pm25', 'lightning', 'wbgt', 'roadworks', 'faulty_lights']);
+export type FailureSource = 'psi' | 'pm25' | 'lightning' | 'wbgt' | 'roadworks' | 'faulty_lights';
 const SERVICES = new Set(['lta', 'nea', 'camera', 'gateway', 'vehicle']);
 const validStatus = (value: unknown): value is number =>
   typeof value === 'number' && Number.isInteger(value) && value >= 100 && value <= 599;
@@ -61,8 +63,13 @@ export function safeFailure(service: string, error: unknown, status?: number) {
 }
 
 /** No raw exception, stack, cause, headers, config, URL or response body enters the log. */
-export function reportFailure(service: string, error: unknown, status?: number) {
+export function reportFailure(service: string, error: unknown, status?: number, source?: FailureSource) {
   const { log, body } = safeFailure(service, error, status);
-  console.error(JSON.stringify(log));
+  console.error(JSON.stringify({ ...log, ...(source && FAILURE_SOURCES.has(source) ? { source } : {}) }));
   return body;
+}
+
+/** Labels are fixed at the call site, never derived from a request, URL or provider body. */
+export function reportSourceFailure(service: string, source: FailureSource, error: unknown) {
+  return reportFailure(service, error, undefined, source);
 }

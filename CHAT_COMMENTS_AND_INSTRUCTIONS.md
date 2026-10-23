@@ -147,6 +147,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 136. [Turn 136: Error Handling Review](#136-turn-136-error-handling-review)
 137. [Turn 137: API, Page and Notification Recovery on Preview](#137-turn-137-api-page-and-notification-recovery-on-preview)
 138. [Turn 138: Continue Error Recovery Preview Publication](#138-turn-138-continue-error-recovery-preview-publication)
+139. [Turn 139: Air-Quality State and Partial-Source Error Logging](#139-turn-139-air-quality-state-and-partial-source-error-logging)
 
 ---
 
@@ -2446,6 +2447,26 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Added a focused root-callback redaction test to close the remaining non-UI diagnostic check. Corrected its React type fixture from null to the permitted undefined errorBoundary; type checking passes. All 12 targeted recovery groups passed, including the new callback check, and the production build passed again. The earlier full-suite run covered 195 tests; the combined final suite now contains 196 tests for CI. No optional unrelated testing was added.
 - Documented API/cache/CORS behavior, safe diagnostics, page retry controls, permission/delivery outcomes, alert retry limits/receipt meaning, cancellation limits and the unverified browser fixture in docs/error-handling.md. Kept findings 4–5 and login work outside this implementation. No credentials, dependencies, hosted access, real browser data or existing unrelated files changed.
 - Updated this log/table of contents for commit/push and a draft preview PR under the standing instruction. Explicit approval is still required before merging into main; interactive browser verification remains pending approved tool access or user review.
+
+### First preview publication (before findings 4–5 were approved):
+- Pushed findings 1–3 as 59a307b1b9a3071373e29834d83bfd640d40f66b and opened draft PR #21 (https://github.com/Mikazukiangus/live-traffic/pull/21), attached to this chat. Both GitHub Checks runs 39959815461 and 39959881027 and Vercel deployment/feedback checks passed at that exact head. Read CI job diagnostics through the required code-review tool; all 196 tests passed with zero skips.
+- Deployment dpl_9u3sdgUChtsaReiACf1cXHcEkaFn was READY for the intended project/team, branch and implementation SHA: https://live-traffic-idpx4llq1-carbon-bc04.vercel.app. Authenticated homepage, its referenced entry bundle, incidents (9 source records), rain (47 areas) and air quality (5 regions) returned HTTP 200. HTTP success checks do not establish interactive recovery behavior. Before the final documentation push, the user expanded the active task to findings 4–5; continued on the same draft PR/preview branch below.
+
+---
+
+## 139. Turn 139: Air-Quality State and Partial-Source Error Logging
+
+**User Instruction:**
+> "fix 4 to 5"
+
+### Implemented and checked locally (23 October 2026, SGT):
+- Incorporated the user's expansion into the active error-recovery task on codex/error-recovery-boundaries and draft PR #21. Findings 1–3 remain included. No main merge or production release was requested.
+- Changed useAirQuality to expose the full shared feed snapshot and updated both radar and camera consumers. Added pure freshness/status projection for loading, initial failure, retained refresh failure, offline copies and missing sources. Check PSI and PM2.5 observation ages independently against the existing validated freshness threshold, including its exact boundary. Show distinct source observation times in SGT; UTC inputs are converted correctly. Keep original receipt/provider times through failed refresh or offline fallback. A fresh PSI cannot hide stale/missing PM2.5.
+- Weather UI now shows unavailable after initial feed failures and explicitly labels retained/offline data. Camera-page summaries, global notices and enlarged dialogs show the same state, including when a modal obscures background notices. Missing source readings are not given another source's observation time. Existing shared request/timer ownership remains; no duplicate data-fetch service or new settings were introduced.
+- Log each rejected PSI/PM2.5, lightning/WBGT and roadworks/faulty-light source once, even when its peer succeeds. Preserve partial HTTP 200/no-store responses and null unavailable fields. Both-failed responses retain their existing status/body policy without duplicate source log events. Added an optional closed diagnostic label set (psi, pm25, lightning, wbgt, roadworks, faulty_lights); unknown labels are omitted and raw URLs/provider bodies/headers/errors never enter logs or labels. Health can still mark a usable partial endpoint UP; its individual source failure is now observable in logs.
+- Added seven meaningful regression groups: loading/outage/retained/offline/recovery states, independent/missing/exact-boundary ages, original receipts through failures/offline answers, distinct camera timestamps, Node/Web partial and total failure logging/contracts, and untrusted-label redaction. The first test run caught an in-place sort of its shared expected-label fixture; changed the assertion to sort a copy and reran successfully. All 203 full-suite Node tests passed with zero skips, including the existing wrapper's four offline Python cases. Type checking, transport security audit, production build and whitespace checks passed.
+- No real camera metadata/presigned image, notification permission/delivery, user storage, live provider outage, credentials, hosted setting or dependencies/lockfiles changed. The earlier browser-tool automatic approval usage-limit block remains documented; no alternative browser/protocol workaround or claimed visual pass was used. Login work remains on hold and pre-existing .claude/ remains untouched.
+- Updated docs/error-handling.md to cover all five fixes, the 203-test baseline and first preview evidence. Updated this log/table of contents for commit/push and an updated preview under the standing instruction. Explicit approval remains necessary before merging to main.
 
 ---
 

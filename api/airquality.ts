@@ -2,7 +2,7 @@ import { isRecord } from '../shared/traffic/validation.ts';
 import { providerFailureStatus, providerFailureHeaders, failedDependency } from '../server/http/providerFailure.ts';
 import { requestSchemas } from '../server/http/requestSchemas.ts';
 import { withRequestSchema } from '../server/http/validateRequest.ts';
-import { reportFailure, safeFailure, InvalidPayloadError } from '../shared/diagnostics.ts';
+import { reportSourceFailure, safeFailure, InvalidPayloadError } from '../shared/diagnostics.ts';
 import { config } from '../config/server.ts';
 /**
  * NEA Air Quality Serverless Endpoint (keyless)
@@ -45,10 +45,10 @@ const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFi
 
 const handler = withRequestSchema(requestSchemas.empty, async (_req, res) => {
   const [psi, pm25] = await Promise.allSettled([fetchLatest(PSI_URL), fetchLatest(PM25_URL)]);
+  if (psi.status === 'rejected') reportSourceFailure('nea', 'psi', psi.reason);
+  if (pm25.status === 'rejected') reportSourceFailure('nea', 'pm25', pm25.reason);
   if (psi.status === 'rejected' && pm25.status === 'rejected') {
     const error = failedDependency(psi.reason, pm25.reason);
-    reportFailure('nea', psi.reason);
-    reportFailure('nea', pm25.reason);
     return send(res, providerFailureStatus(error), safeFailure('nea', error).body, providerFailureHeaders(error));
   }
 

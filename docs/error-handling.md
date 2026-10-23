@@ -1,9 +1,8 @@
 # Error recovery: API, pages and commute alerts
 
 Implemented on preview branch `codex/error-recovery-boundaries`, pending explicit
-approval to merge. This addresses findings 1–3 from Turn 136. The separate
-findings about air-quality feed state and partial-source diagnostic coverage
-remain follow-up work.
+approval to merge. This now addresses all five findings from Turn 136; the user
+approved findings 4–5 while PR #21 was still a draft.
 
 ## API exception boundary
 
@@ -23,8 +22,8 @@ and ordinary endpoint-owned error handling retain their contracts.
 
 Air-quality region metadata is checked before mapping. A malformed successful
 provider response becomes a typed invalid-provider failure, not an escaped
-TypeError. A valid partial answer remains usable; this change does not implement
-the separate partial-failure logging recommendation.
+TypeError. A valid partial answer remains usable; each rejected source is logged
+independently as described below.
 
 Module import/bootstrap failures before the request wrapper executes are still a
 hosting/runtime concern. No application wrapper can rewrite a response already
@@ -81,6 +80,39 @@ service. Browser/OS operations already submitted cannot be recalled. Timers may
 be delayed while a tab sleeps; the age limit is rechecked before another attempt.
 No browser permission, real notification or user storage was changed by tests.
 
+## Air-quality state and observation age
+
+`useAirQuality()` now exposes the shared snapshot, including data, status, offline,
+receipt time, refresh state and refresh action. The radar and camera consumers keep
+that state instead of discarding it. `airFreshness.ts` projects loading, unavailable,
+retained/error, offline and missing-source notices from it without mutating data.
+
+PSI and PM2.5 each use their own observation timestamp and availability. Both are
+checked against the existing validated `VITE_AIR_STALE_MS` threshold, including the
+exact boundary. A fresh PSI answer cannot hide old/missing PM2.5. Headers and camera
+details distinguish the two observation times and convert UTC timestamps to SGT.
+Failed refreshes and offline copies never renew the original receipt or provider
+observation times. Missing metrics are not assigned another source's timestamp.
+
+Weather-panel initial failures now become unavailable instead of loading forever.
+Retained/offline readings have explicit notices. Camera summaries and the enlarged
+camera dialog show the same warning, including where a modal obscures the global
+status notice. Shared fetch/polling ownership remains unchanged.
+
+## Partial-source diagnostics
+
+Air quality, lightning/WBGT and roadworks/faulty lights now log **each rejected
+source once** even when its peer succeeds. Responses retain the established
+uncached partial HTTP 200 contract and null unavailable fields. When both fail,
+the existing failure response is preserved without duplicate diagnostic events.
+A usable partial endpoint can still be UP in the health catalogue; individual
+source failures are now visible in logs.
+
+The optional diagnostic source is selected from six fixed labels: `psi`, `pm25`,
+`lightning`, `wbgt`, `roadworks`, `faulty_lights`. Unknown labels are omitted.
+Neither provider URLs, rejected values, error bodies, request fields nor secret
+values become labels. Public error bodies do not gain source details.
+
 ## Diagnostics
 
 `shared/applicationDiagnostics.ts` accepts only fixed operation classifications.
@@ -90,17 +122,23 @@ remain under `shared/diagnostics.ts`. No telemetry service was provisioned.
 
 ## Verification
 
-The local full suite passed **195 tests** with zero skips before the final root
-callback test was added. All **12** error-recovery groups then passed, including
-that additional redaction check. Type checking, transport security source audit,
-production build and whitespace checks passed. Existing Python wrapper coverage
-also passed its four offline helper cases. CI verifies the final combined suite.
+The latest local full suite passed **203 tests** with zero skips, including 12
+recovery groups and seven air/partial-source groups. Type checking, transport
+security source audit, production build and whitespace checks passed. The existing
+Python wrapper also ran its four offline helper cases. The new source-label test
+initially sorted a shared fixture array in place; corrected the fixture to copy
+before sorting, then reran successfully. Application behavior did not need changing.
 
 Synthetic regression cases cover Node/Web exception and serialization failures,
 CORS, cache-header cleanup, already-committed responses, typed provider/circuit
 errors, the malformed-success air payload, permission outcomes, worker/constructor
 failures, notification receipts, duplicate/in-flight suppression, bounded recovery,
-expiry/watch removal/disposal and fixed root callback diagnostics.
+expiry/watch removal/disposal and fixed root callback diagnostics. Air tests cover
+initial outage, retained/offline state, independent exact-boundary observation
+ages, missing metrics, original receipt preservation/recovery and distinct camera
+observation times. Both Node/Web partial-source tests cover each failed peer,
+both failed peers, one log per rejected source, HTTP 200/no-store partials and
+rejection of untrusted source labels.
 
 ### Browser verification still pending
 
@@ -125,3 +163,16 @@ these interactive recovery guarantees.
 
 References: [React error boundaries](https://react.dev/reference/react/Component#catching-rendering-errors-with-an-error-boundary),
 [browser unhandled rejections](https://developer.mozilla.org/en-US/docs/Web/API/Window/unhandledrejection_event).
+
+## First preview publication (findings 1–3)
+
+[PR #21](https://github.com/Mikazukiangus/live-traffic/pull/21) was initially published
+at `59a307b1b9a3071373e29834d83bfd640d40f66b`. Both GitHub Checks runs `39959815461`
+and `39959881027`, Vercel deployment and preview-feedback checks passed. CI logs
+confirmed all 196 tests passed with zero skips at that exact implementation head.
+
+Deployment `dpl_9u3sdgUChtsaReiACf1cXHcEkaFn` was READY for the intended project/team
+and preview branch. Authenticated homepage/entry bundle, incidents (9 records),
+rain (47 areas) and air quality (5 regions) returned HTTP 200. This establishes
+selected deployed success-path compatibility for that earlier head, not an
+interactive recovery-screen pass or verification of the later findings 4–5 patch.

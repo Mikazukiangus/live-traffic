@@ -1,3 +1,4 @@
+import { airNotices, airStatusText } from '../features/weather/airFreshness';
 import { CameraDialog } from '../features/cameras/CameraDialog';
 import { CameraTile } from '../features/cameras/CameraTile';
 import { CheckpointSummary } from '../features/cameras/CheckpointSummary';
@@ -63,7 +64,9 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
   // All cameras grid: which cameras to show (?cams=2701,4703); all of them when not set
   const rainFeed = useRainFeed();
   const rainForecast = rainFeed.data && rainIsValid(rainFeed.data, now) ? rainFeed.data : null;
-  const airQuality = useAirQuality();
+  const airFeed = useAirQuality();
+  const airQuality = airFeed.data;
+  const airNotice = airStatusText(airFeed, now);
   const online = useOnline();
   const { refreshing, feedFailed, latestCapture, liveSourceDesc } = cameraFeed;
   const navigation = useCameraNavigation(cameras, wall);
@@ -114,7 +117,7 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
 
   const cameraLevel = (cam: CameraCard) => cameraLevelReading(cam, nearbyTraffic[cam.id], vehicleCounts);
   const rainWarning = rainNotice(rainFeed, now);
-  const staleFeeds: StaleFeed[] = rainWarning ? [rainWarning] : [];
+  const staleFeeds: StaleFeed[] = [...(rainWarning ? [rainWarning] : []), ...airNotices(airFeed, now)];
   const speedsAt = parseSgt(speedsUpdated);
   if (speedsFailed || (speedsAt && now - speedsAt > SPEEDS_STALE_MS)) {
     staleFeeds.push({
@@ -284,7 +287,7 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
         return (
           <section key={t.id} className={shownTab === t.id ? 'flex flex-col gap-5' : 'hidden'}>
             {/* Only the selected checkpoint's summary is visible, with details available on tap. */}
-            <CheckpointSummary summary={summary} label={t.label} rain={rain} air={air} rainForecast={rainForecast} />
+            <CheckpointSummary summary={summary} label={t.label} rain={rain} air={air} rainForecast={rainForecast} airNotice={airNotice} />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {placeCams.map((cam) => (
@@ -351,6 +354,7 @@ export const HighwayCamerasView: React.FC<HighwayCamerasViewProps> = ({ onCallHo
           vehicleCounts={vehicleCounts}
           cameraLevel={cameraLevel}
           cameraAir={cameraAir}
+          airNotice={airNotice}
           cameraRain={cameraRain}
           speedText={speedText}
           onCallHotline={onCallHotline}

@@ -126,6 +126,7 @@ function readings(available: boolean, empty = false) {
     rainForecast: null,
     rainFeed: { data: null, status: 'error' },
     airQuality: null,
+    airFeed: { data: null, status: 'loading', offline: false, fetchedAt: null, refreshing: false },
     weatherAlerts: { data: { strikes, heatStations: [], lightningAt: null, heatAt: null } },
     floodFeed: { data: { checkedAt: null } },
     floodAlerts: [flood],

@@ -17,6 +17,7 @@ interface Props {
   now: number;
   vehicleCounts: Record<string, VehicleCount>;
   cameraLevel: (cam: CameraCard) => ReturnType<typeof cameraLevel>;
+  airNotice: string | null;
   cameraAir: (cam: CameraCard) => ReturnType<typeof cameraAir>;
   cameraRain: (cam: CameraCard) => ReturnType<typeof cameraRain>;
   speedText: (code: string) => string | null;
@@ -33,6 +34,7 @@ export function CameraDialog({
   vehicleCounts,
   cameraLevel,
   cameraAir,
+  airNotice,
   cameraRain,
   speedText,
   onCallHotline,
@@ -119,6 +121,7 @@ export function CameraDialog({
           />
         </div>
 
+        {airNotice && <p role="status" className="text-xs text-amber-800">{airNotice}</p>}
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-slate-600">
           <span className="flex items-center gap-1.5">
             <span className="material-symbols-outlined text-base text-slate-400">schedule</span>
