@@ -150,6 +150,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 139. [Turn 139: Air-Quality State and Partial-Source Error Logging](#139-turn-139-air-quality-state-and-partial-source-error-logging)
 140. [Turn 140: All Five Error-Handling Fixes Merged to Main](#140-turn-140-all-five-error-handling-fixes-merged-to-main)
 141. [Turn 141: Atomic Concurrent Request Updates on Preview](#141-turn-141-atomic-concurrent-request-updates-on-preview)
+142. [Turn 142: Atomic Request Updates Merged to Main](#142-turn-142-atomic-request-updates-merged-to-main)
 
 ---
 
@@ -2512,6 +2513,21 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Pushed implementation adc2e3aa867a95ff8b83548be2a8e4491a89673f and opened draft PR #22 (https://github.com/Mikazukiangus/live-traffic/pull/22), attached to this chat. GitHub Checks runs 39967940692 and 39968000143 and Vercel deployment/feedback checks passed at that exact head. Read CI diagnostics through the required code-review tool; the job confirms 214 tests passed with zero failures/skips.
 - Deployment dpl_3odtf45nSCSJ6jehbiHU74ZXxq5u is READY for the intended project/team, preview branch and implementation SHA: https://live-traffic-4w0o7c0cb-carbon-bc04.vercel.app. Authenticated homepage, its actual entry bundle and rendered /sw.js returned HTTP 200; the worker contains the serialized compare-and-put and generation guard with timeout configuration rendered. These are deployed artifact checks, not an interactive worker/browser pass. No real camera metadata, presigned image, permission prompt, browser storage or provider failure was requested.
 - Recorded publication evidence in docs/atomic-updates.md. This follow-up is documentation only, with runtime verification pinned above. Updated the log for commit/push under the standing instruction. Main/production remain unchanged; PR #22 awaits explicit merge approval. Cross-tab localStorage and multi-instance/distributed limits and the previous interactive-browser approval block remain explicitly documented.
+
+---
+
+## 142. Turn 142: Atomic Request Updates Merged to Main
+
+**User Instruction:**
+> "merge"
+
+### Released (23 October 2026, SGT):
+- Received explicit approval for PR #22 (https://github.com/Mikazukiangus/live-traffic/pull/22), retained its chat attachment and verified final head 17e9754319bd5bbef37389dc01325f158c5a0440. Both GitHub Checks jobs 120463929903 and 120463888747 and Vercel deployment/feedback checks passed at that exact head. Read CI diagnostics using the required code-review tool; all 214 tests passed with zero failures/skips. Confirmed main target, open draft and mergeable state, marked ready and merged with the expected head as 1252d0f3240cfd71d9c38bb8c5d337a5a93213be.
+- Fast-forwarded local main and retained the preview branch. Released pending ownership for feed/health refreshes, URL-owned polling snapshots, serialized/versioned worker cache writes, location/install ownership and current-field commute updates that preserve edits/deletions. No runtime changes or repeated broad local tests were necessary for this approved merge; the full suite, four offline Python cases, type checking, security audit and production build were already verified.
+- Production deployment dpl_D56XazVJxDcgAHZ4gVuN1MVdBaWT is READY for the intended project/team, main merge SHA and production target. Aliases include live-traffic-carbon-bc04.vercel.app, live-traffic-kappa.vercel.app and the main branch URL. Used existing authenticated access without changing hosting protection, credentials or settings.
+- Authenticated canonical production homepage, its actual entry bundle and rendered /sw.js returned HTTP 200. Confirmed the served worker contains the version guard and configured timeout replacement. These are deployed artifact checks, not browser execution/activation or permission-interaction checks. No real camera metadata/presigned image, browser storage, provider outage or permission prompt was requested.
+- The earlier automatic approval review usage-limit block still limits interactive browser verification; no alternate browser/protocol workaround or visual pass was used. The user approved this merge after disclosure. Guarantees remain per resource/repository/active worker; separate-tab localStorage edits and multi-key/distributed transactions remain outside those guarantees, as documented in docs/atomic-updates.md.
+- Updated docs/atomic-updates.md with the approved release and refreshed CLOUD_HANDOFF.md with the merge, 214-test baseline and production evidence. Login work stays on hold; unrelated .claude/, dependencies/lockfiles and environment values remain untouched. Updated this log/table of contents for documentation-only commit/push on main under the standing instruction. The approved merge and selected production verification are complete.
 
 ---
 

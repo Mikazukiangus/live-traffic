@@ -14,8 +14,8 @@ Fetch current main to include this handoff and its log entry; do not reset to th
 older snapshot. The local checkout had no tracked changes and only a pre-existing
 untracked `.claude/` directory. No local-only implementation needs recovering.
 
-**The latest implementation is complete.** PR #21 (all five error-handling fixes) is merged as
-`735ac11b3020f140cb9b22d3fe32b6f76ff6b966`, following PR #20's circuit breakers, PR #19's retries and PR #18's timeouts.
+**The latest implementation is complete.** PR #22 (atomic concurrent request updates) is merged as
+`1252d0f3240cfd71d9c38bb8c5d337a5a93213be`, following PR #21's error handling, PR #20's circuit breakers, PR #19's retries and PR #18's timeouts.
 No implementation from this session
 is waiting to be merged.
 Application login, account creation and brute-force lockout are **on hold at the
@@ -191,9 +191,11 @@ success only after browser acceptance (not proof of OS display). Partial feed
 200/no-store contracts and original observation/receipt times remain intact.
 See `docs/error-handling.md` for ownership and limits.
 
-**203 tests**, type checking, security source audit and production build passed.
-The Python wrapper ran four offline helper tests. Both final PR #21 checks and
-Vercel checks passed. Production homepage/entry bundle, air quality (5 regions),
+[PR #22](https://github.com/Mikazukiangus/live-traffic/pull/22) reserves pending work before feed/health notifications, isolates polling snapshots by URL, serializes worker cache compare-and-put per key, guards location/install event ownership, and patches current commute fields after permission/editor completion. See `docs/atomic-updates.md`. Guarantees remain per resource/repository/active worker; separate-tab localStorage edits and distributed function replicas are not transactionally coordinated.
+
+**214 tests**, type checking, security source audit and production build passed.
+The Python wrapper ran four offline helper tests. Both final PR #22 checks and
+Vercel checks passed. The approved production merge also verified HTTP 200 for the homepage, its referenced entry bundle and rendered worker, including the new version guard. Earlier error-handling checks covered the following providers; they were not repeated for this browser-only release. Production homepage/entry bundle, air quality (5 regions),
 incidents (9 source records at the check) and rain (47 areas) returned HTTP 200 on
 23 October. Interactive recovery-screen verification remains pending: the browser
 approval reviewer hit its usage limit. An isolated synthetic fixture and manual
@@ -210,8 +212,8 @@ These are recorded checks, not a guarantee of current provider health in the new
 - Canonical production: <https://live-traffic-carbon-bc04.vercel.app>.
 - Other observed production alias: <https://live-traffic-kappa.vercel.app>.
   `live-traffic.vercel.app` belongs to a different application; do not use it.
-- Last verified runtime deployment: `dpl_5R6f9ycx9MwNVJXSFTJy5Dc6pxah`, READY for
-  merge `735ac11`. Subsequent main documentation pushes can create newer deployments;
+- Last verified runtime deployment: `dpl_D56XazVJxDcgAHZ4gVuN1MVdBaWT`, READY for
+  merge `1252d0f`. Subsequent main documentation pushes can create newer deployments;
   verify current SHA/team/project/target rather than pinning that deployment forever.
 
 Use the new chat's authenticated Vercel tools if available; connector authorization
