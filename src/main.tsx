@@ -1,3 +1,5 @@
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { recoveryRootOptions } from './features/app/errorReporting';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
@@ -28,7 +30,7 @@ window.addEventListener('load', () =>
   }, 10000),
 );
 
-createRoot(document.getElementById('root')!).render(<App />);
+createRoot(document.getElementById('root')!, recoveryRootOptions).render(<ErrorBoundary scope="app"><App /></ErrorBoundary>);
 
 // Offline support and home-screen install (production builds only, so dev always loads fresh code).
 if ('serviceWorker' in navigator && import.meta.env.PROD) {

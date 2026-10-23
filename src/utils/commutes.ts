@@ -1,4 +1,7 @@
-import { useEffect, useRef, useSyncExternalStore } from 'react';
+import { createCommuteAlertQueue, type AlertCandidate } from '../features/commutes/commuteAlertQueue';
+import { requestCommuteNotifications, sendCommuteNotification } from '../features/commutes/notificationDelivery';
+export { notificationsSupported, requestCommuteNotifications } from '../features/commutes/notificationDelivery';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { IncidentAlert } from '../types/traffic';
 
 /**
@@ -23,36 +26,12 @@ export const commuteCodes = (commute: Commute) => [...new Set(commute.legs.map((
 
 // ---- Alerts: a browser notification when a new incident appears on a commute with alerts on ----
 
-export const notificationsSupported = () => typeof window !== 'undefined' && 'Notification' in window;
-
-/** Asks for notification permission; true if granted. */
+/** Compatibility helper: permission errors always resolve to false. */
 export async function enableNotifications(): Promise<boolean> {
-  if (!notificationsSupported()) return false;
-  if (Notification.permission === 'granted') return true;
-  if (Notification.permission === 'denied') return false;
-  return (await Notification.requestPermission()) === 'granted';
+  return (await requestCommuteNotifications()) === 'granted';
 }
 
-// LTA incident ids start with the record's position in the feed, which shifts; the rest is its location.
 const incidentKey = (i: IncidentAlert) => `${i.id}|${i.type}`;
-
-async function notify(title: string, body: string) {
-  const options = {
-    body,
-    icon: '/icons/icon-192.png',
-    badge: '/icons/icon-192.png',
-    tag: title,
-    data: { url: '/?page=radar&tab=incidents' },
-  };
-  try {
-    // Through the service worker where there is one (required on Android), else directly.
-    const reg = await navigator.serviceWorker?.getRegistration();
-    if (reg) return await reg.showNotification(title, options);
-  } catch {
-    // Fall through
-  }
-  new Notification(title, options);
-}
 
 /**
  * Watches the LTA incident feed while the app is open (including in a background tab or the
@@ -60,28 +39,26 @@ async function notify(title: string, body: string) {
  */
 export function useCommuteAlerts(incidents: IncidentAlert[], status: string) {
   const list = useCommutes();
-  const seen = useRef<Set<string> | null>(null);
-
+  const [notice, setNotice] = useState<string | null>(null);
+  const queue = useRef<ReturnType<typeof createCommuteAlertQueue> | null>(null);
   useEffect(() => {
+    const current = createCommuteAlertQueue({
+      send: sendCommuteNotification, now: Date.now, onNotice: setNotice,
+      schedule: (run, ms) => { const timer = setTimeout(run, ms); return () => clearTimeout(timer); },
+    });
+    queue.current = current;
+    return () => { current.dispose(); queue.current = null; };
+  }, []);
+  useEffect(() => {
+    // Neither the initial failed request nor an offline copy establishes a live baseline.
     if (status !== 'live' && status !== 'error') return;
-    const keys = incidents.map(incidentKey);
-    // The first answer is the baseline: only incidents that appear after it are new.
-    if (!seen.current) {
-      seen.current = new Set(keys);
-      return;
-    }
-    const watched = list.filter((c) => c.alerts);
-    if (watched.length && notificationsSupported() && Notification.permission === 'granted') {
-      incidents.forEach((inc, i) => {
-        if (seen.current!.has(keys[i]) || !inc.corridorCode) return;
-        const commute = watched.find((c) => commuteCodes(c).includes(inc.corridorCode!));
-        if (commute)
-          notify(
-            `${inc.type} on ${inc.corridorCode} · ${commute.name}`,
-            `${inc.location}${inc.lane ? ` · ${inc.lane}` : ''}`,
-          );
-      });
-    }
-    keys.forEach((k) => seen.current!.add(k));
+    const watched = list.filter(c => c.alerts);
+    const candidates: AlertCandidate[] = incidents.flatMap(inc => {
+      const commute = inc.corridorCode && watched.find(c => commuteCodes(c).includes(inc.corridorCode!));
+      return commute ? [{ key: incidentKey(inc), title: `${inc.type} on ${inc.corridorCode} · ${commute.name}`,
+        body: `${inc.location}${inc.lane ? ` · ${inc.lane}` : ''}` }] : [];
+    });
+    queue.current?.observe(incidents.map(incidentKey), candidates, status === 'live');
   }, [incidents, status, list]);
+  return notice;
 }

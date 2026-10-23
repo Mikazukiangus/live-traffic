@@ -145,6 +145,8 @@ This document records all user instructions, feedback, technical inquiries, inve
 134. [Turn 134: Provider Circuit Breakers on Preview](#134-turn-134-provider-circuit-breakers-on-preview)
 135. [Turn 135: Provider Circuit Breakers Merged to Main](#135-turn-135-provider-circuit-breakers-merged-to-main)
 136. [Turn 136: Error Handling Review](#136-turn-136-error-handling-review)
+137. [Turn 137: API, Page and Notification Recovery on Preview](#137-turn-137-api-page-and-notification-recovery-on-preview)
+138. [Turn 138: Continue Error Recovery Preview Publication](#138-turn-138-continue-error-recovery-preview-publication)
 
 ---
 
@@ -2417,6 +2419,33 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Intentional safe catches were retained as non-findings: response-body cancellation cleanup, queue release after a rejected ticket, original-age cache fallback, preference storage defaults, commute storage failures that publish a user notice, optional page prefetch and inference cleanup. Lower-priority UX issue: ShareButton.tsx:18 treats every native-share rejection as dismissal; only cancellation should be silent and other failures can offer its existing copy fallback.
 - Consulted primary browser/runtime guidance: https://react.dev/reference/react/Component#catching-rendering-errors-with-an-error-boundary and https://developer.mozilla.org/en-US/docs/Web/API/Window/unhandledrejection_event. No new telemetry provider or broad raw window-error logger is recommended; user/browser data and signed URLs must remain redacted.
 - Recommended implementing the safe API boundary, page recovery and notification outcomes first, then exposing air-quality state and source-specific partial-failure diagnostics on a preview branch with targeted regression tests. Runtime changes/main merge require the existing explicit approval workflow. Updated this log/table of contents for documentation-only commit/push on main under the standing instruction.
+
+---
+
+## 137. Turn 137: API, Page and Notification Recovery on Preview
+
+**User Instruction:**
+> "Fix 1 to 3 first."
+
+### Implemented and checked locally (23 October 2026, SGT):
+- Created codex/error-recovery-boundaries from main 15c759a for the three approved Turn 136 findings. Added an outer Node/Web exception boundary to withRequestSchema, preserving validation/CORS and typed provider/circuit responses while returning fixed INTERNAL_ERROR/500 JSON for unexpected failures. Clear prepared binary/validator/retry headers and disable browser/CDN error caching; safely close unfinished committed streams without a second response or raw socket exception. Added air-quality metadata shape checks so the reviewed malformed-success case becomes an invalid-provider response rather than an escaped TypeError.
+- Added page and root React error boundaries. The page boundary is keyed by the selected tab, preserves navigation, permits one local retry and offers an explicit reload; the root fallback has a fixed cameras link. Root callbacks replace default raw error/stack logs; fixed application diagnostics never accept original exceptions, props, URLs or browser events. The existing bounded chunk-reload handler remains. Applied React best-practices guidance to scope, hooks, accessible recovery controls and component ownership.
+- Split notification browser delivery from queue policy. Permission outcomes are explicit and rejected permission requests are handled, with inline user feedback and pending-button protection. Worker failure falls back to a guarded constructor; both failures resolve safely. The app queue records successful receipts only after browser acceptance, deduplicates in-flight/sent work and retries failed eligible alerts at most three total attempts, 15 seconds apart within two minutes. Blocked/unsupported permissions do not loop. Removed, disabled, expired and disposed work is cancelled; late completions cannot republish after disposal. An initial failed/offline feed cannot establish the live alert baseline. Fixed delivery warnings are displayed without notification/commute details in logs.
+- All 195 local full-suite Node tests passed with zero skips, including 11 new recovery groups and the existing wrapper running four offline Python cases. Type checks, transport audit and production build passed. All API/notification failure checks used synthetic transports/ports; no real provider outage, notification, permission prompt, user storage, secret, hosting policy or dependency/lockfile change was used. Findings 4–5 (air-quality feed status and partial-source logging) remain follow-up work.
+- Added an isolated browser fixture importing the real boundary/root options. Started its dev server with a synthetic key so it would not rely on a real LTA credential. Automatic approval review blocked opening the fixture because its usage limit was reached; the tool explicitly prohibited alternate browser/protocol workarounds. No browser pass is claimed and no bypass was attempted. The dev process is no longer active. This limitation interrupted interactive verification before publication; implementation and synthetic checks remained complete. Application login remains on hold and pre-existing .claude/ stays untouched.
+
+---
+
+## 138. Turn 138: Continue Error Recovery Preview Publication
+
+**User Instruction:**
+> "continue last action"
+
+### Continued (23 October 2026, SGT):
+- Resumed the existing preview branch and retained all three approved fixes. Rechecked type checking/whitespace and confirmed the isolated server process had ended; no browser access or alternate automation retry was made after the usage-limit block. Reported that automatic approval review, rather than an application failure, blocked the interactive verification.
+- Added a focused root-callback redaction test to close the remaining non-UI diagnostic check. Corrected its React type fixture from null to the permitted undefined errorBoundary; type checking passes. All 12 targeted recovery groups passed, including the new callback check, and the production build passed again. The earlier full-suite run covered 195 tests; the combined final suite now contains 196 tests for CI. No optional unrelated testing was added.
+- Documented API/cache/CORS behavior, safe diagnostics, page retry controls, permission/delivery outcomes, alert retry limits/receipt meaning, cancellation limits and the unverified browser fixture in docs/error-handling.md. Kept findings 4–5 and login work outside this implementation. No credentials, dependencies, hosted access, real browser data or existing unrelated files changed.
+- Updated this log/table of contents for commit/push and a draft preview PR under the standing instruction. Explicit approval is still required before merging into main; interactive browser verification remains pending approved tool access or user review.
 
 ---
 

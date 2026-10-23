@@ -1,3 +1,4 @@
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { useAppNavigation } from './features/app/useAppNavigation';
 import { WallDisplayControls } from './features/app/WallDisplayControls';
 import { useDemoDispatch } from './features/sos/useDemoDispatch';
@@ -73,7 +74,7 @@ export default function App() {
   // Live LTA incidents, shared by the radar panel and the notifications drawer
   const incidentFeed = useLtaIncidents();
   // Notifications for new incidents on saved commutes, on every page
-  useCommuteAlerts(incidentFeed.incidents, incidentFeed.status);
+  const commuteAlertNotice = useCommuteAlerts(incidentFeed.incidents, incidentFeed.status);
   const commutes = useCommutes();
   const commuteIncidentCount = incidentFeed.incidents.filter(
     (i) => i.corridorCode && commutes.some((c) => commuteCodes(c).includes(i.corridorCode!)),
@@ -166,52 +167,55 @@ export default function App() {
           />
         )}
 
+        {commuteAlertNotice && <p role="status" className="mx-4 mt-3 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">{commuteAlertNotice}</p>}
         {/* Tab Views */}
-        <Suspense fallback={<PageLoading />}>
-          {activeTab === 'roadside-sos-workshops' && (
-            <SosWorkshopsView
-              currentMarker={currentMarker.marker}
-              workshops={WORKSHOPS_DATA}
-              isBroadcasting={isBroadcasting}
-              onToggleBroadcast={handleToggleBroadcast}
-              activeDispatch={activeDispatch}
-              onCancelDispatch={cancelDispatch}
-              onCallHotline={handleOpenCallModal}
-              onSelectSituation={handleSelectSituation}
-              onBookBay={handleBookBay}
-              onOpenSlaModal={() => setSlaModalOpen(true)}
-              corridorCode={pickupCode}
-              trafficSpeed={pickupSpeedText}
-              incidentsText={pickupIncidentsText}
-              rainText={pickupRainText}
-            />
-          )}
+        <ErrorBoundary key={activeTab} scope="page">
+          <Suspense fallback={<PageLoading />}>
+            {activeTab === 'roadside-sos-workshops' && (
+              <SosWorkshopsView
+                currentMarker={currentMarker.marker}
+                workshops={WORKSHOPS_DATA}
+                isBroadcasting={isBroadcasting}
+                onToggleBroadcast={handleToggleBroadcast}
+                activeDispatch={activeDispatch}
+                onCancelDispatch={cancelDispatch}
+                onCallHotline={handleOpenCallModal}
+                onSelectSituation={handleSelectSituation}
+                onBookBay={handleBookBay}
+                onOpenSlaModal={() => setSlaModalOpen(true)}
+                corridorCode={pickupCode}
+                trafficSpeed={pickupSpeedText}
+                incidentsText={pickupIncidentsText}
+                rainText={pickupRainText}
+              />
+            )}
 
-          {activeTab === 'live-traffic-radar' && (
-            <LiveRadarView
-              onSwitchToSos={(corridorCode) => {
-                const marker = ALTERNATE_MARKERS.find((m) => m.corridor === corridorCode);
-                if (marker) setCurrentMarker(marker);
-                setActiveTab('roadside-sos-workshops');
-              }}
-              onCallHotline={handleOpenCallModal}
-              incidentFeed={incidentFeed}
-              wall={wall}
-            />
-          )}
+            {activeTab === 'live-traffic-radar' && (
+              <LiveRadarView
+                onSwitchToSos={(corridorCode) => {
+                  const marker = ALTERNATE_MARKERS.find((m) => m.corridor === corridorCode);
+                  if (marker) setCurrentMarker(marker);
+                  setActiveTab('roadside-sos-workshops');
+                }}
+                onCallHotline={handleOpenCallModal}
+                incidentFeed={incidentFeed}
+                wall={wall}
+              />
+            )}
 
-          {activeTab === 'highway-cameras-emas' && (
-            <HighwayCamerasView onCallHotline={handleOpenCallModal} wall={wall} />
-          )}
+            {activeTab === 'highway-cameras-emas' && (
+              <HighwayCamerasView onCallHotline={handleOpenCallModal} wall={wall} />
+            )}
 
-          {activeTab === 'route-alerts-courier-hub' && (
-            <CourierHubView
-              pickup={currentMarker}
-              onOpenSlaModal={() => setSlaModalOpen(true)}
-              onCallHotline={handleOpenCallModal}
-            />
-          )}
-        </Suspense>
+            {activeTab === 'route-alerts-courier-hub' && (
+              <CourierHubView
+                pickup={currentMarker}
+                onOpenSlaModal={() => setSlaModalOpen(true)}
+                onCallHotline={handleOpenCallModal}
+              />
+            )}
+          </Suspense>
+        </ErrorBoundary>
       </main>
 
       {/* Footer */}
