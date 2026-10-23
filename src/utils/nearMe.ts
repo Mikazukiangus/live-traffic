@@ -9,77 +9,22 @@ import type { SpeedSegment } from '../../shared/traffic/types';
  * The position stays in memory: it is never stored, sent to /api or put in the address.
  */
 
-export type NearMeStatus = 'idle' | 'locating' | 'found' | 'denied' | 'unavailable';
-
-export interface NearMeState {
-  status: NearMeStatus;
-  lat?: number;
-  lon?: number;
-  // When the position was found (ms); changes on every fix.
-  at?: number;
-}
-
+export type { NearMeStatus, NearMeState } from './nearMeResource';
+import type { NearMeState } from './nearMeResource';
+import { createNearMeResource } from './nearMeResource';
 const OPT_IN_KEY = 'trafficpulse.nearMe';
-
-let state: NearMeState = { status: 'idle' };
-const listeners = new Set<() => void>();
-const set = (next: NearMeState) => {
-  state = next;
-  listeners.forEach((l) => l());
-};
-const subscribe = (listener: () => void) => {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
-};
-
-export function locate() {
-  if (!('geolocation' in navigator)) {
-    set({ status: 'unavailable' });
-    return;
-  }
-  set({ ...state, status: 'locating' });
-  navigator.geolocation.getCurrentPosition(
-    (pos) => {
-      set({ status: 'found', lat: pos.coords.latitude, lon: pos.coords.longitude, at: Date.now() });
-      try {
-        localStorage.setItem(OPT_IN_KEY, '1');
-      } catch {
-        // Storage blocked; Near me just won't start on its own next time
-      }
-    },
-    (err) => {
-      set({ status: err.code === err.PERMISSION_DENIED ? 'denied' : 'unavailable' });
-      if (err.code === err.PERMISSION_DENIED) {
-        try {
-          localStorage.removeItem(OPT_IN_KEY);
-        } catch {
-          // Storage blocked
-        }
-      }
-    },
-    { enableHighAccuracy: false, timeout: 15_000, maximumAge: 2 * 60_000 },
-  );
-}
-
-let resumed = false;
-// Locate without a prompt if the visitor used Near me before and the browser still allows it.
-async function resumeIfAllowed() {
-  if (resumed) return;
-  resumed = true;
-  try {
-    if (localStorage.getItem(OPT_IN_KEY) !== '1') return;
-    const permission = await navigator.permissions?.query({ name: 'geolocation' as PermissionName });
-    if (permission?.state === 'granted') locate();
-  } catch {
-    // No Permissions API (older Safari) or storage blocked; wait for a tap
-  }
-}
-
+const resource = createNearMeResource({
+  locate: (success, failure) => navigator.geolocation.getCurrentPosition(success, failure,
+    { enableHighAccuracy: false, timeout: 15_000, maximumAge: 2 * 60_000 }),
+  optedIn: () => localStorage.getItem(OPT_IN_KEY) === '1',
+  remember: enabled => enabled ? localStorage.setItem(OPT_IN_KEY, '1') : localStorage.removeItem(OPT_IN_KEY),
+  permission: async () => (await navigator.permissions?.query({ name: 'geolocation' }))?.state === 'granted',
+  now: Date.now,
+});
+export const locate = resource.locate;
 export function useNearMe(): NearMeState {
-  useEffect(() => {
-    resumeIfAllowed();
-  }, []);
-  return useSyncExternalStore(subscribe, () => state);
+  useEffect(() => { void resource.resume(); }, []);
+  return useSyncExternalStore(resource.subscribe, resource.getSnapshot);
 }
 
 /** The expressway with a speed band link nearest the point, and how far away it is. */

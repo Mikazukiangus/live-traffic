@@ -21,6 +21,6 @@ export function createBrowserFeed<T>(options: FeedOptions<T>) {
 }
 
 export function useSharedFeed<T>(resource: ReturnType<typeof createPolledResource<T>>) {
-  const state = useSyncExternalStore(resource.connect, resource.getSnapshot);
+  const state = useSyncExternalStore(resource.connect, resource.getSnapshot, resource.getSnapshot);
   return { ...state, refresh: resource.refresh };
 }
