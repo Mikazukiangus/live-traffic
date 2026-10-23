@@ -2372,6 +2372,11 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - All 184 Node tests passed with zero skips, including 11 new meaningful breaker groups and the existing wrapper running four offline Python cases. Type checking, transport security source audit and production build passed. Tests used synthetic transports for outages/health/camera fallback, not live failures, camera metadata or presigned image requests. No dependencies/lockfiles, credentials, real browser storage, hosted protection or environment values changed. Login work remains on hold; pre-existing .claude/ remains untouched.
 - Updated this log/table of contents for commit/push and reviewable preview publication under the standing instruction. Main merge/production rollout still require explicit approval.
 
+### Preview publication:
+- Pushed implementation 66c8f1fe4091821246f7d6ac1f08833291a5d57a and opened draft PR #20 (https://github.com/Mikazukiangus/live-traffic/pull/20), attached to this chat. Both GitHub Checks runs 39909291418 and 39909323332 completed successfully at that exact implementation head; Vercel deployment/feedback checks also passed.
+- Deployment dpl_CGjHyZM9iiDYsXMBEtq3kPFZHuHB is READY for the intended project/team, preview branch and implementation SHA: https://live-traffic-o1uc35ysw-carbon-bc04.vercel.app. Authenticated homepage, its actual referenced entry bundle, /api/traffic and /api/rainforecast returned HTTP 200. The incident source returned 21 records at the check and rain returned all 47 areas. These establish deployed success-path compatibility; synthetic tests establish circuit failure/recovery guarantees without inducing live outages/rate limits or fetching camera metadata/presigned links.
+- Recorded these results in docs/api/circuit-breakers.md. This follow-up changes documentation only; runtime verification remains pinned to the implementation SHA above. Updated the log for commit/push under the standing instruction. Main/production remain unchanged; PR #20 awaits explicit approval to merge. No further implementation input is needed.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*

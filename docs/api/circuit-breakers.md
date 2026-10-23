@@ -123,3 +123,22 @@ No live outage/rate limit, real camera metadata or signed image probe was induce
 No package, lockfile, hosted setting, credential or user storage changed.
 
 Pattern reference: [Microsoft, Circuit Breaker pattern](https://learn.microsoft.com/en-us/azure/architecture/patterns/circuit-breaker).
+
+### Preview publication
+
+[Draft PR #20](https://github.com/Mikazukiangus/live-traffic/pull/20) contains
+implementation `66c8f1fe4091821246f7d6ac1f08833291a5d57a`. Both GitHub Checks runs
+`39909291418` and `39909323332` completed successfully at that exact head, as did
+Vercel deployment/feedback checks.
+
+Deployment `dpl_CGjHyZM9iiDYsXMBEtq3kPFZHuHB` is READY for the intended project,
+preview branch and implementation SHA:
+[preview](https://live-traffic-o1uc35ysw-carbon-bc04.vercel.app).
+Authenticated homepage, its actual referenced entry bundle, `/api/traffic` and
+`/api/rainforecast` returned HTTP 200. Incidents contained 21 records at the check;
+rain contained all 47 forecast areas. This verifies deployed success-path
+compatibility; synthetic tests establish circuit outage/recovery behavior without
+intentionally disrupting a live provider.
+
+This publication follow-up changes documentation only. Runtime verification is
+pinned to the implementation SHA above; main/production await explicit approval.
