@@ -1,6 +1,7 @@
+import { providerFailureStatus, providerFailureHeaders, failedDependency } from '../server/http/providerFailure.ts';
 import { internalFeedSchema } from '../server/http/requestSchemas.ts';
 import { withRequestSchema } from '../server/http/validateRequest.ts';
-import { reportFailure } from '../shared/diagnostics.ts';
+import { reportFailure, safeFailure } from '../shared/diagnostics.ts';
 import { config } from '../config/server.ts';
 /**
  * NEA lightning and heat stress (keyless).
@@ -23,9 +24,10 @@ const num = (v: unknown) => {
 const handler = withRequestSchema(internalFeedSchema('weatheralerts'), async (_req, res) => {
   const [lightning, wbgt] = await Promise.allSettled([fetchDataGovV2(LIGHTNING_URL), fetchDataGovV2(WBGT_URL)]);
   if (lightning.status === 'rejected' && wbgt.status === 'rejected') {
-    const body = reportFailure('nea', lightning.reason);
+    const error = failedDependency(lightning.reason, wbgt.reason);
+    reportFailure('nea', lightning.reason);
     reportFailure('nea', wbgt.reason);
-    return sendJson(res, 502, body);
+    return sendJson(res, providerFailureStatus(error), safeFailure('nea', error).body, providerFailureHeaders(error));
   }
 
   const lightningRecord = lightning.status === 'fulfilled' ? lightning.value.records?.[0] : null;

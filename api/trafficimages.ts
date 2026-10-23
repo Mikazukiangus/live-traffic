@@ -1,3 +1,4 @@
+import { providerFailureStatus, providerFailureHeaders } from '../server/http/providerFailure.ts';
 import { requestSchemas } from '../server/http/requestSchemas.ts';
 import { withRequestSchema } from '../server/http/validateRequest.ts';
 import { reportFailure } from '../shared/diagnostics.ts';
@@ -10,7 +11,7 @@ import {
 } from '../shared/traffic/cameras.ts';
 import { readValidatedJson } from '../shared/traffic/validation.ts';
 import { getLtaAccountKey, liveCacheHeaders, sendJson } from './_client.ts';
-import { providerRetryHeaders, readProvider } from '../server/http/readProvider.ts';
+import { readProvider } from '../server/http/readProvider.ts';
 
 // LTA captures every 1-5 minutes; the page polls every 30 seconds.
 const CACHE = liveCacheHeaders(...config.server.cache.proxy);
@@ -37,7 +38,7 @@ const handler = withRequestSchema(requestSchemas.empty, async (_req, res, input)
       { headers: { accept: 'application/json' } }, { attempts: Math.min(2, config.server.lta.attempts) });
     return sendJson(res, 200, fromPublicCameras(data), CACHE);
   } catch (error) {
-    return sendJson(res, 502, reportFailure('camera', error), providerRetryHeaders(error));
+    return sendJson(res, providerFailureStatus(error), reportFailure('camera', error), providerFailureHeaders(error));
   }
 });
 export default handler;

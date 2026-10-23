@@ -1,3 +1,4 @@
+import { withProviderCircuit } from './http/providerCircuits.ts';
 import { InvalidPayloadError, safeFailure, UpstreamHttpError } from '../shared/diagnostics.ts';
 import { fetchDataGovV2 } from './providers/dataGov.ts';
 import { config } from '../config/server.ts';
@@ -18,34 +19,36 @@ export async function probe(
   const start = Date.now();
   let httpCode = 0;
   try {
-    const response = await fetchProvider(url, {
-      headers: { accept: 'application/json', ...headers },
-      signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
-    });
-    httpCode = response.status;
-    if (response.ok && validate) {
-      let data: unknown;
-      try {
-        data = await response.json();
-      } catch (error) {
-        if (error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError')) throw error;
-        throw new InvalidPayloadError();
+    return await withProviderCircuit(url, async (permit) => {
+      permit.check();
+      const response = await fetchProvider(url, {
+        headers: { accept: 'application/json', ...headers },
+        signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
+      });
+      httpCode = response.status;
+      if (!response.ok) {
+        await response.body?.cancel().catch(() => undefined);
+        throw new UpstreamHttpError(response.status);
       }
-      if (!validate(data)) throw new InvalidPayloadError();
-    } else {
-      // Drain unvalidated bodies so the connection is released.
-      await response.arrayBuffer().catch(() => undefined);
-    }
-    return {
-      status: response.ok ? 'UP' : 'DOWN',
-      httpCode: response.status,
-      latencyMs: Date.now() - start,
-      ...(response.ok ? {} : { error: `Upstream responded ${response.status}` }),
-    };
+      if (validate) {
+        let data: unknown;
+        try {
+          data = await response.json();
+        } catch (error) {
+          if (error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError')) throw error;
+          throw new InvalidPayloadError();
+        }
+        if (!validate(data)) throw new InvalidPayloadError();
+      } else {
+        // Complete the body under the probe deadline before reporting recovery.
+        await response.arrayBuffer();
+      }
+      return { status: 'UP' as const, httpCode, latencyMs: Date.now() - start };
+    });
   } catch (err: any) {
     return {
       status: 'DOWN',
-      httpCode,
+      httpCode: httpCode || (err instanceof UpstreamHttpError ? err.status : 0),
       latencyMs: Date.now() - start,
       error: safeFailure('gateway', err).body.error,
     };

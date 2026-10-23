@@ -142,6 +142,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 131. [Turn 131: Cloud Workspace Handoff Note](#131-turn-131-cloud-workspace-handoff-note)
 132. [Turn 132: Safe External Read Retries on Preview](#132-turn-132-safe-external-read-retries-on-preview)
 133. [Turn 133: Safe Provider Retries Merged to Main](#133-turn-133-safe-provider-retries-merged-to-main)
+134. [Turn 134: Provider Circuit Breakers on Preview](#134-turn-134-provider-circuit-breakers-on-preview)
 
 ---
 
@@ -2354,6 +2355,27 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Authenticated production homepage, its actual referenced entry bundle, /api/traffic and /api/rainforecast returned HTTP 200. The incident source returned 22 records at the check and rain returned 47 areas. These establish selected deployed compatibility; synthetic tests establish failure/retry behavior without inducing live failures/rate limits or retrieving camera metadata/presigned links.
 - Refreshed CLOUD_HANDOFF.md with the released retry implementation, current test baseline and last verified runtime deployment so a new cloud chat receives current status. No environment value, hosting-access policy, dependency/lockfile, credential or real browser storage changed. Login work remains on hold; pre-existing .claude/ remains untouched.
 - Updated this log/table of contents and release/handoff documentation for commit/push on main under the standing instruction. Checked the documentation diff. The approved merge and selected production verification are complete; no further merge approval is needed.
+
+---
+
+## 134. Turn 134: Provider Circuit Breakers on Preview
+
+**User Instruction:**
+> "Find the outbound calls that need a circuit breaker and implement one with sensible thresholds."
+
+### Implemented and verified locally (23 October 2026, SGT):
+- Created preview branch codex/provider-circuit-breakers from main a91159d. Rechecked outbound transport/call sites and the existing retry, timeout, cache and fallback owners. Added finite independent breaker scopes for repeatedly polled LTA endpoints/speed pages, each keyless weather/hazard feed, primary/public camera metadata and allowed image hosts. Pagination, dates, tokens and signed URLs cannot create arbitrary keys; lightning and WBGT remain isolated despite a shared path. No extra browser/worker/model/offline-query breaker layer was added.
+- Added a per-warm-instance state machine: five qualifying final failed reads in a 60-second window open a feed for 30 seconds, followed by one recovery operation with one physical attempt. Success clears failures; failed recovery reopens. Concurrent callers cannot launch a second recovery probe. Generation guards prevent older in-flight results from closing/reopening/extending newer state, and retry loops recheck before another fetch. Existing requests may finish; no global cancellation or distributed protection is claimed.
+- Counted HTTP 408/500/502/503/504, known transient network/timeouts, malformed JSON and typed invalid payloads as outages. Kept HTTP 429, authentication/permanent errors, caller cancellation, unknown exceptions and TLS/redirect/SSRF policy failures neutral; existing weather rate-limit handling remains separate. Logical outcomes count after retries, not per physical attempt. Weather envelope failures now use the fixed InvalidPayloadError classification without exposing provider text.
+- Health probes consult the local registry without retries/cache recovery, reporting DOWN/503 on an open circuit. Added safe UPSTREAM_CIRCUIT_OPEN responses, numeric Retry-After and no-store across JSON/image APIs, while preserving partial-source responses and public camera fallback. Rain retains its original receipt/validity and refuses expired/over-age data; a retained circuit error keeps its 503 identity during cooldown rather than changing to 429.
+- Added three bounded private configuration settings and regenerated .env.example. Documented the inventory, defaults, retry ordering, state/race guarantees, finite registration, cache/fallback behavior and per-instance/cold-start/region limitations in docs/api/circuit-breakers.md, with a follow-up link from retries.md. Consulted the Microsoft circuit-breaker pattern guidance. No database/shared store or hosted configuration was provisioned.
+- All 184 Node tests passed with zero skips, including 11 new meaningful breaker groups and the existing wrapper running four offline Python cases. Type checking, transport security source audit and production build passed. Tests used synthetic transports for outages/health/camera fallback, not live failures, camera metadata or presigned image requests. No dependencies/lockfiles, credentials, real browser storage, hosted protection or environment values changed. Login work remains on hold; pre-existing .claude/ remains untouched.
+- Updated this log/table of contents for commit/push and reviewable preview publication under the standing instruction. Main merge/production rollout still require explicit approval.
+
+### Preview publication:
+- Pushed implementation 66c8f1fe4091821246f7d6ac1f08833291a5d57a and opened draft PR #20 (https://github.com/Mikazukiangus/live-traffic/pull/20), attached to this chat. Both GitHub Checks runs 39909291418 and 39909323332 completed successfully at that exact implementation head; Vercel deployment/feedback checks also passed.
+- Deployment dpl_CGjHyZM9iiDYsXMBEtq3kPFZHuHB is READY for the intended project/team, preview branch and implementation SHA: https://live-traffic-o1uc35ysw-carbon-bc04.vercel.app. Authenticated homepage, its actual referenced entry bundle, /api/traffic and /api/rainforecast returned HTTP 200. The incident source returned 21 records at the check and rain returned all 47 areas. These establish deployed success-path compatibility; synthetic tests establish circuit failure/recovery guarantees without inducing live outages/rate limits or fetching camera metadata/presigned links.
+- Recorded these results in docs/api/circuit-breakers.md. This follow-up changes documentation only; runtime verification remains pinned to the implementation SHA above. Updated the log for commit/push under the standing instruction. Main/production remain unchanged; PR #20 awaits explicit approval to merge. No further implementation input is needed.
 
 ---
 

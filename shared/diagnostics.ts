@@ -13,6 +13,14 @@ export class UpstreamHttpError extends Error {
   }
 }
 
+/** Safe local admission failure; never retains a provider URL or response. */
+export class CircuitOpenError extends UpstreamHttpError {
+  constructor(readonly retryAt: number) {
+    super(503);
+    this.name = 'CircuitOpenError';
+  }
+}
+
 /** A fixed classification; never retain a rejected value, field value, path or response body. */
 export class InvalidPayloadError extends Error {
   constructor() {
@@ -26,14 +34,15 @@ export function safeFailure(service: string, error: unknown, status?: number) {
   const httpCode = status ?? (error instanceof UpstreamHttpError ? error.status : undefined);
   const timeout = error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError');
   const invalid = error instanceof InvalidPayloadError;
-  const code = invalid
+  const open = error instanceof CircuitOpenError;
+  const code = open ? 'UPSTREAM_CIRCUIT_OPEN' : invalid
     ? 'UPSTREAM_INVALID_RESPONSE'
     : timeout
       ? 'UPSTREAM_TIMEOUT'
       : validStatus(httpCode)
         ? 'UPSTREAM_HTTP_ERROR'
         : 'UPSTREAM_FAILURE';
-  const message = invalid
+  const message = open ? 'Traffic provider temporarily paused; retry shortly' : invalid
     ? 'Traffic provider returned an invalid response'
     : timeout
       ? 'Traffic provider timed out'

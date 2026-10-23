@@ -1,6 +1,7 @@
+import { providerFailureStatus, providerFailureHeaders, failedDependency } from '../server/http/providerFailure.ts';
 import { internalFeedSchema } from '../server/http/requestSchemas.ts';
 import { withRequestSchema } from '../server/http/validateRequest.ts';
-import { reportFailure } from '../shared/diagnostics.ts';
+import { reportFailure, safeFailure } from '../shared/diagnostics.ts';
 import { config } from '../config/server.ts';
 /**
  * Road works on the expressways and faulty traffic lights, from LTA DataMall.
@@ -56,9 +57,10 @@ const handler = withRequestSchema(internalFeedSchema('roadconditions'), async (_
     fetchLtaAll(config.server.upstreams.faultyLights, accountKey, { wave: 1, maxPages: 4 }),
   ]);
   if (works.status === 'rejected' && lights.status === 'rejected') {
-    const body = reportFailure('lta', works.reason);
+    const error = failedDependency(works.reason, lights.reason);
+    reportFailure('lta', works.reason);
     reportFailure('lta', lights.reason);
-    return sendJson(res, 502, body);
+    return sendJson(res, providerFailureStatus(error), safeFailure('lta', error).body, providerFailureHeaders(error));
   }
 
   const today = sgToday();

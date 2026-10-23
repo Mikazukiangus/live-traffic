@@ -1,3 +1,4 @@
+import { providerFailureStatus, providerFailureHeaders } from '../server/http/providerFailure.ts';
 import { requestSchemas } from '../server/http/requestSchemas.ts';
 import { withRequestSchema } from '../server/http/validateRequest.ts';
 import { reportFailure } from '../shared/diagnostics.ts';
@@ -63,7 +64,7 @@ const handler = withRequestSchema(requestSchemas.empty, async (_req, res) => {
       CACHE,
     );
   } catch (error: any) {
-    return send(res, 502, reportFailure('nea', error));
+    return send(res, providerFailureStatus(error), reportFailure('nea', error), providerFailureHeaders(error));
   }
 });
 export default handler;

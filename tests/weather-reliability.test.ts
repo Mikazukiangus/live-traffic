@@ -127,7 +127,7 @@ test('429 and transient failures have one bounded retry; probes and permanent fa
 test('wrapped failures and invalid forecasts are rejected without using provider messages', async () => {
   const h = clientHarness();
   h.reply(async () => Response.json({ code: 1, errorMsg: 'private-provider-text' }));
-  await assert.rejects(h.client.data('https://example.test'), { message: 'Unexpected provider payload' });
+  await assert.rejects(h.client.data('https://example.test'), { message: 'Invalid provider response' });
   assert.equal(isRainForecast({ ...normalizeRain(fixture()), areas: [] }), false);
   assert.equal(isRainForecast({ ...normalizeRain(fixture()), validPeriod: { start: 3, end: null } }), false);
   assert.equal(

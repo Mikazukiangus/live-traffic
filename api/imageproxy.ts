@@ -1,8 +1,9 @@
+import { providerFailureStatus, providerFailureHeaders } from '../server/http/providerFailure.ts';
 import { requestSchemas } from '../server/http/requestSchemas.ts';
 import { withRequestSchema } from '../server/http/validateRequest.ts';
 import { reportFailure } from '../shared/diagnostics.ts';
 import { config } from '../config/server.ts';
-import { providerRetryHeaders, readProvider } from '../server/http/readProvider.ts';
+import { readProvider } from '../server/http/readProvider.ts';
 /**
  * Serverless Image Proxy for Singapore LTA and Open Data Traffic Images.
  * Fixes browser MIME-type blocking (x-content-type-options: nosniff on application/octet-stream)
@@ -49,7 +50,7 @@ const handler = withRequestSchema(requestSchemas.image, async (_req, res, input)
       },
     });
   } catch (error: any) {
-    return sendJson(res, 502, reportFailure('camera', error), providerRetryHeaders(error));
+    return sendJson(res, providerFailureStatus(error), reportFailure('camera', error), providerFailureHeaders(error));
   }
 });
 export default handler;

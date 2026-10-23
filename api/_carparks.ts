@@ -1,3 +1,4 @@
+import { providerFailureStatus, providerFailureHeaders } from '../server/http/providerFailure.ts';
 import { internalFeedSchema } from '../server/http/requestSchemas.ts';
 import { withRequestSchema } from '../server/http/validateRequest.ts';
 import { reportFailure } from '../shared/diagnostics.ts';
@@ -51,7 +52,7 @@ const handler = withRequestSchema(internalFeedSchema('carparks'), async (_req, r
       CACHE
     );
   } catch (err: any) {
-    return sendJson(res, 502, reportFailure('lta', err));
+    return sendJson(res, providerFailureStatus(err), reportFailure('lta', err), providerFailureHeaders(err));
   }
 });
 export default handler;

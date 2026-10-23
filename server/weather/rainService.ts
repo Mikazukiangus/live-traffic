@@ -1,3 +1,4 @@
+import { CircuitOpenError } from '../../shared/diagnostics.ts';
 import { isRainForecast, rainIsValid, type RainForecast } from '../../shared/weather/rain.ts';
 import { parseSgt } from '../../shared/time.ts';
 import { DataGovHttpError } from '../providers/dataGovClient.ts';
@@ -41,6 +42,7 @@ export function createRainService(deps: Dependencies) {
   let cached: { data: RainForecast; at: number } | null = null;
   let pending: Promise<RainResult> | null = null;
   let retryAt = 0;
+  let cooldownError: unknown;
   const current = (): RainResult => {
     const now = deps.now();
     const data = cached!.data;
@@ -72,7 +74,7 @@ export function createRainService(deps: Dependencies) {
     if (pending) return pending;
     if (retryAt > deps.now()) {
       const fallback = retained();
-      return fallback ? Promise.resolve(fallback) : Promise.reject(new DataGovHttpError(429, retryAt));
+      return fallback ? Promise.resolve(fallback) : Promise.reject(cooldownError);
     }
     pending = (async () => {
       try {
@@ -81,9 +83,11 @@ export function createRainService(deps: Dependencies) {
         const at = deps.now();
         cached = { at, data: { ...data, delivery: { state: 'current', fetchedAt: new Date(at).toISOString() } } };
         retryAt = 0;
+        cooldownError = undefined;
         return current();
       } catch (error) {
-        retryAt = error instanceof DataGovHttpError ? (error.retryAt ?? 0) : 0;
+        cooldownError = error instanceof DataGovHttpError || error instanceof CircuitOpenError ? error : undefined;
+        retryAt = error instanceof DataGovHttpError || error instanceof CircuitOpenError ? (error.retryAt ?? 0) : 0;
         const fallback = retained();
         if (!fallback) throw error;
         deps.onFailure(error);

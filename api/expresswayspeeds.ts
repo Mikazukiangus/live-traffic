@@ -1,3 +1,4 @@
+import { providerFailureStatus, providerFailureHeaders } from '../server/http/providerFailure.ts';
 import { requestSchemas } from '../server/http/requestSchemas.ts';
 import { withRequestSchema } from '../server/http/validateRequest.ts';
 import { reportFailure } from '../shared/diagnostics.ts';
@@ -33,7 +34,7 @@ const handler = withRequestSchema(requestSchemas.speeds, async (_req, res, input
     const body = input.query.includeSegments ? { ...cache.payload, segments: cache.segments } : cache.payload;
     return send(200, body, liveCacheHeaders(...config.server.cache.speeds));
   } catch (err: any) {
-    return send(502, reportFailure('lta', err), NO_STORE);
+    return send(providerFailureStatus(err), reportFailure('lta', err), providerFailureHeaders(err));
   }
 });
 export default handler;

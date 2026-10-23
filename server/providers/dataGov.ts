@@ -1,9 +1,11 @@
+import { withProviderCircuit } from '../http/providerCircuits.ts';
 import { config } from '../../config/server.ts';
 import { createDataGovClient } from './dataGovClient.ts';
 import { fetchProvider } from '../http/providerFetch.ts';
 import { waitForRetry } from '../../shared/requestDeadline.ts';
 const client = createDataGovClient({
   fetch: fetchProvider,
+  circuit: withProviderCircuit,
   now: Date.now,
   sleep: waitForRetry,
   random: Math.random,

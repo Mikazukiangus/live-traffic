@@ -1,3 +1,4 @@
+import { providerFailureStatus, providerFailureHeaders } from '../server/http/providerFailure.ts';
 import { internalFeedSchema } from '../server/http/requestSchemas.ts';
 import { withRequestSchema } from '../server/http/validateRequest.ts';
 import { reportFailure } from '../shared/diagnostics.ts';
@@ -113,7 +114,7 @@ const handler = withRequestSchema(internalFeedSchema('floods'), async (req, res)
     const { records, latest } = await recentRecords(now);
     return sendJson(res, 200, { success: true, source: 'pub_flood_alerts', checkedAt: latest, alerts: activeFloodAlerts(records, now) }, CACHE);
   } catch (err: any) {
-    return sendJson(res, 502, reportFailure('nea', err), NO_STORE);
+    return sendJson(res, providerFailureStatus(err), reportFailure('nea', err), providerFailureHeaders(err));
   }
 });
 export default handler;
