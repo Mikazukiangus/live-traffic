@@ -1,8 +1,8 @@
 # Error recovery: API, pages and commute alerts
 
-Implemented on preview branch `codex/error-recovery-boundaries`, pending explicit
-approval to merge. This now addresses all five findings from Turn 136; the user
-approved findings 4–5 while PR #21 was still a draft.
+Released to main through [PR #21](https://github.com/Mikazukiangus/live-traffic/pull/21)
+as `735ac11b3020f140cb9b22d3fe32b6f76ff6b966` on 23 October 2026 (SGT).
+This addresses all five findings from Turn 136.
 
 ## API exception boundary
 
@@ -193,5 +193,23 @@ verify selected deployed success paths; synthetic tests cover failures, partial
 answers, log redaction and receipt preservation. Interactive browser verification
 remains pending for the documented approval-review usage-limit reason.
 
-This final publication follow-up changes documentation only. Runtime verification
-is pinned to the implementation SHA above. Main/production await explicit approval.
+That final preview follow-up changed documentation only, with runtime verification
+pinned to the implementation SHA above. The approved release follows below.
+
+
+## Approved production release
+
+Final PR head `8b23eeaed657d88b2c0fd2af874f55486b1399f5` passed both GitHub Checks
+runs `39961316405` and `39961324955` and Vercel deployment/feedback checks. After
+the user's explicit merge instruction, PR #21 was marked ready, its main target
+and matching head confirmed, and it was merged with that expected SHA as
+`735ac11b3020f140cb9b22d3fe32b6f76ff6b966`.
+
+Production deployment `dpl_5R6f9ycx9MwNVJXSFTJy5Dc6pxah` is READY for that main
+merge, the intended project/team and production target, with the known production
+aliases assigned. Authenticated homepage, its actual referenced entry bundle,
+air quality (5 regions), incidents (9 source records) and rain (47 areas) returned
+HTTP 200. These verify selected deployed success paths. No real failure,
+notification permission/delivery or camera-metadata/presigned request was induced.
+The documented interactive browser verification limit remains unchanged; approval
+to merge was received with that limitation disclosed. No new visual pass is claimed.

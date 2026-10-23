@@ -148,6 +148,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 137. [Turn 137: API, Page and Notification Recovery on Preview](#137-turn-137-api-page-and-notification-recovery-on-preview)
 138. [Turn 138: Continue Error Recovery Preview Publication](#138-turn-138-continue-error-recovery-preview-publication)
 139. [Turn 139: Air-Quality State and Partial-Source Error Logging](#139-turn-139-air-quality-state-and-partial-source-error-logging)
+140. [Turn 140: All Five Error-Handling Fixes Merged to Main](#140-turn-140-all-five-error-handling-fixes-merged-to-main)
 
 ---
 
@@ -2472,6 +2473,21 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Pushed findings 4–5 as 2a26b0a720a7acacb02bd47bb35c60ad006ac509 on the existing branch and updated draft PR #21's title/body to cover all five findings. Both GitHub Checks runs 39961050814 and 39961061360 and Vercel deployment/preview-feedback checks passed at that exact implementation head. The local full suite passed all 203 tests with zero skips.
 - Deployment dpl_29uAXtu854bDGAzunV23T3WbRUsH is READY for the intended project/team, preview branch and implementation SHA: https://live-traffic-5vo1xocvj-carbon-bc04.vercel.app. Authenticated homepage, its actual referenced entry bundle and the updated air-quality endpoint returned HTTP 200; air quality contained all five regions. HTTP checks establish deployed response compatibility, while synthetic tests establish failed/partial handling and redaction. No live outage or browser-approval workaround was induced.
 - Recorded the final results and remaining interactive-browser limitation in docs/error-handling.md. This follow-up changes documentation only, with runtime verification pinned above. Updated the log for commit/push under the standing instruction; main/production remain unchanged and PR #21 awaits explicit approval to merge.
+
+---
+
+## 140. Turn 140: All Five Error-Handling Fixes Merged to Main
+
+**User Instruction:**
+> "merge"
+
+### Released (23 October 2026, SGT):
+- Received explicit approval for PR #21 (https://github.com/Mikazukiangus/live-traffic/pull/21), retained its chat attachment and checked exact final head 8b23eeaed657d88b2c0fd2af874f55486b1399f5. Both GitHub Checks runs 39961316405 and 39961324955 and Vercel deployment/feedback checks passed. Confirmed the main target and mergeable state, marked the draft ready, and merged with that expected head as 735ac11b3020f140cb9b22d3fe32b6f76ff6b966. Fast-forwarded local main and retained the preview branch; unrelated .claude/ remains untouched.
+- Released all five reviewed fixes: safe API exceptions, page/root recovery, handled notification permission/delivery with bounded queue retries, complete air-quality state with independent source freshness, and once-per-rejected-source diagnostics on partial responses. The 203-test suite, four offline Python cases, type checks, transport audit and production build were already verified; no runtime edits or optional repeat broad local checks were needed for this merge.
+- Production deployment dpl_5R6f9ycx9MwNVJXSFTJy5Dc6pxah is READY for the intended project/team, main merge SHA and production target. Aliases include live-traffic-carbon-bc04.vercel.app, live-traffic-kappa.vercel.app and the main branch URL. Used existing authenticated deployment access without changing hosting protection, credentials or settings.
+- Authenticated production homepage, its actual referenced entry bundle, air quality, incidents and rain returned HTTP 200. Air quality contained five regions, incidents nine source records at the check, and rain 47 areas. These are selected deployed success-path checks; synthetic tests establish failure/partial/redaction behavior without live outages, real notifications or camera metadata/presigned probes.
+- The browser interactive recovery check remains unverified because automatic approval review previously hit its usage limit. No alternate browser/protocol workaround was used; the user explicitly approved this merge after that limitation was disclosed. The isolated fixture/manual instructions remain in docs/error-handling.md. No new visual, notification-delivery or OS-display guarantee is claimed.
+- Marked the approved release in docs/error-handling.md and refreshed CLOUD_HANDOFF.md with the merged head, 203-test baseline, verified deployment and browser limitation. Login work remains on hold; no dependency/lockfile, environment value, credential or real browser storage changed. Updated this log/table of contents for documentation-only commit/push on main under the standing instruction. The approved merge and selected production verification are complete; no further merge approval is needed.
 
 ---
 

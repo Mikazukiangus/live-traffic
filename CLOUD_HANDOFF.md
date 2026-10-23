@@ -14,8 +14,8 @@ Fetch current main to include this handoff and its log entry; do not reset to th
 older snapshot. The local checkout had no tracked changes and only a pre-existing
 untracked `.claude/` directory. No local-only implementation needs recovering.
 
-**The latest implementation is complete.** PR #20 (provider circuit breakers) is merged as
-`18eac9d084fa1da34908bd6a8d59b37e4cf33b01`, following PR #19's safe retries and PR #18's timeout release.
+**The latest implementation is complete.** PR #21 (all five error-handling fixes) is merged as
+`735ac11b3020f140cb9b22d3fe32b6f76ff6b966`, following PR #20's circuit breakers, PR #19's retries and PR #18's timeouts.
 No implementation from this session
 is waiting to be merged.
 Application login, account creation and brute-force lockout are **on hold at the
@@ -182,10 +182,23 @@ Health consults the same registry only in the same instance. Existing cache age,
 public camera fallback and partial weather behavior remain honest. Open circuits
 return safe 503/no-store/Retry-After. See `docs/api/circuit-breakers.md`.
 
-**184 tests**, type checking, security source audit and production build passed.
-The Python wrapper ran four offline helper tests. Both final PR #20 checks and
-Vercel checks passed. Production homepage/entry bundle, incidents (19 source
-records at the check) and rain (47 areas) returned HTTP 200 on 23 October.
+[PR #21](https://github.com/Mikazukiangus/live-traffic/pull/21) adds a safe outer
+Node/Web API exception boundary, root/per-tab React recovery, explicit notification
+permission/delivery outcomes with bounded retries, complete air-quality feed state
+and independent PSI/PM2.5 ages, plus one redacted event per failed partial source.
+Alerts retry at most three times 15 seconds apart within two minutes and record
+success only after browser acceptance (not proof of OS display). Partial feed
+200/no-store contracts and original observation/receipt times remain intact.
+See `docs/error-handling.md` for ownership and limits.
+
+**203 tests**, type checking, security source audit and production build passed.
+The Python wrapper ran four offline helper tests. Both final PR #21 checks and
+Vercel checks passed. Production homepage/entry bundle, air quality (5 regions),
+incidents (9 source records at the check) and rain (47 areas) returned HTTP 200 on
+23 October. Interactive recovery-screen verification remains pending: the browser
+approval reviewer hit its usage limit. An isolated synthetic fixture and manual
+steps are documented; no alternate browser/protocol workaround or visual pass was
+claimed. The user explicitly approved the merge after this limitation was disclosed.
 The earlier timeout release also verified the worker's rendered 30000/90000/60000
 policy and a local synthetic-image count with actual model/WASM/worker startup.
 These are recorded checks, not a guarantee of current provider health in the new environment.
@@ -197,8 +210,8 @@ These are recorded checks, not a guarantee of current provider health in the new
 - Canonical production: <https://live-traffic-carbon-bc04.vercel.app>.
 - Other observed production alias: <https://live-traffic-kappa.vercel.app>.
   `live-traffic.vercel.app` belongs to a different application; do not use it.
-- Last verified runtime deployment: `dpl_QHBj4KVSGmXxkq3AxFFdCx6kEkKE`, READY for
-  merge `18eac9d`. Subsequent main documentation pushes can create newer deployments;
+- Last verified runtime deployment: `dpl_5R6f9ycx9MwNVJXSFTJy5Dc6pxah`, READY for
+  merge `735ac11`. Subsequent main documentation pushes can create newer deployments;
   verify current SHA/team/project/target rather than pinning that deployment forever.
 
 Use the new chat's authenticated Vercel tools if available; connector authorization
@@ -217,7 +230,7 @@ referenced entry bundle, `/sw.js` and keyless weather. Report blocked checks hon
 
 ## Read next and first cloud-chat action
 
-Read `ARCHITECTURE.md`, `DEVELOPMENT.md`, `SECRETS_AND_LOGGING.md`,
+Read `ARCHITECTURE.md`, `DEVELOPMENT.md`, `SECRETS_AND_LOGGING.md`, `docs/error-handling.md`,
 `TRANSPORT_SECURITY.md`, and `docs/api/{circuit-breakers,retries,timeouts,ssrf,cors,request-validation,lta-traffic}.md`
 as relevant. `COMMUTE_STORAGE.md` explains browser persistence; `WEATHER_FEEDS.md`
 explains freshness and weather behavior. Older audit documents are dated snapshots;
