@@ -1,3 +1,4 @@
+import { providerFailureStatus, providerFailureHeaders } from '../server/http/providerFailure.ts';
 import { requestSchemas } from '../server/http/requestSchemas.ts';
 import { withRequestSchema } from '../server/http/validateRequest.ts';
 /**
@@ -27,7 +28,7 @@ const handler = withRequestSchema(requestSchemas.live, async (req, res, input) =
     const feed = FEEDS[input.query.feed];
     return await feed(req, res);
   } catch (error) {
-    return sendJson(res, 502, reportFailure('gateway', error));
+    return sendJson(res, providerFailureStatus(error), reportFailure('gateway', error), providerFailureHeaders(error));
   }
 });
 export default handler;

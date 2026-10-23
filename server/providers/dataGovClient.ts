@@ -1,4 +1,5 @@
-import { UpstreamHttpError } from '../../shared/diagnostics.ts';
+import type { CircuitRunner, CircuitPermit } from '../http/circuitBreaker.ts';
+import { InvalidPayloadError, UpstreamHttpError } from '../../shared/diagnostics.ts';
 import { retryAfterMs } from '../../shared/httpRetry.ts';
 import { readRetryDelay, retryableReadStatus, transientReadError } from '../../shared/readRetry.ts';
 import { withRequestDeadline } from '../../shared/requestDeadline.ts';
@@ -27,6 +28,7 @@ interface Dependencies {
   timeoutMs: number;
   budgetMs: number;
   transientRetryDelayMs: number;
+  circuit?: CircuitRunner;
 }
 
 /** An instance-local gate smooths bursts; it is not a distributed provider quota. */
@@ -48,14 +50,17 @@ export function createDataGovClient(deps: Dependencies) {
     gate = ticket.catch(() => undefined);
     return ticket;
   };
-  async function load(url: string, options: Options) {
+  async function load(url: string, options: Options, permit: CircuitPermit) {
+    permit.check();
     await enter();
+    permit.check();
     const perAttemptMs = options.timeoutMs ?? deps.timeoutMs;
     const budgetMs = options.retry === false ? perAttemptMs : deps.budgetMs;
     const deadline = deps.now() + budgetMs;
     return withRequestDeadline(budgetMs, async (signal) => {
       for (let attempt = 0; ; attempt++) {
         signal.throwIfAborted();
+        permit.check();
         let error: unknown;
         let providerDelay: number | null = null;
         let baseMs = deps.transientRetryDelayMs;
@@ -66,7 +71,7 @@ export function createDataGovClient(deps: Dependencies) {
           });
           if (response.ok) {
             const json = await response.json();
-            if (json?.code !== 0 || !json?.data) throw new Error('Unexpected provider payload');
+            if (json?.code !== 0 || !json?.data) throw new InvalidPayloadError();
             return json.data;
           }
           const now = deps.now();
@@ -84,10 +89,11 @@ export function createDataGovClient(deps: Dependencies) {
         } catch (failure) { error = failure; }
         if (signal.aborted) throw signal.reason;
         const transient = error instanceof DataGovHttpError ? retryableReadStatus(error.status) : transientReadError(error);
-        if (!transient || options.retry === false || attempt >= 1) throw error;
+        if (!transient || permit.recovery || options.retry === false || attempt >= 1) throw error;
         const delay = readRetryDelay(attempt + 1, baseMs, deps.maxRetryWaitMs, deps.random(), providerDelay);
         if (delay === null || delay >= deadline - deps.now()) throw error;
         await deps.sleep(delay, signal);
+        permit.check();
         await enter(signal);
       }
     });
@@ -97,7 +103,9 @@ export function createDataGovClient(deps: Dependencies) {
     const key = `${options.retry !== false}:${options.timeoutMs ?? deps.timeoutMs}:${url}`;
     let request = pending.get(key);
     if (!request) {
-      request = load(url, options).finally(() => pending.delete(key));
+      const run = (permit: CircuitPermit) => load(url, options, permit);
+      request = (deps.circuit ? deps.circuit(url, run) : run({ recovery: false, check() {} }))
+        .finally(() => pending.delete(key));
       pending.set(key, request);
     }
     return request;

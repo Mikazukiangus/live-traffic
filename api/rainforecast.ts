@@ -1,8 +1,8 @@
+import { providerFailureStatus, providerFailureHeaders } from '../server/http/providerFailure.ts';
 import { requestSchemas } from '../server/http/requestSchemas.ts';
 import { withRequestSchema } from '../server/http/validateRequest.ts';
 import { reportFailure } from '../shared/diagnostics.ts';
 import { config } from '../config/server.ts';
-import { DataGovHttpError } from '../server/providers/dataGovClient.ts';
 import { createRainService } from '../server/weather/rainService.ts';
 import { fetchDataGovV2, NO_STORE, liveCacheHeaders, sendJson } from './_client.ts';
 
@@ -27,10 +27,7 @@ const handler = withRequestSchema(requestSchemas.empty, async (req, res) => {
       headers['Retry-After'] = String(Math.ceil((data.delivery.retryAt - Date.now()) / 1000));
     return sendJson(res, 200, data, headers);
   } catch (error) {
-    const headers = { ...NO_STORE };
-    if (error instanceof DataGovHttpError && error.retryAt && error.retryAt > Date.now())
-      headers['Retry-After'] = String(Math.ceil((error.retryAt - Date.now()) / 1000));
-    return sendJson(res, 502, reportFailure('nea', error), headers);
+    return sendJson(res, providerFailureStatus(error), reportFailure('nea', error), providerFailureHeaders(error));
   }
 });
 export default handler;

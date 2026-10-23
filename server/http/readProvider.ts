@@ -1,5 +1,7 @@
+import { withProviderCircuit } from './providerCircuits.ts';
+import type { CircuitRunner, CircuitPermit } from './circuitBreaker.ts';
 import { config } from '../../config/server.ts';
-import { UpstreamHttpError } from '../../shared/diagnostics.ts';
+import { CircuitOpenError, UpstreamHttpError } from '../../shared/diagnostics.ts';
 import { retryAfterMs } from '../../shared/httpRetry.ts';
 import { readRetryDelay, retryableReadStatus, safeReadRequest, transientReadError } from '../../shared/readRetry.ts';
 import { waitForRetry, withRequestDeadline } from '../../shared/requestDeadline.ts';
@@ -10,7 +12,7 @@ export class ProviderReadError extends UpstreamHttpError {
   constructor(status: number, readonly retryAt: number | null) { super(status); }
 }
 export const providerRetryHeaders = (error: unknown, now = Date.now()): Record<string, string> =>
-  error instanceof ProviderReadError && error.retryAt !== null && error.retryAt > now
+  (error instanceof ProviderReadError || error instanceof CircuitOpenError) && error.retryAt !== null && error.retryAt > now
     ? { ...NO_STORE, 'Retry-After': String(Math.ceil((error.retryAt - now) / 1000)) } : NO_STORE;
 
 interface Options { attempts?: number; timeoutMs?: number; baseDelayMs?: number; maxWaitMs?: number }
@@ -19,6 +21,7 @@ interface Dependencies {
   now: () => number;
   random: () => number;
   sleep: typeof waitForRetry;
+  circuit?: CircuitRunner;
 }
 
 /** One owner for retries, body consumption and the entire deadline. No transport-global retry layer. */
@@ -31,9 +34,10 @@ export function createProviderReader(deps: Dependencies) {
     const maxWaitMs = options.maxWaitMs ?? config.server.retryMaxWaitMs;
     const baseMs = options.baseDelayMs ?? config.server.lta.retryDelayMs;
     const deadline = deps.now() + timeoutMs;
-    return withRequestDeadline(timeoutMs, async (signal) => {
+    const run = async (permit: CircuitPermit) => withRequestDeadline(timeoutMs, async (signal) => {
       for (let attempt = 1; ; attempt++) {
         signal.throwIfAborted();
+        permit.check();
         let error: unknown;
         let providerDelay: number | null = null;
         try {
@@ -49,13 +53,16 @@ export function createProviderReader(deps: Dependencies) {
         } catch (failure) { error = failure; }
         const transient = error instanceof UpstreamHttpError ? retryableReadStatus(error.status) : transientReadError(error);
         if (signal.aborted) throw signal.reason;
-        if (!transient || attempt >= attempts) throw error;
+        if (!transient || permit.recovery || attempt >= attempts) throw error;
         const delay = readRetryDelay(attempt, baseMs, maxWaitMs, deps.random(), providerDelay);
         if (delay === null || delay >= deadline - deps.now()) throw error;
         await deps.sleep(delay, signal);
       }
     }, init.signal);
+    return deps.circuit && safeReadRequest(init)
+      ? deps.circuit(url, run, init.signal)
+      : run({ recovery: false, check() { init.signal?.throwIfAborted(); } });
   };
 }
 
-export const readProvider = createProviderReader({ fetch: fetchProvider, now: Date.now, random: Math.random, sleep: waitForRetry });
+export const readProvider = createProviderReader({ fetch: fetchProvider, now: Date.now, random: Math.random, sleep: waitForRetry, circuit: withProviderCircuit });
