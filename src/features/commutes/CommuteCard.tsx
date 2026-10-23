@@ -41,16 +41,22 @@ export const CommuteCard: React.FC<
   const permissionPending = useRef(false);
   const toggleAlerts = async () => {
     if (permissionPending.current) return;
+    permissionPending.current = true;
+    setRequestingPermission(true);
     setPermissionNotice(null);
-    if (!commute.alerts) {
-      permissionPending.current = true;
-      setRequestingPermission(true);
-      const outcome = await requestCommuteNotifications();
+    try {
+      if (!commute.alerts) {
+        const outcome = await requestCommuteNotifications();
+        if (outcome !== 'granted') { setPermissionNotice(PERMISSION_NOTICE[outcome]); return; }
+      }
+      if (!await setCommuteAlerts(commute.id, !commute.alerts))
+        setPermissionNotice('This commute was removed in another tab.');
+    } catch {
+      setPermissionNotice('Commute alerts could not be changed. Please try again.');
+    } finally {
       permissionPending.current = false;
       setRequestingPermission(false);
-      if (outcome !== 'granted') { setPermissionNotice(PERMISSION_NOTICE[outcome]); return; }
     }
-    setCommuteAlerts(commute.id, !commute.alerts);
   };
 
   return (
