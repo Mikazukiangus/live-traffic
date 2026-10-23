@@ -45,7 +45,7 @@ export const MyCommute: React.FC<MyCommuteProps> = (props) => {
   );
   useEffect(() => {
     if (travelStatus !== 'live' || travelFetchedAt == null) return;
-    repository.recordBatch(
+    void repository.recordBatch(
       readings.flatMap(({ commute, summary }) =>
         summary.total == null || summary.anyEstimated
           ? []
@@ -58,7 +58,7 @@ export const MyCommute: React.FC<MyCommuteProps> = (props) => {
               },
             ],
       ),
-    );
+    ).catch(() => { /* User-facing storage notices are published by the repository. */ });
   }, [repository, readings, travelStatus, travelFetchedAt]);
 
   return (

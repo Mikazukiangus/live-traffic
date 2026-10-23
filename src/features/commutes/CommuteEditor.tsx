@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { TravelRoute } from '../../utils/ltaTravelTimes';
 import { Commute, CommuteLeg, deleteCommute, saveCommuteDetails } from '../../utils/commutes';
 import { isCommute, MAX_LEGS, MAX_NAME_LENGTH } from '../../../shared/commutes/model';
@@ -16,14 +16,34 @@ export const CommuteEditor: React.FC<{ initial: Commute; routes: TravelRoute[]; 
     initial.legs.length ? initial.legs : [{ code: '', direction: 0, from: '', to: '' }],
   );
   const isNew = !initial.legs.length;
+  const [saving, setSaving] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const pending = useRef(false);
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
 
   const update = (i: number, change: Partial<CommuteLeg>) =>
     setLegs((ls) => ls.map((l, j) => (j === i ? { ...l, ...change } : l)));
   const valid = isCommute({ ...initial, name, legs }, CODES);
 
-  const save = () => {
-    if (!valid) return;
-    if (saveCommuteDetails(initial.id, name.trim(), legs, isNew)) onClose();
+  const commit = async (remove = false) => {
+    if (pending.current || (!remove && !valid)) return;
+    pending.current = true;
+    setSaving(true);
+    setNotice(null);
+    try {
+      const saved = remove ? (await deleteCommute(initial.id), true)
+        : await saveCommuteDetails(initial.id, name.trim(), legs, isNew);
+      if (mounted.current) {
+        if (saved) onClose();
+        else setNotice('This commute changed or was removed in another tab. Close this editor and try again.');
+      }
+    } catch {
+      if (mounted.current) setNotice('This commute could not be saved. Please try again.');
+    } finally {
+      pending.current = false;
+      if (mounted.current) setSaving(false);
+    }
   };
 
   return (
@@ -84,14 +104,13 @@ export const CommuteEditor: React.FC<{ initial: Commute; routes: TravelRoute[]; 
         <p className="text-xs text-slate-500">
           Times are LTA's estimates for the stretches you pick. Your commutes are saved in this browser only.
         </p>
+        {notice && <p role="status" className="text-xs text-amber-800">{notice}</p>}
 
         <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100">
           {!isNew ? (
             <button
-              onClick={() => {
-                deleteCommute(initial.id);
-                onClose();
-              }}
+              onClick={() => { void commit(true); }}
+              disabled={saving}
               className="text-sm font-semibold text-red-700 hover:underline cursor-pointer"
             >
               Delete
@@ -100,11 +119,11 @@ export const CommuteEditor: React.FC<{ initial: Commute; routes: TravelRoute[]; 
             <span />
           )}
           <button
-            onClick={save}
-            disabled={!valid}
+            onClick={() => { void commit(); }}
+            disabled={!valid || saving}
             className="h-10 px-5 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-sm font-bold disabled:opacity-40 cursor-pointer"
           >
-            Save
+            {saving ? 'Saving…' : 'Save'}
           </button>
         </div>
       </div>

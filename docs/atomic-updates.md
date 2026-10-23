@@ -1,5 +1,7 @@
 # Concurrent request updates
 
+**Current preview follow-up:** `codex/cross-tab-atomic-storage` extends the released PR #22 fixes with cross-tab commute coordination, a single-record storage commit and wake-lock ownership. See the follow-up section below. The earlier scope/limits describe the PR #22 release and are superseded for coordinated commute storage on this preview only.
+
 Implemented on `codex/atomic-request-updates`, based on main `1fcb1b0`; released through PR #22 as main merge `1252d0f3240cfd71d9c38bb8c5d337a5a93213be`. No database or authenticated mutation API exists in this app. The confirmed races were in browser async operations and the service worker's shared response cache.
 
 ## Where updates could race
@@ -51,3 +53,46 @@ Draft [PR #22](https://github.com/Mikazukiangus/live-traffic/pull/22) is attache
 The user explicitly approved the merge after the scope/browser limitations above were disclosed. Final PR head `17e9754319bd5bbef37389dc01325f158c5a0440` passed both GitHub Checks and Vercel checks. CI diagnostics confirmed 214 passing tests and zero skips. PR #22 was marked ready and merged with that expected head as `1252d0f3240cfd71d9c38bb8c5d337a5a93213be`; local main was fast-forwarded.
 
 Production deployment `dpl_D56XazVJxDcgAHZ4gVuN1MVdBaWT` is READY for the intended project/team, main merge SHA and production target. Its aliases include [the canonical production site](https://live-traffic-carbon-bc04.vercel.app). Authenticated homepage, its referenced entry bundle and `/sw.js` returned HTTP 200. The served worker includes the version guard and rendered timeout settings. These confirm deployed artifacts; they do not establish interactive worker activation or permission behavior. No new live provider/camera/permission probes were performed. The concurrency scope and earlier browser approval limitation remain as documented above.
+
+
+## Follow-up: cross-tab commute commits and wake-lock ownership (24 October 2026)
+
+Two races remained after PR #22:
+
+1. **Shared persistence:** `commuteStorage.ts` created one cached repository per tab. Each wrote an entire commute/history snapshot through separate localStorage keys. Two tabs loaded before either write could lose one tab's creates, alert edits or samples. Route/history invalidation could also be split if one write failed. This is reproduced in the new regression test before exercising the fix.
+2. **Screen wake locks:** `wallDisplay.ts` checked only the granted sentinel before awaiting the next acquisition. Repeated visibility events could start more than one request. A slow request could overwrite the held sentinel, and a late rejection/release callback could clear the displayed state of a newer owner.
+
+### Commute persistence protocol
+
+`src/features/commutes/coordinatedCommutes.ts` wraps the existing validated domain repository. `commuteStorage.ts` supplies the actual browser ports:
+
+1. Queue commands within the tab and capture mutable inputs before queueing.
+2. Acquire the exclusive, fixed `trafficpulse.commuteState.v2` Web Lock. Browser admission uses the existing validated request timeout; it never steals another tab's lock.
+3. Reread the current envelope **inside** the lock and construct the existing domain repository over isolated memory. Apply the field-specific mutation against this current state. Old-route receipts remain ineligible after edits/deletion.
+4. Commit commutes and history with one `localStorage.setItem('trafficpulse.commuteState.v2', serializedEnvelope)` while still holding the lock. Publish the snapshot after that commit, then return/release. No network, notification prompt or other awaited work runs inside the critical section.
+5. Subscribe to storage/visibility changes only while there are consumers. Read the current complete envelope instead of trusting potentially delayed event payloads. Preserve snapshot/commute-array identity when values are unchanged, including history-only changes, so receipt effects cannot create a notification/write loop.
+
+The envelope is `{schemaVersion: 2, revision, commutes: {schemaVersion: 1, commutes: [...]}, history: {schemaVersion: 1, histories: [...]}}`. Its revision increments under the same lock. Version/field validation uses the existing codecs. Original v1/legacy keys are read for migration only when the new envelope is absent, then remain untouched. The first valid state-changing command creates the new envelope. New code uses the new key exclusively; older deployed tabs writing v1 cannot overwrite it. Old-version tabs do not receive new-version edits and should be reloaded. Clear all TrafficPulse commute keys to fully reset saved/migrated data; removing only the v2 key permits migration from preserved originals again.
+
+Missing/rejected/timed-out Web Locks, blocked reads or failed writes switch this tab to memory-only operation with a user-visible notice. There is no uncoordinated persistent-write fallback. A failed commit keeps the requested edit in that tab without later replaying its stale snapshot over another tab. Malformed/unknown saved versions are preserved, with only recoverable valid entries used locally. Original-copy and route/history validation policies remain. The core synchronous domain repository remains a reducer over isolated memory; the browser adapter is the only shared persistence owner.
+
+Save/delete/alert controls now await command completion, guard duplicate clicks immediately, and show fixed failure/conflict messages. An editor completion cannot close a newer editor after its original unmount. Background sample recording handles rejected updates; storage notices are published by the repository. Public browser mutation helpers now return promises; synchronous reads/subscriptions remain stable. Existing internal domain tests retain their synchronous API.
+
+This is coordination among same-origin browser contexts using this protocol and one visible complete-value storage update. It is not server-side/distributed locking, cross-device sync, a disk-flush durability guarantee, or cross-version synchronization. Same-field edits serialize in command order; this does not add collaborative merge semantics or optimistic conflict comparison. No server database/authentication was introduced. Web Locks coordinates contexts sharing the origin; localStorage alone provides no read-modify-write lock. Primary references: [MDN Web Locks](https://developer.mozilla.org/en-US/docs/Web/API/Web_Locks_API) and [HTML storage specification](https://html.spec.whatwg.org/multipage/webstorage.html#the-storage-interface).
+
+### Wake-lock ownership
+
+`src/utils/wakeLockResource.ts` reserves acquisition through the existing single-flight helper. Only the active resource may publish a granted lock. Hidden/disposed/already-released results are released; release callbacks compare sentinel identity before clearing state. Disposal clears ownership before releasing its sentinel, and late rejections cannot update the next effect's state. `wallDisplay.ts` supplies the browser request and visibility listener. This does not retry a battery/policy refusal or prevent the browser from releasing a lock.
+
+### Verification
+
+All 228 full-suite Node tests pass, zero skips, including 14 new groups and the wrapper's four offline Python cases. Type checking, transport security audit, production build and whitespace checks pass. Tests share an actual synthetic backing map between independently constructed adapters and an exclusive lock port; they assert durable writes occur only while the lock is held. Coverage includes baseline lost-update reproduction, concurrent creates/capacity/collisions, alert+route edits, stale deletion/receipts, merged samples, complete migration and failed commits, malformed copies, storage refresh/cleanup/stable arrays, unsupported/rejected locks, queued-input capture and wake acquisition/release/disposal ordering.
+
+All tests used synthetic storage/lock/wake ports. No real browser storage, permission, install event, camera metadata/photo or live provider outage was touched. Real multi-tab browser/UI verification remains unperformed after the earlier automatic approval usage-limit rejection; no alternate browser/protocol workaround was attempted. Runtime changes stay on a preview branch until explicit merge approval. Publication results are recorded in Turn 143.
+
+
+### Follow-up preview publication
+
+Implementation `c664c4c1cfa8a26c219e09e585977f9bd5772d54` is in draft [PR #23](https://github.com/Mikazukiangus/live-traffic/pull/23), attached to the chat. Both GitHub Checks runs (`40009719009`, `40009764842`) and Vercel deployment/feedback checks passed at that head; CI logs confirm 228 passing tests and zero skips. Storage revision overflow is included in malformed/saturated-state preservation checks.
+
+[Preview](https://live-traffic-7djuzogh8-carbon-bc04.vercel.app) is deployment `dpl_Btubgv73YyTngV15uLQvpCgew9Sk`, READY for the intended project/team, preview branch and implementation SHA. Authenticated homepage and its actual referenced entry bundle returned HTTP 200. HTTP checks verify deployed artifacts; synthetic ports verify interleavings and fallback. Real multi-tab/wake/browser checks remain unperformed under the previously disclosed approval limitation. This publication note is documentation only, and main/production await explicit approval.
