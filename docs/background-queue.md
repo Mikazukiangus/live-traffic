@@ -52,3 +52,10 @@ Closing/reloading the page discards pending jobs, keys and notification receipts
 - Ports/timers/images/model results/storage/notifications are synthetic. No real provider outage, image/camera metadata, browser storage, permission or notification prompt was requested. The earlier browser approval usage-limit block remains; no alternate browser/protocol workaround or browser performance/visual pass is claimed.
 
 The queue changes are independent of unmerged PR #23. Explicit approval is required before merging this preview into main. See Turn 144 in `CHAT_COMMENTS_AND_INSTRUCTIONS.md` for publication evidence.
+
+
+## Preview publication
+
+Implementation `b25d9c542e9711aaedf076719a36df913e69f4cb` is in draft [PR #24](https://github.com/Mikazukiangus/live-traffic/pull/24), attached to the chat. GitHub Checks runs `40012228026` and `40012274759` and Vercel deployment/feedback checks passed at that exact head. CI diagnostics confirm all 229 tests passed with zero skips.
+
+[Preview](https://live-traffic-pgkm8vccs-carbon-bc04.vercel.app) is deployment `dpl_4WAfuVowLGwaQqNzS28vLsRdanv2`, READY for the intended project/team, preview branch and implementation SHA. Authenticated homepage and its referenced entry bundle returned HTTP 200. These verify deployed artifact availability; synthetic tests establish scheduling/interleaving policies. No actual browser/inference/notification/performance pass is claimed. This follow-up records documentation only; runtime proof is pinned above. Main/production await explicit approval, with PR #23 still separately pending.
