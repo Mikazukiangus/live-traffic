@@ -21,6 +21,9 @@ const noticeSnapshot = () => getCommuteRepository().getSnapshot().notice;
 export const useCommutes = () => useSyncExternalStore(subscribe, commutesSnapshot);
 export const useCommuteStorageNotice = () => useSyncExternalStore(subscribe, noticeSnapshot);
 export const saveCommute = (commute: Commute) => getCommuteRepository().save(commute);
+export const saveCommuteDetails = (id: string, name: string, legs: Commute['legs'], create = false) =>
+  getCommuteRepository().saveDetails(id, name, legs, create);
+export const setCommuteAlerts = (id: string, enabled: boolean) => getCommuteRepository().setAlerts(id, enabled);
 export const deleteCommute = (id: string) => getCommuteRepository().remove(id);
 export const commuteCodes = (commute: Commute) => [...new Set(commute.legs.map((l) => l.code))];
 

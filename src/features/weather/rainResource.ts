@@ -1,3 +1,4 @@
+import { createSingleFlight } from '../../../shared/singleFlight';
 import { isRainForecast, type RainForecast } from '../../../shared/weather/rain';
 import { parseSgt } from '../../../shared/time';
 import { FeedHttpError, type FeedResponse } from '../../utils/feedResponse';
@@ -20,7 +21,7 @@ interface Dependencies {
 export function createRainResource(deps: Dependencies) {
   let state: RainState = { data: null, status: 'loading', fetchedAt: null, refreshing: false };
   const subscribers = new Set<() => void>();
-  let pending: Promise<void> | null = null;
+  const flight = createSingleFlight<void>(() => schedule());
   let retryAt = 0;
   let nextPollAt = 0;
   let cancelTimer: (() => void) | undefined;
@@ -32,7 +33,7 @@ export function createRainResource(deps: Dependencies) {
   const schedule = () => {
     cancelTimer?.();
     cancelTimer = undefined;
-    if (subscribers.size && !pending)
+    if (subscribers.size && !flight.current)
       cancelTimer = deps.schedule(
         () => {
           void refresh();
@@ -41,15 +42,15 @@ export function createRainResource(deps: Dependencies) {
       );
   };
   function refresh(): Promise<void> {
-    if (pending) return pending;
+    if (flight.current) return flight.current;
     if (retryAt > deps.now()) {
       schedule();
       return Promise.resolve();
     }
     cancelTimer?.();
     cancelTimer = undefined;
-    publish({ refreshing: true });
-    pending = (async () => {
+    return flight.run(async () => {
+      publish({ refreshing: true });
       try {
         const result = await deps.fetch('/api/rainforecast');
         if (!isRainForecast(result.data)) throw new Error('Unexpected forecast');
@@ -65,14 +66,11 @@ export function createRainResource(deps: Dependencies) {
       } catch (error) {
         retryAt = error instanceof FeedHttpError ? (error.retryAt ?? 0) : 0;
         publish({ status: 'error' });
+      } finally {
+        nextPollAt = deps.now() + (state.status === 'live' ? deps.pollMs : deps.retryMs);
+        publish({ refreshing: false });
       }
-    })().finally(() => {
-      pending = null;
-      nextPollAt = deps.now() + (state.status === 'live' ? deps.pollMs : deps.retryMs);
-      publish({ refreshing: false });
-      schedule();
     });
-    return pending;
   }
   function connect(listener: () => void) {
     subscribers.add(listener);

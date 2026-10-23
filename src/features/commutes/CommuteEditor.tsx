@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { TravelRoute } from '../../utils/ltaTravelTimes';
-import { Commute, CommuteLeg, deleteCommute, saveCommute } from '../../utils/commutes';
+import { Commute, CommuteLeg, deleteCommute, saveCommuteDetails } from '../../utils/commutes';
 import { isCommute, MAX_LEGS, MAX_NAME_LENGTH } from '../../../shared/commutes/model';
 import { EXPRESSWAY_CORRIDORS } from '../../data/expressways';
 import { LegEditor } from './LegEditor';
@@ -23,7 +23,7 @@ export const CommuteEditor: React.FC<{ initial: Commute; routes: TravelRoute[]; 
 
   const save = () => {
     if (!valid) return;
-    if (saveCommute({ ...initial, name: name.trim(), legs })) onClose();
+    if (saveCommuteDetails(initial.id, name.trim(), legs, isNew)) onClose();
   };
 
   return (

@@ -149,6 +149,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 138. [Turn 138: Continue Error Recovery Preview Publication](#138-turn-138-continue-error-recovery-preview-publication)
 139. [Turn 139: Air-Quality State and Partial-Source Error Logging](#139-turn-139-air-quality-state-and-partial-source-error-logging)
 140. [Turn 140: All Five Error-Handling Fixes Merged to Main](#140-turn-140-all-five-error-handling-fixes-merged-to-main)
+141. [Turn 141: Atomic Concurrent Request Updates on Preview](#141-turn-141-atomic-concurrent-request-updates-on-preview)
 
 ---
 
@@ -2488,6 +2489,23 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Authenticated production homepage, its actual referenced entry bundle, air quality, incidents and rain returned HTTP 200. Air quality contained five regions, incidents nine source records at the check, and rain 47 areas. These are selected deployed success-path checks; synthetic tests establish failure/partial/redaction behavior without live outages, real notifications or camera metadata/presigned probes.
 - The browser interactive recovery check remains unverified because automatic approval review previously hit its usage limit. No alternate browser/protocol workaround was used; the user explicitly approved this merge after that limitation was disclosed. The isolated fixture/manual instructions remain in docs/error-handling.md. No new visual, notification-delivery or OS-display guarantee is claimed.
 - Marked the approved release in docs/error-handling.md and refreshed CLOUD_HANDOFF.md with the merged head, 203-test baseline, verified deployment and browser limitation. Login work remains on hold; no dependency/lockfile, environment value, credential or real browser storage changed. Updated this log/table of contents for documentation-only commit/push on main under the standing instruction. The approved merge and selected production verification are complete; no further merge approval is needed.
+
+---
+
+## 141. Turn 141: Atomic Concurrent Request Updates on Preview
+
+**User Instruction:**
+> "Show me where concurrent requests can race on shared data, and make those updates atomic."
+
+### Implemented and checked locally (23 October 2026, SGT):
+- Created codex/atomic-request-updates from main 1fcb1b0. Traced browser feeds/health, polling, service-worker caches, geolocation/install events, notification permission saves and commute storage, plus server caches/provider pacing/circuit transitions. No database or authenticated mutation API exists; application login stays on hold. Existing server pending-request ownership, cooldown max updates and circuit generations already protect their instance-local state and were retained.
+- Added shared/singleFlight.ts to reserve the pending promise before running work or synchronously notifying observers. Applied it to shared generic/rain/speed feeds and health; final state publication stays within ownership and timers schedule after release. Preserved serialized summary-to-full speed upgrades, offline receipts, retained data and retry hints. Replaced legacy hook-local polling setters with URL-owned resources so a previous URL's completion cannot update a new view.
+- Serialized service-worker compare-and-put per cache name/absolute URL using request admission sequences. A late earlier response cannot overwrite a newer successful cache commit; failed HTTP or storage answers do not supersede usable data. Navigation aliases share the shell key, cache-first misses participate, unrelated keys proceed independently, and idle records are released after all requests/writes finish. Kept existing original-age/offline headers and each caller's network result.
+- Added location generations so only the latest request changes coordinates/denial and opt-in; delayed automatic permission checks cannot supersede a manual tap. Captured/consumed install events before await with single-flight admission so old completion cannot clear a new event; prompt failure uses a fixed redacted diagnostic. No real permissions, install prompts or browser storage was used in verification.
+- Added synchronous field-specific commute operations: permission completion patches only current alerts, editor saves patch only name/route while preserving alerts, edits require an existing record, and creates reject ID collisions. Delayed callbacks cannot recreate a removed record. The permission button has an immediate ref admission guard; existing route revisions, history invalidation and malformed-storage safeguards remain. These are atomic within the active repository, not a new cross-tab or multi-key localStorage transaction system.
+- Added 11 deterministic concurrency regression groups, covering start/final observer re-entry, promise sharing/failure release, health transport re-entry, URL-owner isolation, reverse location/auto-resume order, replacement install events, both commute permission/edit orders and deletion, reverse worker completion/write order, independent URLs, failed newer writes, fallback ages and lock cleanup. The first full run found the migrated hook lacked a server snapshot in an existing weather render test; supplied it and reran successfully. All 214 Node tests pass with zero skips, including the existing wrapper's four offline Python cases; type checks, transport audit, production build and whitespace checks pass.
+- Documented exact locations, mechanisms, existing protections and limits in docs/atomic-updates.md. Worker locks are per active worker, server caches/circuits per warm instance, and localStorage edits in separate tabs remain uncoordinated. No distributed lock/database, dependency/lockfile, credentials, environment/hosting policy or real provider outage was introduced. Pre-existing .claude/ remains untouched.
+- Interactive browser verification remains limited by the earlier automatic approval usage-limit rejection; no alternative browser/protocol workaround or claimed visual pass was used. Updated this log/table of contents for commit/push and a draft preview PR under the standing instruction. Main merge requires explicit approval.
 
 ---
 

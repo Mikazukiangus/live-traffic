@@ -1,3 +1,4 @@
+import { createSingleFlight } from '../../../shared/singleFlight';
 import { FeedHttpError, type FeedResponse } from '../../utils/feedResponse';
 
 export interface FeedState<T> {
@@ -11,6 +12,7 @@ export interface FeedOptions<T> {
   url: string;
   pollMs: number;
   isValid: (data: unknown) => data is T;
+  isComplete?: (data: T) => boolean;
 }
 interface Dependencies {
   fetch: (url: string) => Promise<FeedResponse<unknown>>;
@@ -30,7 +32,7 @@ export function createPolledResource<T>(options: FeedOptions<T>, deps: Dependenc
     refreshing: false,
   };
   const subscribers = new Set<() => void>();
-  let pending: Promise<void> | null = null;
+  const flight = createSingleFlight<void>(() => schedule());
   let nextPollAt = 0;
   let retryAt = 0;
   let failures = 0;
@@ -43,7 +45,7 @@ export function createPolledResource<T>(options: FeedOptions<T>, deps: Dependenc
   const schedule = () => {
     cancelTimer?.();
     cancelTimer = undefined;
-    if (subscribers.size && !pending)
+    if (subscribers.size && !flight.current)
       cancelTimer = deps.schedule(
         () => {
           void refresh();
@@ -52,15 +54,15 @@ export function createPolledResource<T>(options: FeedOptions<T>, deps: Dependenc
       );
   };
   function refresh(): Promise<void> {
-    if (pending) return pending;
+    if (flight.current) return flight.current;
     if (deps.now() < retryAt) {
       schedule();
       return Promise.resolve();
     }
     cancelTimer?.();
     cancelTimer = undefined;
-    publish({ refreshing: true });
-    pending = (async () => {
+    return flight.run(async () => {
+      publish({ refreshing: true });
       try {
         const result = await deps.fetch(options.url);
         if (!options.isValid(result.data)) throw new Error('Unexpected feed response');
@@ -73,20 +75,17 @@ export function createPolledResource<T>(options: FeedOptions<T>, deps: Dependenc
             data: result.data,
             fetchedAt: result.receivedAt,
             offline: result.offline,
-            status: result.offline ? 'error' : 'live',
+            status: result.offline || options.isComplete?.(result.data) === false ? 'error' : 'live',
           });
       } catch (error) {
         failures += 1;
         retryAt = error instanceof FeedHttpError ? (error.retryAt ?? 0) : 0;
         publish({ status: state.status === 'loading' && failures < 2 ? 'loading' : 'error' });
+      } finally {
+        nextPollAt = deps.now() + (state.status === 'live' ? options.pollMs : deps.retryMs);
+        publish({ refreshing: false });
       }
-    })().finally(() => {
-      pending = null;
-      nextPollAt = deps.now() + (state.status === 'live' ? options.pollMs : deps.retryMs);
-      publish({ refreshing: false });
-      schedule();
     });
-    return pending;
   }
   function connect(listener: () => void) {
     subscribers.add(listener);

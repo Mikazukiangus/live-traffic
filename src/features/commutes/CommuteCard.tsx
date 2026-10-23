@@ -1,5 +1,5 @@
 import { PERMISSION_NOTICE } from './notificationDelivery';
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { CongestionStatus } from '../../types/traffic';
 import { RAIN_LEVEL_STYLE } from '../../utils/rainForecast';
 import {
@@ -7,7 +7,7 @@ import {
   commuteRouteKey,
   requestCommuteNotifications,
   notificationsSupported,
-  saveCommute,
+  setCommuteAlerts,
 } from '../../utils/commutes';
 import { erpOn, formatSgd } from '../../utils/erp';
 import { floodLabel } from '../../utils/floodAlerts';
@@ -38,16 +38,19 @@ export const CommuteCard: React.FC<
 
   const [permissionNotice, setPermissionNotice] = useState<string | null>(null);
   const [requestingPermission, setRequestingPermission] = useState(false);
+  const permissionPending = useRef(false);
   const toggleAlerts = async () => {
-    if (requestingPermission) return;
+    if (permissionPending.current) return;
     setPermissionNotice(null);
     if (!commute.alerts) {
+      permissionPending.current = true;
       setRequestingPermission(true);
       const outcome = await requestCommuteNotifications();
+      permissionPending.current = false;
       setRequestingPermission(false);
       if (outcome !== 'granted') { setPermissionNotice(PERMISSION_NOTICE[outcome]); return; }
     }
-    saveCommute({ ...commute, alerts: !commute.alerts });
+    setCommuteAlerts(commute.id, !commute.alerts);
   };
 
   return (

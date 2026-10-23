@@ -1,3 +1,4 @@
+import { createSingleFlight } from '../../shared/singleFlight';
 import { config } from '../../config/client';
 import { safeFailure, UpstreamHttpError } from '../../shared/diagnostics.ts';
 import { useSyncExternalStore } from 'react';
@@ -33,7 +34,7 @@ export function isHealthData(data: unknown): data is HealthData {
 }
 
 let snapshot: HealthSnapshot = { data: null, loading: false, error: null, checkedAt: null, latencyMs: null };
-let pending: Promise<void> | null = null;
+const flight = createSingleFlight<void>();
 const listeners = new Set<() => void>();
 function publish(changes: Partial<HealthSnapshot>) {
   snapshot = { ...snapshot, ...changes };
@@ -45,9 +46,8 @@ export function useApiHealth() { return useSyncExternalStore(subscribe, getHealt
 
 /** The modal and footer always show the same validated, measured check. */
 export function refreshApiHealth(): Promise<void> {
-  if (pending) return pending;
-  publish({ loading: true, error: null });
-  pending = (async () => {
+  return flight.run(async () => {
+    publish({ loading: true, error: null });
     const start = performance.now();
     try {
       const data: unknown = await fetchWithTimeout('/api/health', async (res) => {
@@ -64,8 +64,6 @@ export function refreshApiHealth(): Promise<void> {
         : err instanceof UnexpectedHealthResponse ? 'Unexpected health response' : safeFailure('gateway', err).body.error });
     } finally {
       publish({ loading: false });
-      pending = null;
     }
-  })();
-  return pending;
+  });
 }

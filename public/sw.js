@@ -20,6 +20,47 @@ const BYPASS = [/^\/api\/imageproxy/, /^\/api\/health/, /^\/models\//, /\.wasm$/
 // Each deploy adds new hashed assets; keep only the newest ones.
 const MAX_ASSETS = 40;
 
+// One worker serves several tabs. Serialize compare-and-put per cache key so a slow,
+// older request cannot overwrite a newer successful response (or renew its cached age).
+const cacheUpdates = new Map();
+function cacheRequest(request, cacheName, fallbackUrl) {
+  const target = fallbackUrl || request;
+  const url = new URL(typeof target === 'string' ? target : target.url, self.location.origin).href;
+  const key = `${cacheName}:${url}`;
+  let state = cacheUpdates.get(key);
+  if (!state) {
+    state = { issued: 0, committed: 0, active: 0, writes: 0, tail: Promise.resolve() };
+    cacheUpdates.set(key, state);
+  }
+  const version = ++state.issued;
+  state.active++;
+  const clean = () => {
+    if (!state.active && !state.writes && cacheUpdates.get(key) === state) cacheUpdates.delete(key);
+  };
+  return {
+    async put(response, signal) {
+      state.writes++;
+      const write = state.tail.then(async () => {
+        if (version < state.committed || signal?.aborted) return;
+        const cache = await caches.open(cacheName);
+        let saved = response.clone();
+        if (cacheName === DATA) {
+          const headers = new Headers(saved.headers);
+          headers.set('X-TrafficPulse-Cached-At', String(Date.now()));
+          saved = new Response(await saved.blob(), { status: saved.status, headers });
+        }
+        if (signal?.aborted) return;
+        await cache.put(target, saved);
+        // Failed writes never supersede the last usable cached response.
+        state.committed = version;
+      });
+      state.tail = write.catch(() => {});
+      try { await write; } finally { state.writes--; clean(); }
+    },
+    release() { state.active--; clean(); },
+  };
+}
+
 self.addEventListener('install', (event) => {
   event.waitUntil(Promise.all(['/', '/theme-init.js', '/manifest.webmanifest', '/icons/icon-192.png'].map(async (path) => {
     const request = new Request(new URL(path, self.location.origin));
@@ -57,7 +98,7 @@ async function boundedFetch(request, timeoutMs, consume = async (response) => re
       // Reading a clone preserves response type, headers and navigation behavior.
       await response.clone().blob();
       signal.throwIfAborted();
-      return consume(response);
+      return consume(response, signal);
     })(), aborted]);
   } finally {
     clearTimeout(timer);
@@ -73,18 +114,12 @@ function dataTimeout(request) {
 }
 
 async function networkFirst(request, cacheName, fallbackUrl) {
+  const update = cacheRequest(request, cacheName, fallbackUrl);
   try {
     const response = await boundedFetch(request, cacheName === DATA ? dataTimeout(request) : NETWORK_TIMEOUTS.request);
     if (response.ok) {
       try {
-        const cache = await caches.open(cacheName);
-        let saved = response.clone();
-        if (cacheName === DATA) {
-          const headers = new Headers(saved.headers);
-          headers.set('X-TrafficPulse-Cached-At', String(Date.now()));
-          saved = new Response(await saved.blob(), { status: saved.status, headers });
-        }
-        await cache.put(fallbackUrl || request, saved);
+        await update.put(response, request.signal);
       } catch {
         // Storage full or disabled: the successful network answer is still usable.
       }
@@ -100,24 +135,29 @@ async function networkFirst(request, cacheName, fallbackUrl) {
       return new Response(await cached.blob(), { status: cached.status, headers });
     }
     throw err;
+  } finally {
+    update.release();
   }
 }
 
 async function cacheFirst(request, cacheName) {
-  const cached = await caches.match(request);
-  if (cached) return cached;
-  return boundedFetch(request, cacheName === FONTS ? NETWORK_TIMEOUTS.request : NETWORK_TIMEOUTS.assets, async (response) => {
-    // Keep cancellation live through cache.put too: opaque font bodies cannot be read by JS.
-    if (response.ok || response.type === 'opaque') {
-      const cache = await caches.open(cacheName);
-      await cache.put(request, response.clone());
-      if (cacheName === ASSETS) {
-        const keys = await cache.keys();
-        await Promise.all(keys.slice(0, Math.max(0, keys.length - MAX_ASSETS)).map((k) => cache.delete(k)));
+  const update = cacheRequest(request, cacheName);
+  try {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    return await boundedFetch(request, cacheName === FONTS ? NETWORK_TIMEOUTS.request : NETWORK_TIMEOUTS.assets, async (response, signal) => {
+      // Keep cancellation live through cache.put too: opaque font bodies cannot be read by JS.
+      if (response.ok || response.type === 'opaque') {
+        const cache = await caches.open(cacheName);
+        await update.put(response, signal);
+        if (cacheName === ASSETS) {
+          const keys = await cache.keys();
+          await Promise.all(keys.slice(0, Math.max(0, keys.length - MAX_ASSETS)).map((k) => cache.delete(k)));
+        }
       }
-    }
-    return response;
-  });
+      return response;
+    });
+  } finally { update.release(); }
 }
 
 self.addEventListener('fetch', (event) => {

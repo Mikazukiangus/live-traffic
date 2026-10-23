@@ -1,3 +1,4 @@
+import { createSingleFlight } from '../../../shared/singleFlight';
 import type { SpeedPayload, SpeedSegment } from '../../../shared/traffic/types';
 import type { FeedResponse } from '../../utils/feedResponse';
 
@@ -92,7 +93,7 @@ export function createSpeedResource(deps: Dependencies) {
     geometry: [],
   };
   const subscribers = new Map<() => void, SpeedDemand>();
-  let pending: Promise<void> | null = null;
+  const flight = createSingleFlight<void>(() => schedule());
   let pendingFull = false;
   let cancelTimer: (() => void) | undefined;
   let removeRefresh: (() => void) | undefined;
@@ -108,7 +109,7 @@ export function createSpeedResource(deps: Dependencies) {
   const schedule = () => {
     cancelTimer?.();
     cancelTimer = undefined;
-    if (subscribers.size && polling()) {
+    if (subscribers.size && !flight.current && polling()) {
       cancelTimer = deps.schedule(
         () => {
           void refresh();
@@ -118,17 +119,17 @@ export function createSpeedResource(deps: Dependencies) {
     }
   };
   function refresh(): Promise<void> {
-    if (pending) {
+    if (flight.current) {
       // A full consumer arriving during a summary request gets one serialized upgrade.
       const upgrade = needsFull() && !pendingFull;
-      return upgrade ? pending.then(() => (subscribers.size && needsFull() ? refresh() : undefined)) : pending;
+      return upgrade ? flight.current.then(() => (subscribers.size && needsFull() ? refresh() : undefined)) : flight.current;
     }
     cancelTimer?.();
     cancelTimer = undefined;
     pendingFull = needsFull();
     const full = pendingFull;
-    publish({ refreshing: true });
-    pending = (async () => {
+    return flight.run(async () => {
+      publish({ refreshing: true });
       try {
         const result = await deps.fetch(`/api/expresswayspeeds${full ? '?include=segments' : ''}`);
         if (!isSpeedPayload(result.data) || (full && !Array.isArray(result.data.segments)))
@@ -155,13 +156,10 @@ export function createSpeedResource(deps: Dependencies) {
             ? { data: stored, status: 'error', fromSnapshot: true, geometry: stored.segments ?? state.geometry }
             : { status: 'error' },
         );
+      } finally {
+        publish({ refreshing: false });
       }
-    })().finally(() => {
-      pending = null;
-      publish({ refreshing: false });
-      schedule();
     });
-    return pending;
   }
   const connect = (listener: () => void, demand: SpeedDemand) => {
     subscribers.set(listener, demand);

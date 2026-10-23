@@ -140,6 +140,37 @@ export function createCommuteRepository(
     if (changed || snapshot.notice !== notice()) publish();
   };
 
+  function save(value: unknown): boolean {
+    if (!isCommute(value, codes)) return false;
+    const previous = snapshot.commutes.find((c) => c.id === value.id);
+    if (!previous && snapshot.commutes.length >= MAX_COMMUTES) return false;
+    const commute: Commute = {
+      id: value.id,
+      name: value.name.trim(),
+      alerts: value.alerts,
+      routeRevision: previous?.routeRevision ?? 0,
+      legs: value.legs.map((l) => ({
+        code: l.code,
+        direction: l.direction,
+        from: l.from.trim(),
+        to: l.to.trim(),
+      })),
+    };
+    const changed = previous && commutePathKey(previous) !== commutePathKey(commute);
+    if (changed) {
+      if (commute.routeRevision! >= Number.MAX_SAFE_INTEGER - 1) return false;
+      commute.routeRevision! += 1;
+    }
+    if (changed) histories = histories.filter((h) => h.commuteId !== commute.id);
+    const commutes = previous
+      ? snapshot.commutes.map((c) => (c.id === commute.id ? commute : c))
+      : [...snapshot.commutes, commute];
+    persist(COMMUTE_STORAGE_KEYS.commutes, { schemaVersion: 1, commutes });
+    if (changed) persistHistory();
+    publish(commutes);
+    return true;
+  }
+
   return {
     getSnapshot: () => snapshot,
     subscribe(fn: () => void) {
@@ -148,35 +179,21 @@ export function createCommuteRepository(
         listeners.delete(fn);
       };
     },
-    save(value: unknown): boolean {
-      if (!isCommute(value, codes)) return false;
-      const previous = snapshot.commutes.find((c) => c.id === value.id);
-      if (!previous && snapshot.commutes.length >= MAX_COMMUTES) return false;
-      const commute: Commute = {
-        id: value.id,
-        name: value.name.trim(),
-        alerts: value.alerts,
-        routeRevision: previous?.routeRevision ?? 0,
-        legs: value.legs.map((l) => ({
-          code: l.code,
-          direction: l.direction,
-          from: l.from.trim(),
-          to: l.to.trim(),
-        })),
-      };
-      const changed = previous && commutePathKey(previous) !== commutePathKey(commute);
-      if (changed) {
-        if (commute.routeRevision! >= Number.MAX_SAFE_INTEGER - 1) return false;
-        commute.routeRevision! += 1;
-      }
-      if (changed) histories = histories.filter((h) => h.commuteId !== commute.id);
-      const commutes = previous
-        ? snapshot.commutes.map((c) => (c.id === commute.id ? commute : c))
-        : [...snapshot.commutes, commute];
+    // Read/patch/persist/publish without an await. Permission completions never save stale records.
+    setAlerts(id: string, enabled: boolean): boolean {
+      if (!isCommuteId(id) || typeof enabled !== 'boolean') return false;
+      if (!snapshot.commutes.some(c => c.id === id)) return false;
+      const commutes = snapshot.commutes.map(c => c.id === id ? { ...c, alerts: enabled } : c);
       persist(COMMUTE_STORAGE_KEYS.commutes, { schemaVersion: 1, commutes });
-      if (changed) persistHistory();
       publish(commutes);
       return true;
+    },
+    save,
+    saveDetails(id: string, name: string, legs: Commute['legs'], create = false): boolean {
+      const current = snapshot.commutes.find(c => c.id === id);
+      // An editor changes name/route only. It must not revert alerts or recreate a removed record.
+      if (create ? !!current : !current) return false;
+      return save({ id, name, legs, alerts: current?.alerts ?? false });
     },
     remove(id: string) {
       if (!isCommuteId(id)) return;
