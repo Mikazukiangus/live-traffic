@@ -1,7 +1,8 @@
+import { isRecord } from '../shared/traffic/validation.ts';
 import { providerFailureStatus, providerFailureHeaders, failedDependency } from '../server/http/providerFailure.ts';
 import { requestSchemas } from '../server/http/requestSchemas.ts';
 import { withRequestSchema } from '../server/http/validateRequest.ts';
-import { reportFailure, safeFailure } from '../shared/diagnostics.ts';
+import { reportSourceFailure, safeFailure, InvalidPayloadError } from '../shared/diagnostics.ts';
 import { config } from '../config/server.ts';
 /**
  * NEA Air Quality Serverless Endpoint (keyless)
@@ -34,18 +35,20 @@ function send(res: any, status: number, body: unknown, cache = NO_STORE) {
 async function fetchLatest(url: string) {
   const data = await fetchDataGovV2(url);
   const item = data.items?.[0];
-  if (!item?.readings) throw new Error('No readings published');
-  return { item, regions: data.regionMetadata || [] };
+  const regions = data.regionMetadata ?? [];
+  if (!isRecord(item?.readings) || !Array.isArray(regions) || regions.some((r: unknown) => !isRecord(r) || typeof r.name !== 'string'))
+    throw new InvalidPayloadError();
+  return { item, regions };
 }
 
 const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null);
 
 const handler = withRequestSchema(requestSchemas.empty, async (_req, res) => {
   const [psi, pm25] = await Promise.allSettled([fetchLatest(PSI_URL), fetchLatest(PM25_URL)]);
+  if (psi.status === 'rejected') reportSourceFailure('nea', 'psi', psi.reason);
+  if (pm25.status === 'rejected') reportSourceFailure('nea', 'pm25', pm25.reason);
   if (psi.status === 'rejected' && pm25.status === 'rejected') {
     const error = failedDependency(psi.reason, pm25.reason);
-    reportFailure('nea', psi.reason);
-    reportFailure('nea', pm25.reason);
     return send(res, providerFailureStatus(error), safeFailure('nea', error).body, providerFailureHeaders(error));
   }
 

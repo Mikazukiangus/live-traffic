@@ -1,4 +1,5 @@
-import { REGION_LABEL, nearestRegion, pm25Band, psiBand, sgtHour, type AirQuality } from '../../utils/airQuality';
+import { airObservationTime } from '../weather/airFreshness';
+import { REGION_LABEL, nearestRegion, pm25Band, psiBand, type AirQuality } from '../../utils/airQuality';
 import { RAIN_LEVEL_STYLE, nearestArea, rainLevel, type RainForecast } from '../../utils/rainForecast';
 import { jamLevel, type JamLevel, type NearbyTraffic } from '../../utils/expresswaySpeeds';
 import { currentVehicleCount, type VehicleCount } from '../../utils/vehicleDetection';
@@ -53,15 +54,15 @@ const CHECKPOINT_SUMMARY: {
 export const cameraAir = (cam: CameraCard, airQuality: AirQuality | null) => {
   if (!airQuality || cam.lat == null || cam.lon == null) return null;
   const region = nearestRegion(cam.lat, cam.lon, airQuality);
-  if (!region || region.psi24h == null) return null;
+  if (!region || region.psi24h == null || airQuality.psiTimestamp === null) return null;
   const pm =
-    region.pm25OneHour != null
-      ? `, PM2.5 ${region.pm25OneHour} µg/m³ (${pm25Band(region.pm25OneHour).label.toLowerCase()}, 1-hour)`
+    region.pm25OneHour != null && airQuality.pm25Timestamp !== null
+      ? `, PM2.5 ${region.pm25OneHour} µg/m³ (${pm25Band(region.pm25OneHour).label.toLowerCase()}, 1-hour at ${airObservationTime(airQuality.pm25Timestamp)})`
       : '';
   return {
     psi: region.psi24h,
     band: psiBand(region.psi24h),
-    detail: `NEA ${REGION_LABEL[region.name]} region at ${sgtHour(airQuality.psiTimestamp)} SGT: 24-hour PSI ${region.psi24h}${pm}`,
+    detail: `NEA ${REGION_LABEL[region.name]} region at ${airObservationTime(airQuality.psiTimestamp)}: 24-hour PSI ${region.psi24h}${pm}`,
   };
 };
 

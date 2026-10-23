@@ -102,6 +102,6 @@ export const sgtHour = (timestamp: string | null) => timestamp?.slice(11, 16) ??
 
 // NEA updates hourly; the endpoint is CDN-cached for 5 minutes.
 const airFeed = createBrowserFeed({ url: '/api/airquality', pollMs: config.poll.air, isValid: isAirQuality });
-export function useAirQuality(): AirQuality | null {
-  return useSharedFeed(airFeed).data;
+export function useAirQuality() {
+  return useSharedFeed(airFeed);
 }

@@ -1,10 +1,11 @@
-import React, { useMemo } from 'react';
+import { PERMISSION_NOTICE } from './notificationDelivery';
+import React, { useMemo, useState } from 'react';
 import { CongestionStatus } from '../../types/traffic';
 import { RAIN_LEVEL_STYLE } from '../../utils/rainForecast';
 import {
   Commute,
   commuteRouteKey,
-  enableNotifications,
+  requestCommuteNotifications,
   notificationsSupported,
   saveCommute,
 } from '../../utils/commutes';
@@ -35,12 +36,16 @@ export const CommuteCard: React.FC<
 
   const { samples, trend } = useCommuteHistory(commute.id, commuteRouteKey(commute), now);
 
+  const [permissionNotice, setPermissionNotice] = useState<string | null>(null);
+  const [requestingPermission, setRequestingPermission] = useState(false);
   const toggleAlerts = async () => {
-    if (!commute.alerts && !(await enableNotifications())) {
-      window.alert(
-        'Notifications are blocked for this site. Allow them in your browser settings to get commute alerts.',
-      );
-      return;
+    if (requestingPermission) return;
+    setPermissionNotice(null);
+    if (!commute.alerts) {
+      setRequestingPermission(true);
+      const outcome = await requestCommuteNotifications();
+      setRequestingPermission(false);
+      if (outcome !== 'granted') { setPermissionNotice(PERMISSION_NOTICE[outcome]); return; }
     }
     saveCommute({ ...commute, alerts: !commute.alerts });
   };
@@ -69,6 +74,7 @@ export const CommuteCard: React.FC<
           {notificationsSupported() && (
             <button
               onClick={toggleAlerts}
+              disabled={requestingPermission}
               aria-pressed={commute.alerts}
               aria-label={
                 commute.alerts
@@ -100,6 +106,7 @@ export const CommuteCard: React.FC<
         </div>
       </div>
 
+      {permissionNotice && <p role="status" className="text-xs text-amber-800">{permissionNotice}</p>}
       <ol className="flex flex-col gap-1">
         {legs.map(({ leg, minutes, estimated }, i) => {
           const s = speeds?.[leg.code];

@@ -1,3 +1,4 @@
+import { airNotices } from '../weather/airFreshness';
 import { rainNotice } from '../weather/rainFreshness';
 import { RadarSources } from './useRadarSources';
 import { IncidentFeed } from '../../utils/ltaIncidents';
@@ -11,7 +12,6 @@ import { floodLabel } from '../../utils/floodAlerts';
 import { MapMarker } from '../../components/SpeedBandMap';
 import { config } from '../../../config/client';
 const SPEEDS_STALE_MS = config.freshness.speeds;
-const AIR_STALE_MS = config.freshness.air;
 const LIGHTNING_STALE_MS = config.freshness.lightning;
 export function radarStaleFeeds(sources: RadarSources, incidentFeed: IncidentFeed, now: number) {
   const {
@@ -19,7 +19,7 @@ export function radarStaleFeeds(sources: RadarSources, incidentFeed: IncidentFee
     speedStatus,
     travelTimes,
     rainFeed,
-    airQuality,
+    airFeed,
     roadConditions,
     weatherAlerts,
     floodFeed,
@@ -52,7 +52,7 @@ export function radarStaleFeeds(sources: RadarSources, incidentFeed: IncidentFee
   }
   const rainWarning = rainNotice(rainFeed, now);
   if (rainWarning) staleFeeds.push(rainWarning);
-  const psiAt = parseSgt(airQuality?.psiTimestamp);
+  staleFeeds.push(...airNotices(airFeed, now));
   if (roadConditions.status === 'error')
     staleFeeds.push({ label: 'LTA road works & traffic lights', detail: 'not responding' });
   if (weatherAlerts.status === 'error')
@@ -63,8 +63,6 @@ export function radarStaleFeeds(sources: RadarSources, incidentFeed: IncidentFee
   if (lightningAt && now - lightningAt > LIGHTNING_STALE_MS) {
     staleFeeds.push({ label: 'NEA lightning', detail: `last observation ${sgtClock(lightningAt)} SGT` });
   }
-  if (psiAt && now - psiAt > AIR_STALE_MS)
-    staleFeeds.push({ label: 'NEA air quality', detail: `readings from ${sgtClock(psiAt)} SGT` });
 
   return staleFeeds;
 }

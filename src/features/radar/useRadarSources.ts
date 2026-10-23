@@ -36,7 +36,8 @@ export function useRadarSources() {
   const rainForecast = rainFeed.data && rainIsValid(rainFeed.data, now) ? rainFeed.data : null;
 
   // NEA 24-hour PSI and 1-hour PM2.5 for the five regions
-  const airQuality = useAirQuality();
+  const airFeed = useAirQuality();
+  const airQuality = airFeed.data;
 
   // LTA road works on each expressway and faulty traffic lights
   const roadConditions = useRoadConditions();
@@ -67,6 +68,7 @@ export function useRadarSources() {
     rainForecast,
     rainFeed,
     airQuality,
+    airFeed,
     roadConditions,
     worksByCode,
     weatherAlerts,

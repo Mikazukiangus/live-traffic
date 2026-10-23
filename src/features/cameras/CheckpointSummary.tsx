@@ -7,8 +7,9 @@ interface Props {
   rain: ReturnType<typeof cameraRain>;
   air: ReturnType<typeof cameraAir>;
   rainForecast: RainForecast | null;
+  airNotice: string | null;
 }
-export function CheckpointSummary({ summary, label, rain, air, rainForecast }: Props) {
+export function CheckpointSummary({ summary, label, rain, air, rainForecast, airNotice }: Props) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-3 sm:p-4 flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
@@ -55,6 +56,7 @@ export function CheckpointSummary({ summary, label, rain, air, rainForecast }: P
           </span>
         )}
       </div>
+      {airNotice && <p role="status" className="text-xs text-amber-800">{airNotice}</p>}
       <details className="text-xs text-slate-500">
         <summary className="min-h-11 flex items-center gap-1 cursor-pointer">
           <span className="material-symbols-outlined text-base" aria-hidden="true">
