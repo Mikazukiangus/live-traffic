@@ -129,8 +129,10 @@ function iou(a: Box, b: Box) {
 }
 
 /** Number of vehicles found in the photo at `url` (must be same-origin or CORS-enabled). */
-export async function countVehicles(url: string): Promise<number> {
-  const [{ ort, session }, img] = await Promise.all([loadRuntime(), loadImage(url)]);
+export async function countVehicles(url: string, signal?: AbortSignal): Promise<number> {
+  signal?.throwIfAborted();
+  const [{ ort, session }, img] = await Promise.all([loadRuntime(), loadImage(url, config.timeouts.request, undefined, signal)]);
+  signal?.throwIfAborted();
   const W = img.naturalWidth;
   const H = img.naturalHeight;
   const tileW = Math.round((W / TILE_COLS) * (1 + TILE_OVERLAP));
@@ -143,10 +145,13 @@ export async function countVehicles(url: string): Promise<number> {
   const found: { box: Box; score: number }[] = [];
   for (let r = 0; r < TILE_ROWS; r++) {
     for (let c = 0; c < TILE_COLS; c++) {
+      signal?.throwIfAborted();
       const x0 = Math.min(Math.round((c * W) / TILE_COLS), W - tileW);
       const y0 = Math.min(Math.round((r * H) / TILE_ROWS), H - tileH);
       ctx.drawImage(img, x0, y0, tileW, tileH, 0, 0, tileW, tileH);
-      for (const f of await detectTile(ort, session, tile)) {
+      const detected = await detectTile(ort, session, tile);
+      signal?.throwIfAborted();
+      for (const f of detected) {
         if (f.box[2] > W * MAX_BOX_WIDTH) continue;
         found.push({ box: [f.box[0] + x0, f.box[1] + y0, f.box[2], f.box[3]], score: f.score });
       }

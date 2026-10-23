@@ -1,4 +1,6 @@
 import { createCommuteAlertQueue, type AlertCandidate } from '../features/commutes/commuteAlertQueue';
+import { createNotificationJobs } from '../features/commutes/notificationJobs';
+import { backgroundOwner, getBackgroundQueue } from '../features/background/browserQueue';
 import { requestCommuteNotifications, sendCommuteNotification } from '../features/commutes/notificationDelivery';
 export { notificationsSupported, requestCommuteNotifications } from '../features/commutes/notificationDelivery';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
@@ -46,7 +48,9 @@ export function useCommuteAlerts(incidents: IncidentAlert[], status: string) {
   const queue = useRef<ReturnType<typeof createCommuteAlertQueue> | null>(null);
   useEffect(() => {
     const current = createCommuteAlertQueue({
-      send: sendCommuteNotification, now: Date.now, onNotice: setNotice,
+      send: createNotificationJobs(getBackgroundQueue(), backgroundOwner('notifications'),
+        (title, body, signal) => sendCommuteNotification(title, body, undefined, signal)),
+      now: Date.now, onNotice: setNotice,
       schedule: (run, ms) => { const timer = setTimeout(run, ms); return () => clearTimeout(timer); },
     });
     queue.current = current;

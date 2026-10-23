@@ -2,15 +2,17 @@ import type { DeliveryOutcome } from './notificationDelivery';
 import { reportNotificationFailure } from '../../../shared/applicationDiagnostics';
 
 export interface AlertCandidate { key: string; title: string; body: string }
+export interface AlertDispatch { signal: AbortSignal; key: string; expiresAt: number }
 interface Entry {
   candidate: AlertCandidate;
   attempts: number;
   expiresAt: number;
   state: 'pending' | 'retrying' | 'failed' | 'blocked' | 'unsupported';
   cancel?: () => void;
+  controller: AbortController;
 }
 interface Dependencies {
-  send: (title: string, body: string) => Promise<DeliveryOutcome>;
+  send: (title: string, body: string, context: AlertDispatch) => Promise<DeliveryOutcome>;
   now: () => number;
   schedule: (run: () => void, ms: number) => () => void;
   onNotice: (notice: string | null) => void;
@@ -39,7 +41,8 @@ export function createCommuteAlertQueue(deps: Dependencies) {
     entry.attempts++;
     entry.state = 'pending';
     let outcome: DeliveryOutcome;
-    try { outcome = await deps.send(entry.candidate.title, entry.candidate.body); }
+    try { outcome = await deps.send(entry.candidate.title, entry.candidate.body,
+      { signal: entry.controller.signal, key: entry.candidate.key, expiresAt: entry.expiresAt }); }
     catch { reportNotificationFailure('delivery'); outcome = 'failed'; }
     if (!current(entry)) return;
     if (outcome === 'sent') {
@@ -60,15 +63,15 @@ export function createCommuteAlertQueue(deps: Dependencies) {
       const present = new Set(keys), eligible = new Set(candidates.map(c => c.key));
       for (const [key, entry] of entries) {
         if (!present.has(key) || !eligible.has(key)) {
-          entry.cancel?.(); entries.delete(key); ignored.add(key);
+          entry.cancel?.(); entry.controller.abort(); entries.delete(key); ignored.add(key);
         } else if (deps.now() >= entry.expiresAt) {
-          entry.cancel?.(); entry.cancel = undefined; entry.state = 'failed';
+          entry.cancel?.(); entry.controller.abort(); entry.cancel = undefined; entry.state = 'failed';
         }
       }
       if (live) keys.forEach(key => { if (!eligible.has(key)) ignored.add(key); });
       for (const candidate of live ? candidates : []) {
         if (!present.has(candidate.key) || ignored.has(candidate.key) || sent.has(candidate.key) || entries.has(candidate.key)) continue;
-        const entry: Entry = { candidate, attempts: 0, expiresAt: deps.now() + MAX_AGE_MS, state: 'pending' };
+        const entry: Entry = { candidate, attempts: 0, expiresAt: deps.now() + MAX_AGE_MS, state: 'pending', controller: new AbortController() };
         entries.set(candidate.key, entry);
         void attempt(entry);
       }
@@ -76,7 +79,7 @@ export function createCommuteAlertQueue(deps: Dependencies) {
     },
     dispose() {
       active = false;
-      entries.forEach(entry => entry.cancel?.());
+      entries.forEach(entry => { entry.cancel?.(); entry.controller.abort(); });
       entries.clear();
     },
   };
