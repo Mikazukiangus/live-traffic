@@ -1,11 +1,15 @@
 # Safe read retries
 
-Implemented on preview branch `codex/safe-provider-retries`, 23 October 2026 (SGT).
-Not merged to main. Application login work remains on hold.
+Released to main through PR #19 as `3a16828` on 23 October 2026 (SGT).
+Application login work remains on hold.
 
 Review: [PR #19](https://github.com/Mikazukiangus/live-traffic/pull/19).
 Implementation `33d17b8` passed both GitHub Checks runs and Vercel checks.
 Its [preview](https://live-traffic-knt2da8ch-carbon-bc04.vercel.app) is READY.
+Final PR head `8fe2076` also passed both GitHub Checks runs and Vercel checks
+before the approved merge.
+Production deployment `dpl_Bir2cTBcmPvGacpGJR1CvgbpR3yx` is READY for merge
+`3a16828` and assigned to the production aliases.
 
 ## Where retries happen
 
@@ -111,6 +115,11 @@ Authenticated deployed preview smoke checks returned HTTP 200 for the homepage,
 LTA incidents (21 source records at the check) and rain (47 forecast areas). These
 verify deployed provider/response compatibility; synthetic tests establish retry
 behavior without inducing upstream failures or accessing presigned camera feeds.
+
+After the approved merge, authenticated production homepage, its referenced entry
+bundle, LTA incidents and rain returned HTTP 200. Incidents contained 22 source
+records at the check; rain had 47 areas. These are selected release smoke checks,
+not live failure injection or a new benchmark of retry behavior.
 
 Semantics reference: [RFC 9110, idempotent methods and retry behavior](https://www.rfc-editor.org/rfc/rfc9110.html#section-9.2.2),
 [Retry-After](https://www.rfc-editor.org/rfc/rfc9110.html#section-10.2.3).

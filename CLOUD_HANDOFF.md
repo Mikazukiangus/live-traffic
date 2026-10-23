@@ -1,6 +1,6 @@
 # TrafficPulse — cloud workspace handoff
 
-Prepared 22 October 2026 (Asia/Singapore). Repository:
+Prepared 22 October 2026; release status refreshed 23 October 2026 (Asia/Singapore). Repository:
 <https://github.com/Mikazukiangus/live-traffic>.
 
 ## Start here
@@ -14,8 +14,9 @@ Fetch current main to include this handoff and its log entry; do not reset to th
 older snapshot. The local checkout had no tracked changes and only a pre-existing
 untracked `.claude/` directory. No local-only implementation needs recovering.
 
-**The latest implementation is complete.** PR #18 is merged as
-`dc910351ad6703424d17b07c55312d77ea56dd48`. No implementation from this session
+**The latest implementation is complete.** PR #19 (safe provider retries) is merged as
+`3a16828ebcd88d7d99f4644338978f7ad0e4b140`, following PR #18's timeout release.
+No implementation from this session
 is waiting to be merged.
 Application login, account creation and brute-force lockout are **on hold at the
 user's explicit request**. Do not resume them unless requested; see
@@ -163,12 +164,21 @@ outbound calls lacked them:
 - Read `docs/api/timeouts.md` for the inventory, settings and native browser-resource
   cancellation limits. Do not claim every browser-managed resource is abortable.
 
-**164 tests**, type checking, security source audit and production build passed.
-Both final PR checks and Vercel checks passed. A local synthetic-image browser test
-returned zero vehicles with actual model/WASM/worker initialization. Production
-homepage, entry bundle and worker returned HTTP 200; the worker had the rendered
-30000/90000/60000 policy. Rain returned HTTP 200 with 47 areas. These are the latest
-recorded checks, not a guarantee of current provider health in the new environment.
+[PR #19](https://github.com/Mikazukiangus/live-traffic/pull/19) adds safe transient
+read retries with exponential backoff/jitter, Retry-After minimums, cancellation and
+shared deadlines. Ordinary LTA reads cap at 3 attempts, speeds at 4, camera/image
+sources at 2 and paced weather at 2. Probes stay single-attempt. Permanent,
+credential, schema, TLS and guard errors stop promptly; arbitrary mutations are
+not replayed. The offline Overpass helper's known read-only POST query is an
+explicit semantic exception. See `docs/api/retries.md` for exact budgets and limits.
+
+**173 tests**, type checking, security source audit and production build passed.
+The Python wrapper ran four offline helper tests. Both final PR #19 checks and
+Vercel checks passed. Production homepage/entry bundle, incidents (22 source
+records at the check) and rain (47 areas) returned HTTP 200 on 23 October.
+The earlier timeout release also verified the worker's rendered 30000/90000/60000
+policy and a local synthetic-image count with actual model/WASM/worker startup.
+These are recorded checks, not a guarantee of current provider health in the new environment.
 
 ## Vercel and safe live checks
 
@@ -177,8 +187,8 @@ recorded checks, not a guarantee of current provider health in the new environme
 - Canonical production: <https://live-traffic-carbon-bc04.vercel.app>.
 - Other observed production alias: <https://live-traffic-kappa.vercel.app>.
   `live-traffic.vercel.app` belongs to a different application; do not use it.
-- Last verified runtime deployment: `dpl_kPTPCPYusXt3AT8JBYh4JdRV4Rnb`, READY for
-  merge `dc91035`. Subsequent main documentation pushes can create newer deployments;
+- Last verified runtime deployment: `dpl_Bir2cTBcmPvGacpGJR1CvgbpR3yx`, READY for
+  merge `3a16828`. Subsequent main documentation pushes can create newer deployments;
   verify current SHA/team/project/target rather than pinning that deployment forever.
 
 Use the new chat's authenticated Vercel tools if available; connector authorization

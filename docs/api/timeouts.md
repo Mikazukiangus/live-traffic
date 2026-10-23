@@ -3,8 +3,8 @@
 Released to main through PR #18 as `dc91035` on 22 October 2026 (SGT).
 Audit date: 22 October 2026 (SGT).
 
-Follow-up on 23 October: [safe provider retry policy](retries.md) is proposed on a
-preview branch. It keeps the LTA/page/image read budget shared across attempts and
+Follow-up on 23 October: [safe provider retry policy](retries.md) was released
+through PR #19. It keeps the LTA/page/image read budget shared across attempts and
 defines a separate total weather retry budget after initial pacing. The inventory
 below describes the timeout release; consult the follow-up for retry behavior.
 

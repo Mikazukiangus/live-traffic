@@ -141,6 +141,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 130. [Turn 130: Outbound Timeouts Merged to Main](#130-turn-130-outbound-timeouts-merged-to-main)
 131. [Turn 131: Cloud Workspace Handoff Note](#131-turn-131-cloud-workspace-handoff-note)
 132. [Turn 132: Safe External Read Retries on Preview](#132-turn-132-safe-external-read-retries-on-preview)
+133. [Turn 133: Safe Provider Retries Merged to Main](#133-turn-133-safe-provider-retries-merged-to-main)
 
 ---
 
@@ -2338,6 +2339,21 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Pushed implementation 33d17b8507c1b326571fb797e4884ada5c13f2bb and opened draft PR #19 (https://github.com/Mikazukiangus/live-traffic/pull/19), attached to this chat. Both GitHub Checks runs 39905693468 and 39905723780 completed successfully at that exact head; Vercel deployment and preview-feedback checks also passed.
 - Deployment dpl_3gfTHaKYnjb8ZSKv35qLNR4FWPea is READY for the intended project/team, preview branch and implementation SHA: https://live-traffic-knt2da8ch-carbon-bc04.vercel.app. Authenticated homepage, /api/traffic and /api/rainforecast returned HTTP 200. The incident source returned 21 records at the check; rain returned 47 areas. These establish deployed compatibility, while synthetic tests cover failure/retry behavior. No live error/rate limit or presigned camera check was induced.
 - Recorded deployment evidence in docs/api/retries.md. This follow-up is documentation only, with implementation verification pinned above. Main/production remain unchanged; PR #19 awaits explicit approval to merge. No further implementation input is needed.
+
+---
+
+## 133. Turn 133: Safe Provider Retries Merged to Main
+
+**User Instruction:**
+> "Merge"
+
+### Released (23 October 2026, SGT):
+- Received explicit approval for PR #19 (https://github.com/Mikazukiangus/live-traffic/pull/19), retained its chat attachment and rechecked exact final head 8fe207641ba096643eaac4787a80f7e3bd19eecd. Both GitHub Checks runs 39905858755 and 39905862996 and Vercel deployment/feedback checks completed successfully. Marked the draft ready, confirmed its main target and mergeable state, and merged that expected head as 3a16828ebcd88d7d99f4644338978f7ad0e4b140. Fast-forwarded local main and retained the preview branch.
+- Released the reviewed scoped read retries, exponential jitter/backoff, Retry-After handling, safe method/error classification, shared deadlines, paced weather retry and read-only Overpass policy. No additional runtime edits or optional repeat full local suite were required: all 173 tests, four offline Python cases, type checks, security source audit and production build were already verified. Updated retry/timeout documentation to mark the release.
+- Production deployment dpl_Bir2cTBcmPvGacpGJR1CvgbpR3yx is READY for the intended project/team, main merge SHA and production target. Aliases include live-traffic-carbon-bc04.vercel.app, live-traffic-kappa.vercel.app and the main branch URL.
+- Authenticated production homepage, its actual referenced entry bundle, /api/traffic and /api/rainforecast returned HTTP 200. The incident source returned 22 records at the check and rain returned 47 areas. These establish selected deployed compatibility; synthetic tests establish failure/retry behavior without inducing live failures/rate limits or retrieving camera metadata/presigned links.
+- Refreshed CLOUD_HANDOFF.md with the released retry implementation, current test baseline and last verified runtime deployment so a new cloud chat receives current status. No environment value, hosting-access policy, dependency/lockfile, credential or real browser storage changed. Login work remains on hold; pre-existing .claude/ remains untouched.
+- Updated this log/table of contents and release/handoff documentation for commit/push on main under the standing instruction. Checked the documentation diff. The approved merge and selected production verification are complete; no further merge approval is needed.
 
 ---
 
