@@ -143,6 +143,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 132. [Turn 132: Safe External Read Retries on Preview](#132-turn-132-safe-external-read-retries-on-preview)
 133. [Turn 133: Safe Provider Retries Merged to Main](#133-turn-133-safe-provider-retries-merged-to-main)
 134. [Turn 134: Provider Circuit Breakers on Preview](#134-turn-134-provider-circuit-breakers-on-preview)
+135. [Turn 135: Provider Circuit Breakers Merged to Main](#135-turn-135-provider-circuit-breakers-merged-to-main)
 
 ---
 
@@ -2376,6 +2377,21 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Pushed implementation 66c8f1fe4091821246f7d6ac1f08833291a5d57a and opened draft PR #20 (https://github.com/Mikazukiangus/live-traffic/pull/20), attached to this chat. Both GitHub Checks runs 39909291418 and 39909323332 completed successfully at that exact implementation head; Vercel deployment/feedback checks also passed.
 - Deployment dpl_CGjHyZM9iiDYsXMBEtq3kPFZHuHB is READY for the intended project/team, preview branch and implementation SHA: https://live-traffic-o1uc35ysw-carbon-bc04.vercel.app. Authenticated homepage, its actual referenced entry bundle, /api/traffic and /api/rainforecast returned HTTP 200. The incident source returned 21 records at the check and rain returned all 47 areas. These establish deployed success-path compatibility; synthetic tests establish circuit failure/recovery guarantees without inducing live outages/rate limits or fetching camera metadata/presigned links.
 - Recorded these results in docs/api/circuit-breakers.md. This follow-up changes documentation only; runtime verification remains pinned to the implementation SHA above. Updated the log for commit/push under the standing instruction. Main/production remain unchanged; PR #20 awaits explicit approval to merge. No further implementation input is needed.
+
+---
+
+## 135. Turn 135: Provider Circuit Breakers Merged to Main
+
+**User Instruction:**
+> "Merge to main"
+
+### Released (23 October 2026, SGT):
+- Received explicit approval for PR #20 (https://github.com/Mikazukiangus/live-traffic/pull/20), retained its chat attachment and rechecked exact final head 4eb7560207b09e9a97fa8e50a3c95c6bc1001093. Both GitHub Checks runs 39909515016 and 39909519879 and Vercel deployment/feedback checks completed successfully. Confirmed the main target, matching head and mergeable state, marked the draft ready, then merged with that expected head SHA as 18eac9d084fa1da34908bd6a8d59b37e4cf33b01. Fast-forwarded local main and retained the preview branch.
+- Released the reviewed finite independent provider circuits, five-final-failures/60-second window, 30-second pause, single physical recovery probe, generation/race guards and safe 503/no-store/Retry-After handling. Existing retries, guarded HTTPS/DNS transport, camera fallback, partial feeds, honest forecast retention and separate 429 cooldown remain. State is per warm instance; no distributed/global protection is claimed. No additional runtime edits or optional repeat local suite were needed: 184 tests, four offline Python cases, type checks, transport audit and production build were already verified.
+- Production deployment dpl_QHBj4KVSGmXxkq3AxFFdCx6kEkKE is READY for the intended project/team, main merge SHA and production target. Aliases include live-traffic-carbon-bc04.vercel.app, live-traffic-kappa.vercel.app and the main branch URL. Applied Vercel deployment/protected-access guidance using existing authenticated connector access; no access-policy changes were needed.
+- Authenticated production homepage, its actual referenced entry bundle, /api/traffic and /api/rainforecast returned HTTP 200. The incident source returned 19 records at the check and rain returned 47 areas. These establish selected deployed compatibility; synthetic tests establish circuit failure/recovery without inducing live outages/rate limits or retrieving camera metadata/presigned links.
+- Updated docs/api/circuit-breakers.md and retries.md to mark the release and refreshed CLOUD_HANDOFF.md with the merged implementation, 184-test baseline, per-instance limitation and verified runtime deployment. No hosted setting, environment value, dependency/lockfile, credential or real browser storage changed. Login work remains on hold; pre-existing .claude/ remains untouched.
+- Updated this log/table of contents and release/handoff documentation for commit/push on main under the standing instruction. Checked documentation whitespace/diff. The approved merge and selected production verification are complete; no further merge approval is needed.
 
 ---
 

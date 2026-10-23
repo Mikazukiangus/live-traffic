@@ -1,7 +1,8 @@
 # Provider circuit breakers
 
-Implemented on preview branch `codex/provider-circuit-breakers`, pending explicit
-approval to merge into main. Application login work remains on hold.
+Released to main through [PR #20](https://github.com/Mikazukiangus/live-traffic/pull/20)
+as `18eac9d084fa1da34908bd6a8d59b37e4cf33b01` on 23 October 2026 (SGT).
+Application login work remains on hold.
 
 ## Calls protected
 
@@ -126,7 +127,7 @@ Pattern reference: [Microsoft, Circuit Breaker pattern](https://learn.microsoft.
 
 ### Preview publication
 
-[Draft PR #20](https://github.com/Mikazukiangus/live-traffic/pull/20) contains
+[PR #20](https://github.com/Mikazukiangus/live-traffic/pull/20) contains
 implementation `66c8f1fe4091821246f7d6ac1f08833291a5d57a`. Both GitHub Checks runs
 `39909291418` and `39909323332` completed successfully at that exact head, as did
 Vercel deployment/feedback checks.
@@ -140,5 +141,22 @@ rain contained all 47 forecast areas. This verifies deployed success-path
 compatibility; synthetic tests establish circuit outage/recovery behavior without
 intentionally disrupting a live provider.
 
-This publication follow-up changes documentation only. Runtime verification is
-pinned to the implementation SHA above; main/production await explicit approval.
+The preview publication follow-up changed documentation only. Its runtime
+verification is pinned to the implementation SHA above.
+
+
+### Approved production release
+
+Final PR head `4eb7560207b09e9a97fa8e50a3c95c6bc1001093` passed both GitHub Checks
+runs `39909515016` and `39909519879` and Vercel deployment/feedback checks. After
+explicit user approval, PR #20 was marked ready and merged with that expected head
+as `18eac9d084fa1da34908bd6a8d59b37e4cf33b01`.
+
+Production deployment `dpl_QHBj4KVSGmXxkq3AxFFdCx6kEkKE` is READY for that merge,
+the intended project/team and the production target. Both known production aliases
+are assigned. Authenticated production homepage, its actual referenced entry
+bundle, incidents and rain returned HTTP 200. Incidents had 19 source records at
+the check; rain had 47 areas. These are selected success-path checks; synthetic
+tests establish failure/recovery without inducing real outages or fetching camera
+metadata/presigned links. No optional repeat local suite or runtime edits were
+needed for this approved merge.

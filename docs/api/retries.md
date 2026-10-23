@@ -124,9 +124,8 @@ not live failure injection or a new benchmark of retry behavior.
 Semantics reference: [RFC 9110, idempotent methods and retry behavior](https://www.rfc-editor.org/rfc/rfc9110.html#section-9.2.2),
 [Retry-After](https://www.rfc-editor.org/rfc/rfc9110.html#section-10.2.3).
 
-## Preview follow-up
+## Circuit-breaker follow-up
 
-[Provider circuit breakers](circuit-breakers.md) wrap final logical-read outcomes
-and restrict half-open recovery to one attempt. They are on a separate preview
-branch pending explicit main merge approval; the release above remains the current
-production retry baseline.
+[Provider circuit breakers](circuit-breakers.md), released through PR #20 as
+`18eac9d`, wrap final logical-read outcomes and restrict half-open recovery to one
+attempt. Ordinary closed-state retry policy above is preserved.

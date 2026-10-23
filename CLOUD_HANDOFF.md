@@ -14,8 +14,8 @@ Fetch current main to include this handoff and its log entry; do not reset to th
 older snapshot. The local checkout had no tracked changes and only a pre-existing
 untracked `.claude/` directory. No local-only implementation needs recovering.
 
-**The latest implementation is complete.** PR #19 (safe provider retries) is merged as
-`3a16828ebcd88d7d99f4644338978f7ad0e4b140`, following PR #18's timeout release.
+**The latest implementation is complete.** PR #20 (provider circuit breakers) is merged as
+`18eac9d084fa1da34908bd6a8d59b37e4cf33b01`, following PR #19's safe retries and PR #18's timeout release.
 No implementation from this session
 is waiting to be merged.
 Application login, account creation and brute-force lockout are **on hold at the
@@ -172,9 +172,19 @@ credential, schema, TLS and guard errors stop promptly; arbitrary mutations are
 not replayed. The offline Overpass helper's known read-only POST query is an
 explicit semantic exception. See `docs/api/retries.md` for exact budgets and limits.
 
-**173 tests**, type checking, security source audit and production build passed.
-The Python wrapper ran four offline helper tests. Both final PR #19 checks and
-Vercel checks passed. Production homepage/entry bundle, incidents (22 source
+[PR #20](https://github.com/Mikazukiangus/live-traffic/pull/20) adds finite,
+independent circuit-breaker scopes around repeated provider reads. Five final
+failures in 60 seconds pause a feed for 30 seconds, then one physical recovery
+attempt is allowed. Retries count as one logical outcome. HTTP 429 retains its
+separate cooldown; auth/permanent/security failures and caller abort stay neutral.
+State is per warm function instance, not shared across replicas/regions/cold starts.
+Health consults the same registry only in the same instance. Existing cache age,
+public camera fallback and partial weather behavior remain honest. Open circuits
+return safe 503/no-store/Retry-After. See `docs/api/circuit-breakers.md`.
+
+**184 tests**, type checking, security source audit and production build passed.
+The Python wrapper ran four offline helper tests. Both final PR #20 checks and
+Vercel checks passed. Production homepage/entry bundle, incidents (19 source
 records at the check) and rain (47 areas) returned HTTP 200 on 23 October.
 The earlier timeout release also verified the worker's rendered 30000/90000/60000
 policy and a local synthetic-image count with actual model/WASM/worker startup.
@@ -187,8 +197,8 @@ These are recorded checks, not a guarantee of current provider health in the new
 - Canonical production: <https://live-traffic-carbon-bc04.vercel.app>.
 - Other observed production alias: <https://live-traffic-kappa.vercel.app>.
   `live-traffic.vercel.app` belongs to a different application; do not use it.
-- Last verified runtime deployment: `dpl_Bir2cTBcmPvGacpGJR1CvgbpR3yx`, READY for
-  merge `3a16828`. Subsequent main documentation pushes can create newer deployments;
+- Last verified runtime deployment: `dpl_QHBj4KVSGmXxkq3AxFFdCx6kEkKE`, READY for
+  merge `18eac9d`. Subsequent main documentation pushes can create newer deployments;
   verify current SHA/team/project/target rather than pinning that deployment forever.
 
 Use the new chat's authenticated Vercel tools if available; connector authorization
@@ -208,7 +218,7 @@ referenced entry bundle, `/sw.js` and keyless weather. Report blocked checks hon
 ## Read next and first cloud-chat action
 
 Read `ARCHITECTURE.md`, `DEVELOPMENT.md`, `SECRETS_AND_LOGGING.md`,
-`TRANSPORT_SECURITY.md`, and `docs/api/{timeouts,ssrf,cors,request-validation,lta-traffic}.md`
+`TRANSPORT_SECURITY.md`, and `docs/api/{circuit-breakers,retries,timeouts,ssrf,cors,request-validation,lta-traffic}.md`
 as relevant. `COMMUTE_STORAGE.md` explains browser persistence; `WEATHER_FEEDS.md`
 explains freshness and weather behavior. Older audit documents are dated snapshots;
 use current code and later log entries when they differ.
