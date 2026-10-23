@@ -3,6 +3,10 @@
 Implemented on preview branch `codex/safe-provider-retries`, 23 October 2026 (SGT).
 Not merged to main. Application login work remains on hold.
 
+Review: [PR #19](https://github.com/Mikazukiangus/live-traffic/pull/19).
+Implementation `33d17b8` passed both GitHub Checks runs and Vercel checks.
+Its [preview](https://live-traffic-knt2da8ch-carbon-bc04.vercel.app) is READY.
+
 ## Where retries happen
 
 | Operation | Retry owner and limit |
@@ -102,6 +106,11 @@ Node/Web error contracts continue to verify `no-store` and response statuses.
 No live failure, rate limit or user lockout was induced for these tests. The map
 generator's production data was not regenerated; Python fixtures performed no
 network operations. Packages, lockfiles, credentials and hosted settings are unchanged.
+
+Authenticated deployed preview smoke checks returned HTTP 200 for the homepage,
+LTA incidents (21 source records at the check) and rain (47 forecast areas). These
+verify deployed provider/response compatibility; synthetic tests establish retry
+behavior without inducing upstream failures or accessing presigned camera feeds.
 
 Semantics reference: [RFC 9110, idempotent methods and retry behavior](https://www.rfc-editor.org/rfc/rfc9110.html#section-9.2.2),
 [Retry-After](https://www.rfc-editor.org/rfc/rfc9110.html#section-10.2.3).
