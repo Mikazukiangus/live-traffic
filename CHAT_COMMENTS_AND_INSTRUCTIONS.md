@@ -140,6 +140,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 129. [Turn 129: Bound Outbound Requests on Preview](#129-turn-129-bound-outbound-requests-on-preview)
 130. [Turn 130: Outbound Timeouts Merged to Main](#130-turn-130-outbound-timeouts-merged-to-main)
 131. [Turn 131: Cloud Workspace Handoff Note](#131-turn-131-cloud-workspace-handoff-note)
+132. [Turn 132: Safe External Read Retries on Preview](#132-turn-132-safe-external-read-retries-on-preview)
 
 ---
 
@@ -2316,6 +2317,27 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Preserved the standing every-turn log/TOC/commit/push rule and preview/explicit-main-merge approval policy. Recorded that PR #18 is merged, latest baseline checks passed with 164 tests, and the application login/lockout project remains explicitly on hold with no enrollment/scope answers required now. No implementation remains to recover from the old local checkout.
 - Explained that local .env.local/.venv/node_modules, browser saved commutes/history, connector sessions and a prior local-app ERP reminder do not automatically transfer through Git. New cloud secrets must be configured privately through the approved environment interface; no hosted secret should be decrypted or placed in chat. Listed the current keyless fallback and known protected-fetch/presigned-camera restrictions. No actual cloud workspace, database, automation, secret transfer or hosting migration was performed.
 - This is a documentation-only handoff; no runtime source, dependencies, deployment settings, credentials or real browser data changed. Pre-existing .claude/ remains untouched. Checked whitespace and internal file references; no repeat full runtime suite/build was needed. Updated this log/table of contents for commit/push on main under the standing instruction and provided a short opening prompt for the new chat.
+
+---
+
+## 132. Turn 132: Safe External Read Retries on Preview
+
+**User Instruction:**
+> "Add retry-with-backoff to my flaky external calls, but only where it's safe to retry."
+
+### Implemented and verified locally (23 October 2026, SGT):
+- Created preview branch codex/safe-provider-retries from main f5acf02. Audited provider, browser, worker, offline map and monitoring paths. Existing LTA pagination/speed loops retried permanent HTTP/schema failures, while generic LTA/image reads did not recover from transient failures; weather retried only 429. Kept one retry owner per call, with no new browser/worker/global-transport retry layer.
+- Added pure read retry policy and a scoped server reader. Automatic repeats require GET/HEAD without a body and a closed transient status/network classification. HTTP 408/429/500/502/503/504 and known transient socket/timeouts may recover; authentication, other permanent statuses, invalid JSON/schema/envelopes, caller abort, generic unknown errors, redirects, TLS and SSRF/guard failures stop promptly. GET/HEAD safety does not authorize replaying future mutation endpoints.
+- Migrated generic LTA, paged datasets, speed pages, camera metadata sources and immutable image reads to the scoped reader, removing the old nested/catch-all loops. Existing configured attempts remain at most three ordinary/four speed reads; camera/image sources cap at two. Exponential 400 ms base with 0–25% jitter and 12-second maximum inline delay respects Retry-After seconds/dates, declines oversized/overflow waits and shares the original 15-second deadline across attempts, body reads and cancellable waits. Numeric hint forwarding preserves error no-store behavior. Every attempt keeps the guarded DNS/dispatcher, no redirects, exact signed bytes and existing credential boundaries.
+- Extended the paced/coalesced weather client to one additional transient read attempt, including known network/timeouts, using the same pacing gate. Retained 429 cooldown/fallback/Retry-After policy and probe retry:false semantics. Added a validated 25-second total weather budget after initial pacing, while retaining per-attempt timeout and maximum inline wait; no distributed quota/cooldown is claimed.
+- Narrowed offline Overpass retries to the generator's explicitly known read-only query POSTs. Added exponential jitter/cap/hint handling, transient-only errors, body cleanup, fixed diagnostics and no sleep after exhaustion. No generic POST replay policy or production map regeneration was added. Added three validated server/tool settings and regenerated .env.example; dependencies/lockfiles and hosted variables did not change.
+- Added eight meaningful retry test groups plus an optional-Python wrapper that ran four offline Python cases. Regression checks caught and fixed a missing default no-store header when adding retry metadata; kept the existing security/error assertions. Updated weather expectations for the intentional transient retry and camera fallback mocks for the capped primary retry. All 173 Node tests passed with zero skips, together with type checking, transport security audit, production build and whitespace checks. No live failures/rate limits, real camera metadata/presigned probes, credentials, user storage or login work were used/resumed. Pre-existing .claude/ remains untouched.
+- Documented ownership, exact safety conditions, budgets, retry inventory and limitations in docs/api/retries.md, with a follow-up link from the timeout document. Consulted RFC 9110 primary guidance on idempotent operations and Retry-After. Updated this log/table of contents for commit/push and a reviewable preview; explicit approval is still required before merging into main or releasing to production.
+
+### Preview publication:
+- Pushed implementation 33d17b8507c1b326571fb797e4884ada5c13f2bb and opened draft PR #19 (https://github.com/Mikazukiangus/live-traffic/pull/19), attached to this chat. Both GitHub Checks runs 39905693468 and 39905723780 completed successfully at that exact head; Vercel deployment and preview-feedback checks also passed.
+- Deployment dpl_3gfTHaKYnjb8ZSKv35qLNR4FWPea is READY for the intended project/team, preview branch and implementation SHA: https://live-traffic-knt2da8ch-carbon-bc04.vercel.app. Authenticated homepage, /api/traffic and /api/rainforecast returned HTTP 200. The incident source returned 21 records at the check; rain returned 47 areas. These establish deployed compatibility, while synthetic tests cover failure/retry behavior. No live error/rate limit or presigned camera check was induced.
+- Recorded deployment evidence in docs/api/retries.md. This follow-up is documentation only, with implementation verification pinned above. Main/production remain unchanged; PR #19 awaits explicit approval to merge. No further implementation input is needed.
 
 ---
 

@@ -97,7 +97,7 @@ test('camera handler uses the shared key resolver, configured timeout and keyles
   const calls: { url: string; key: unknown; signal: unknown }[] = [];
   globalThis.fetch = async (input, init) => {
     calls.push({ url: String(input), key: (init?.headers as Record<string, string>)?.AccountKey, signal: init?.signal });
-    return calls.length === 1 ? new Response('', { status: 500 }) : Response.json({ items: [{ timestamp: '2026-10-19T12:00:00+08:00', cameras: [] }] });
+    return String(input).includes('Traffic-Imagesv2') ? new Response('', { status: 500 }) : Response.json({ items: [{ timestamp: '2026-10-19T12:00:00+08:00', cameras: [] }] });
   };
   try {
     const request = { method: 'GET', url: '/api/trafficimages', headers: { 'x-lta-account-key': 'header-test-key' } };
@@ -107,6 +107,8 @@ test('camera handler uses the shared key resolver, configured timeout and keyles
     assert.equal(calls[0].key, expectedKey);
     assert.ok(calls[0].signal instanceof AbortSignal);
     assert.equal((await response.json()).source, 'data_gov_sg_lta_live');
-    assert.ok(!calls[1].key);
+    assert.equal(calls.length, 3, 'two bounded primary attempts, then the public fallback');
+    assert.equal(calls[1].key, expectedKey);
+    assert.ok(!calls[2].key);
   } finally { globalThis.fetch = original; }
 });
