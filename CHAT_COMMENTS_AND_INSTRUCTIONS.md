@@ -2547,6 +2547,12 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Expanded docs/atomic-updates.md with exact affected paths, transaction steps, schema/migration/fallback behavior, async helper contract, old-tab limitations and verification. Consulted primary MDN Web Locks and HTML storage documentation; localStorage alone does not coordinate read-modify-write. Real multi-tab/UI checks remain unverified after the earlier automatic approval review usage-limit block; no alternate browser/protocol workaround or claimed browser pass was used.
 - No real browser storage, coordinates, camera metadata/presigned image, notification/install prompt, provider failure, dependency/lockfile, credential or hosted policy changed. Unrelated .claude/ remains untouched. Updated this log/table of contents for commit/push and a draft preview PR; main merge requires explicit approval.
 
+
+### Preview publication:
+- Pushed implementation c664c4c1cfa8a26c219e09e585977f9bd5772d54 and opened draft PR #23 (https://github.com/Mikazukiangus/live-traffic/pull/23), attached to this chat. GitHub Checks runs 40009719009 and 40009764842 and Vercel deployment/feedback checks passed at that exact head. Required code-review CI diagnostics confirm all 228 tests passed with zero failures/skips.
+- Deployment dpl_Btubgv73YyTngV15uLQvpCgew9Sk is READY for the intended project/team, preview branch and implementation SHA: https://live-traffic-7djuzogh8-carbon-bc04.vercel.app. Authenticated homepage and its actual referenced entry bundle returned HTTP 200. These are deployed artifact checks; native multi-tab Web Locks/localStorage and wake-lock/UI behavior remain covered by synthetic ports rather than a claimed browser pass. No real browser data/permissions, camera metadata/presigned image or provider outage was used.
+- Recorded this preview evidence in docs/atomic-updates.md. This follow-up changes documentation only and pins runtime verification above. Updated the log for commit/push under the standing instruction. Main/production remain unchanged; PR #23 awaits explicit merge approval. Old-version tabs should reload after a future release; lock/storage failure keeps edits in memory with a notice, and server/distributed scopes remain unchanged.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*
