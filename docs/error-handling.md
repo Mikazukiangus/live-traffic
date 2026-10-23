@@ -176,3 +176,22 @@ and preview branch. Authenticated homepage/entry bundle, incidents (9 records),
 rain (47 areas) and air quality (5 regions) returned HTTP 200. This establishes
 selected deployed success-path compatibility for that earlier head, not an
 interactive recovery-screen pass or verification of the later findings 4–5 patch.
+
+## Updated preview publication (all five findings)
+
+The findings 4–5 implementation is `2a26b0a720a7acacb02bd47bb35c60ad006ac509`
+on the same draft PR #21. Both GitHub Checks runs `39961050814` and `39961061360`
+and Vercel deployment/preview-feedback checks passed at that head. The local
+combined suite passed all 203 tests with zero skips.
+
+Deployment `dpl_29uAXtu854bDGAzunV23T3WbRUsH` is READY for the intended project/team,
+preview branch and implementation SHA:
+[preview](https://live-traffic-5vo1xocvj-carbon-bc04.vercel.app).
+Authenticated homepage, its actual referenced entry bundle and the updated
+air-quality API returned HTTP 200; air quality contained five regions. These
+verify selected deployed success paths; synthetic tests cover failures, partial
+answers, log redaction and receipt preservation. Interactive browser verification
+remains pending for the documented approval-review usage-limit reason.
+
+This final publication follow-up changes documentation only. Runtime verification
+is pinned to the implementation SHA above. Main/production await explicit approval.

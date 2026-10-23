@@ -2468,6 +2468,11 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - No real camera metadata/presigned image, notification permission/delivery, user storage, live provider outage, credentials, hosted setting or dependencies/lockfiles changed. The earlier browser-tool automatic approval usage-limit block remains documented; no alternative browser/protocol workaround or claimed visual pass was used. Login work remains on hold and pre-existing .claude/ remains untouched.
 - Updated docs/error-handling.md to cover all five fixes, the 203-test baseline and first preview evidence. Updated this log/table of contents for commit/push and an updated preview under the standing instruction. Explicit approval remains necessary before merging to main.
 
+### Updated preview publication:
+- Pushed findings 4–5 as 2a26b0a720a7acacb02bd47bb35c60ad006ac509 on the existing branch and updated draft PR #21's title/body to cover all five findings. Both GitHub Checks runs 39961050814 and 39961061360 and Vercel deployment/preview-feedback checks passed at that exact implementation head. The local full suite passed all 203 tests with zero skips.
+- Deployment dpl_29uAXtu854bDGAzunV23T3WbRUsH is READY for the intended project/team, preview branch and implementation SHA: https://live-traffic-5vo1xocvj-carbon-bc04.vercel.app. Authenticated homepage, its actual referenced entry bundle and the updated air-quality endpoint returned HTTP 200; air quality contained all five regions. HTTP checks establish deployed response compatibility, while synthetic tests establish failed/partial handling and redaction. No live outage or browser-approval workaround was induced.
+- Recorded the final results and remaining interactive-browser limitation in docs/error-handling.md. This follow-up changes documentation only, with runtime verification pinned above. Updated the log for commit/push under the standing instruction; main/production remain unchanged and PR #21 awaits explicit approval to merge.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*
