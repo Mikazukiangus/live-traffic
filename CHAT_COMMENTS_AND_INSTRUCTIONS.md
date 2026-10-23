@@ -2507,6 +2507,12 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Documented exact locations, mechanisms, existing protections and limits in docs/atomic-updates.md. Worker locks are per active worker, server caches/circuits per warm instance, and localStorage edits in separate tabs remain uncoordinated. No distributed lock/database, dependency/lockfile, credentials, environment/hosting policy or real provider outage was introduced. Pre-existing .claude/ remains untouched.
 - Interactive browser verification remains limited by the earlier automatic approval usage-limit rejection; no alternative browser/protocol workaround or claimed visual pass was used. Updated this log/table of contents for commit/push and a draft preview PR under the standing instruction. Main merge requires explicit approval.
 
+
+### Preview publication:
+- Pushed implementation adc2e3aa867a95ff8b83548be2a8e4491a89673f and opened draft PR #22 (https://github.com/Mikazukiangus/live-traffic/pull/22), attached to this chat. GitHub Checks runs 39967940692 and 39968000143 and Vercel deployment/feedback checks passed at that exact head. Read CI diagnostics through the required code-review tool; the job confirms 214 tests passed with zero failures/skips.
+- Deployment dpl_3odtf45nSCSJ6jehbiHU74ZXxq5u is READY for the intended project/team, preview branch and implementation SHA: https://live-traffic-4w0o7c0cb-carbon-bc04.vercel.app. Authenticated homepage, its actual entry bundle and rendered /sw.js returned HTTP 200; the worker contains the serialized compare-and-put and generation guard with timeout configuration rendered. These are deployed artifact checks, not an interactive worker/browser pass. No real camera metadata, presigned image, permission prompt, browser storage or provider failure was requested.
+- Recorded publication evidence in docs/atomic-updates.md. This follow-up is documentation only, with runtime verification pinned above. Updated the log for commit/push under the standing instruction. Main/production remain unchanged; PR #22 awaits explicit merge approval. Cross-tab localStorage and multi-instance/distributed limits and the previous interactive-browser approval block remain explicitly documented.
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*

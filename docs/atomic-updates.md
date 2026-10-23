@@ -37,3 +37,10 @@ Saved commutes still use the existing synchronous, tab-local repository backed b
 - Interactive browser checks remain unverified: the earlier automatic approval review reached its usage limit and prohibited alternate browser/protocol workarounds. No workaround or visual pass is claimed.
 
 Preview publication and deployed checks are recorded in Turn 141 of `CHAT_COMMENTS_AND_INSTRUCTIONS.md`. Merge into main requires explicit user approval.
+
+## Preview publication
+
+Implementation commit: `adc2e3aa867a95ff8b83548be2a8e4491a89673f`.
+Draft [PR #22](https://github.com/Mikazukiangus/live-traffic/pull/22) is attached to the chat. Both GitHub Checks runs (`39967940692`, `39968000143`) and Vercel deployment/feedback checks passed for that head; CI diagnostics confirm 214 passing tests and zero skips.
+
+[Preview](https://live-traffic-4w0o7c0cb-carbon-bc04.vercel.app) is deployment `dpl_3odtf45nSCSJ6jehbiHU74ZXxq5u`, READY for the intended project/team and branch. Its authenticated homepage, referenced entry bundle and rendered service worker returned HTTP 200. The served worker includes the serialized version guard and configured timeout replacement. No browser execution/activation or real permission interaction is established by these HTTP checks. This publication note is documentation only; the implementation proof is pinned to the commit above. Main/production await explicit merge approval.
