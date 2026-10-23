@@ -45,6 +45,8 @@ function clientHarness(overrides = {}) {
     retryDelayMs: 10000,
     maxRetryWaitMs: 12000,
     timeoutMs: 1000,
+    budgetMs: 25000,
+    transientRetryDelayMs: 400,
     ...overrides,
   });
   return {
@@ -106,17 +108,19 @@ test('one 429 retry waits for provider guidance; retries stop and unrelated call
   assert.ok(!h.waits.includes(60000));
 });
 
-test('429 fallback has one bounded retry, while probes and non-429 failures never retry', async () => {
+test('429 and transient failures have one bounded retry; probes and permanent failures do not', async () => {
   for (const [status, retry, expected] of [
     [429, true, 2],
     [429, false, 1],
-    [500, true, 1],
+    [500, true, 2],
+    [500, false, 1],
+    [401, true, 1],
   ] as const) {
     const h = clientHarness();
     h.reply(async () => new Response(null, { status }));
     await assert.rejects(h.client.data('https://example.test', { retry }), DataGovHttpError);
     assert.equal(h.starts.length, expected);
-    if (expected === 2) assert.ok(h.starts[1] - h.starts[0] >= 10000);
+    if (expected === 2) assert.ok(h.starts[1] - h.starts[0] >= (status === 429 ? 10000 : 400));
   }
 });
 

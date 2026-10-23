@@ -30,3 +30,13 @@ export async function withRequestDeadline<T>(
     signal.removeEventListener('abort', rejectAbort);
   }
 }
+
+/** Backoff/pacing sleeps release their timer immediately when the request is cancelled. */
+export function waitForRetry(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    signal?.throwIfAborted();
+    const cancel = () => { clearTimeout(timer); signal?.removeEventListener('abort', cancel); reject(signal!.reason); };
+    const timer = setTimeout(() => { signal?.removeEventListener('abort', cancel); resolve(); }, ms);
+    signal?.addEventListener('abort', cancel, { once: true });
+  });
+}

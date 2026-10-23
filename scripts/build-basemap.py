@@ -6,8 +6,9 @@ ships with the app and needs no tile server at run time.
 
 Run: python3 scripts/build-basemap.py   (Bun required for config; fetches from Overpass, about a minute)
 """
-import json, math, sys, time, urllib.parse, urllib.request
+import json, math, sys, time
 import pathlib, subprocess
+from overpass_http import fetch_overpass
 
 # Use the same validated configuration as the app. Bun loads local .env files; the helper
 # prints only its explicit, non-secret projection. No Python packages are required.
@@ -29,16 +30,10 @@ QUERIES = {
 }
 
 def overpass(query):
-    for attempt in range(_config['attempts']):
-        req = urllib.request.Request(OVERPASS, data=urllib.parse.urlencode({'data': query}).encode(),
-                                     headers={'User-Agent': UA, 'Accept': 'application/json'})
-        try:
-            with urllib.request.urlopen(req, timeout=_config['timeoutMs'] / 1000) as r:
-                return json.load(r)['elements']
-        except Exception as e:  # Overpass is often busy; wait and retry
-            print('Overpass busy, retrying:', e, file=sys.stderr)
-            time.sleep(_config['retryMs'] / 1000 * (attempt + 1))
-    sys.exit('Overpass did not answer')
+    try:
+        return fetch_overpass(OVERPASS, query, _config, UA, report=lambda message: print(message, file=sys.stderr))
+    except RuntimeError as error:
+        sys.exit(str(error))  # Fixed text only; no provider exception/body/URL is printed.
 
 B=dict(minLon=103.615,maxLon=104.0,minLat=1.25,maxLat=1.465); S=1000
 X=lambda lon:(lon-B['minLon'])*S; Y=lambda lat:(B['maxLat']-lat)*S

@@ -1,5 +1,7 @@
 import { UpstreamHttpError } from '../../shared/diagnostics.ts';
 import { retryAfterMs } from '../../shared/httpRetry.ts';
+import { readRetryDelay, retryableReadStatus, transientReadError } from '../../shared/readRetry.ts';
+import { withRequestDeadline } from '../../shared/requestDeadline.ts';
 
 /** Numeric retry timing is safe metadata; provider headers/bodies/URLs never enter errors. */
 export class DataGovHttpError extends UpstreamHttpError {
@@ -17,12 +19,14 @@ interface Options {
 interface Dependencies {
   fetch: (url: string, init: RequestInit) => Promise<Response>;
   now: () => number;
-  sleep: (ms: number) => Promise<void>;
+  sleep: (ms: number, signal?: AbortSignal) => Promise<void>;
   random: () => number;
   intervalMs: number;
   retryDelayMs: number;
   maxRetryWaitMs: number;
   timeoutMs: number;
+  budgetMs: number;
+  transientRetryDelayMs: number;
 }
 
 /** An instance-local gate smooths bursts; it is not a distributed provider quota. */
@@ -31,11 +35,13 @@ export function createDataGovClient(deps: Dependencies) {
   let gate = Promise.resolve();
   let nextStart = 0;
   let cooldownUntil = 0;
-  const enter = () => {
+  const enter = (signal?: AbortSignal) => {
     const ticket = gate.then(async () => {
+      signal?.throwIfAborted();
       if (cooldownUntil > deps.now()) throw new DataGovHttpError(429, cooldownUntil);
       const wait = nextStart - deps.now();
-      if (wait > 0) await deps.sleep(wait);
+      if (wait > 0) await deps.sleep(wait, signal);
+      signal?.throwIfAborted();
       if (cooldownUntil > deps.now()) throw new DataGovHttpError(429, cooldownUntil);
       nextStart = deps.now() + deps.intervalMs;
     });
@@ -43,33 +49,48 @@ export function createDataGovClient(deps: Dependencies) {
     return ticket;
   };
   async function load(url: string, options: Options) {
-    for (let attempt = 0; ; attempt++) {
-      await enter();
-      const response = await deps.fetch(url, {
-        headers: { accept: 'application/json' },
-        signal: AbortSignal.timeout(options.timeoutMs ?? deps.timeoutMs),
-        redirect: 'error',
-      });
-      if (response.ok) {
-        const json = await response.json();
-        if (json?.code !== 0 || !json?.data) throw new Error('Unexpected provider payload');
-        return json.data;
+    await enter();
+    const perAttemptMs = options.timeoutMs ?? deps.timeoutMs;
+    const budgetMs = options.retry === false ? perAttemptMs : deps.budgetMs;
+    const deadline = deps.now() + budgetMs;
+    return withRequestDeadline(budgetMs, async (signal) => {
+      for (let attempt = 0; ; attempt++) {
+        signal.throwIfAborted();
+        let error: unknown;
+        let providerDelay: number | null = null;
+        let baseMs = deps.transientRetryDelayMs;
+        try {
+          const response = await deps.fetch(url, {
+            method: 'GET', headers: { accept: 'application/json' },
+            signal: AbortSignal.any([signal, AbortSignal.timeout(perAttemptMs)]), redirect: 'error',
+          });
+          if (response.ok) {
+            const json = await response.json();
+            if (json?.code !== 0 || !json?.data) throw new Error('Unexpected provider payload');
+            return json.data;
+          }
+          const now = deps.now();
+          const rawDelay = response.headers.get('retry-after');
+          providerDelay = retryAfterMs(rawDelay, now);
+          if (providerDelay === null && rawDelay && /^\d+$/.test(rawDelay.trim())) providerDelay = Infinity;
+          if (response.status === 429) {
+            baseMs = deps.retryDelayMs;
+            providerDelay ??= Math.ceil(baseMs * (1 + deps.random() * 0.25));
+            cooldownUntil = Math.max(cooldownUntil, Math.min(Number.MAX_SAFE_INTEGER, now + providerDelay));
+          }
+          error = new DataGovHttpError(response.status,
+            response.status === 429 ? cooldownUntil : providerDelay !== null && Number.isFinite(providerDelay) ? now + providerDelay : null);
+          await response.body?.cancel().catch(() => undefined);
+        } catch (failure) { error = failure; }
+        if (signal.aborted) throw signal.reason;
+        const transient = error instanceof DataGovHttpError ? retryableReadStatus(error.status) : transientReadError(error);
+        if (!transient || options.retry === false || attempt >= 1) throw error;
+        const delay = readRetryDelay(attempt + 1, baseMs, deps.maxRetryWaitMs, deps.random(), providerDelay);
+        if (delay === null || delay >= deadline - deps.now()) throw error;
+        await deps.sleep(delay, signal);
+        await enter(signal);
       }
-      const now = deps.now();
-      const delay =
-        response.status === 429
-          ? (retryAfterMs(response.headers.get('retry-after'), now) ??
-            Math.ceil(deps.retryDelayMs * (1 + deps.random() * 0.1)))
-          : null;
-      await response.body?.cancel().catch(() => undefined);
-      if (delay != null) cooldownUntil = Math.max(cooldownUntil, now + delay);
-      const error = new DataGovHttpError(response.status, delay != null ? cooldownUntil : null);
-      if (response.status !== 429 || options.retry === false || attempt > 0 || delay! > deps.maxRetryWaitMs)
-        throw error;
-      // One bounded retry, never earlier than the provider's deadline.
-      const wait = cooldownUntil - deps.now();
-      if (wait > 0) await deps.sleep(wait);
-    }
+    });
   }
   function data(url: string, options: Options = {}): Promise<any> {
     // Probe time budgets/retry policy remain distinct from ordinary application requests.

@@ -1,6 +1,6 @@
 import { requestSchemas } from '../server/http/requestSchemas.ts';
 import { withRequestSchema } from '../server/http/validateRequest.ts';
-import { reportFailure, UpstreamHttpError } from '../shared/diagnostics.ts';
+import { reportFailure } from '../shared/diagnostics.ts';
 import { config } from '../config/server.ts';
 import {
   fromDataMallCameras,
@@ -10,7 +10,7 @@ import {
 } from '../shared/traffic/cameras.ts';
 import { readValidatedJson } from '../shared/traffic/validation.ts';
 import { getLtaAccountKey, liveCacheHeaders, sendJson } from './_client.ts';
-import { fetchProvider } from '../server/http/providerFetch.ts';
+import { providerRetryHeaders, readProvider } from '../server/http/readProvider.ts';
 
 // LTA captures every 1-5 minutes; the page polls every 30 seconds.
 const CACHE = liveCacheHeaders(...config.server.cache.proxy);
@@ -20,16 +20,11 @@ const handler = withRequestSchema(requestSchemas.empty, async (_req, res, input)
   const accountKey = getLtaAccountKey() ?? input.accountKey;
   if (accountKey) {
     try {
-      const response = await fetchProvider(config.server.upstreams.images, {
-        signal: AbortSignal.timeout(config.server.requestTimeoutMs),
-        headers: { AccountKey: accountKey, accept: 'application/json' },
-      });
-      if (response.ok) {
-        const data = await readValidatedJson(response, isDataMallCameras);
-        return sendJson(res, 200, fromDataMallCameras(data, new Date().toISOString()), CACHE);
-      }
-      reportFailure('camera', undefined, response.status);
-      await response.body?.cancel().catch(() => undefined);
+      const data = await readProvider(config.server.upstreams.images,
+        (response) => readValidatedJson(response, isDataMallCameras),
+        { headers: { AccountKey: accountKey, accept: 'application/json' } },
+        { attempts: Math.min(2, config.server.lta.attempts) });
+      return sendJson(res, 200, fromDataMallCameras(data, new Date().toISOString()), CACHE);
     } catch (error) {
       reportFailure('camera', error);
       // A rejected primary snapshot may still recover through the public LTA feed.
@@ -37,18 +32,12 @@ const handler = withRequestSchema(requestSchemas.empty, async (_req, res, input)
   }
 
   try {
-    const response = await fetchProvider(config.trafficImagesUrl, {
-      signal: AbortSignal.timeout(config.server.requestTimeoutMs),
-      headers: { accept: 'application/json' },
-    });
-    if (!response.ok) {
-      await response.body?.cancel().catch(() => undefined);
-      throw new UpstreamHttpError(response.status);
-    }
-    const data = await readValidatedJson(response, isPublicCameras);
+    const data = await readProvider(config.trafficImagesUrl,
+      (response) => readValidatedJson(response, isPublicCameras),
+      { headers: { accept: 'application/json' } }, { attempts: Math.min(2, config.server.lta.attempts) });
     return sendJson(res, 200, fromPublicCameras(data), CACHE);
   } catch (error) {
-    return sendJson(res, 502, reportFailure('camera', error));
+    return sendJson(res, 502, reportFailure('camera', error), providerRetryHeaders(error));
   }
 });
 export default handler;

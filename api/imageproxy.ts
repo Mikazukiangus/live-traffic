@@ -1,8 +1,8 @@
 import { requestSchemas } from '../server/http/requestSchemas.ts';
 import { withRequestSchema } from '../server/http/validateRequest.ts';
-import { reportFailure, UpstreamHttpError } from '../shared/diagnostics.ts';
+import { reportFailure } from '../shared/diagnostics.ts';
 import { config } from '../config/server.ts';
-import { fetchProvider } from '../server/http/providerFetch.ts';
+import { providerRetryHeaders, readProvider } from '../server/http/readProvider.ts';
 /**
  * Serverless Image Proxy for Singapore LTA and Open Data Traffic Images.
  * Fixes browser MIME-type blocking (x-content-type-options: nosniff on application/octet-stream)
@@ -23,19 +23,12 @@ const handler = withRequestSchema(requestSchemas.image, async (_req, res, input)
   const { imageUrl } = input.query;
 
   try {
-    const response = await fetchProvider(imageUrl, {
-      signal: AbortSignal.timeout(config.server.requestTimeoutMs),
+    const arrayBuffer = await readProvider(imageUrl, (response) => response.arrayBuffer(), {
       headers: {
         accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
       },
-    });
-
-    if (!response.ok) {
-      throw new UpstreamHttpError(response.status);
-    }
-
-    const arrayBuffer = await response.arrayBuffer();
+    }, { attempts: Math.min(2, config.server.lta.attempts) });
     const buffer = Buffer.from(arrayBuffer);
 
     if (res && typeof res.status === 'function') {
@@ -56,7 +49,7 @@ const handler = withRequestSchema(requestSchemas.image, async (_req, res, input)
       },
     });
   } catch (error: any) {
-    return sendJson(res, 502, reportFailure('camera', error));
+    return sendJson(res, 502, reportFailure('camera', error), providerRetryHeaders(error));
   }
 });
 export default handler;

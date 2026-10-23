@@ -3,6 +3,11 @@
 Released to main through PR #18 as `dc91035` on 22 October 2026 (SGT).
 Audit date: 22 October 2026 (SGT).
 
+Follow-up on 23 October: [safe provider retry policy](retries.md) is proposed on a
+preview branch. It keeps the LTA/page/image read budget shared across attempts and
+defines a separate total weather retry budget after initial pacing. The inventory
+below describes the timeout release; consult the follow-up for retry behavior.
+
 Review: [PR #18](https://github.com/Mikazukiangus/live-traffic/pull/18).
 Implementation commit `27b8b25` passed both GitHub Checks runs and Vercel checks.
 Its [preview](https://live-traffic-qaz26yspt-carbon-bc04.vercel.app) is READY.

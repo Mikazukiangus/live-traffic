@@ -3,7 +3,7 @@ import { withRequestSchema } from '../http/validateRequest.ts';
 import { config } from '../../config/server.ts';
 import { InvalidPayloadError, reportFailure, UpstreamHttpError } from '../../shared/diagnostics.ts';
 import { sendJson, setHeaders, liveCacheHeaders } from '../http/responses.ts';
-import { fetchProvider } from '../http/providerFetch.ts';
+import { providerRetryHeaders, readProvider } from '../http/readProvider.ts';
 export interface LtaRequestOptions {
   endpoint: string;
   defaultSkip?: number;
@@ -55,44 +55,32 @@ async function runLtaRequest(
     const urlObj = new URL(endpointUrl);
     if (query.skip !== undefined) urlObj.searchParams.set('$skip', String(query.skip));
 
-    const response = await fetchProvider(urlObj.toString(), {
-      method: 'GET',
-      signal: AbortSignal.timeout(config.server.requestTimeoutMs),
-      headers: {
-        AccountKey: accountKey,
-        accept: 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      await response.body?.cancel().catch(() => undefined);
-      return sendJson(res, response.status, reportFailure('lta', undefined, response.status));
-    }
-
-    let data;
-    try {
-      data = await response.json();
-    } catch (error) {
-      if (error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError')) throw error;
-      throw new InvalidPayloadError();
-    }
-    if (validate ? !validate(data) : !data || !Array.isArray(data.value)) throw new InvalidPayloadError();
+    const { data, status } = await readProvider(urlObj.toString(), async (response) => {
+      let data;
+      try { data = await response.json(); }
+      catch (error) {
+        if (error instanceof SyntaxError) throw new InvalidPayloadError();
+        throw error;
+      }
+      if (validate ? !validate(data) : !data || !Array.isArray(data.value)) throw new InvalidPayloadError();
+      return { data, status: response.status };
+    }, { method: 'GET', headers: { AccountKey: accountKey, accept: 'application/json' } });
 
     const cache = LTA_PROXY_CACHE;
     if (res && typeof res.status === 'function') {
       setHeaders(res, cache);
-      return res.status(response.status).json(data);
+      return res.status(status).json(data);
     }
 
     return new Response(JSON.stringify(data), {
-      status: response.status,
+      status,
       headers: {
         'Content-Type': 'application/json',
         ...cache,
       },
     });
   } catch (error: any) {
-    return sendJson(res, 502, reportFailure('lta', error));
+    return sendJson(res, error instanceof UpstreamHttpError ? error.status : 502, reportFailure('lta', error), providerRetryHeaders(error));
   }
 }
 
@@ -108,21 +96,11 @@ export async function fetchLtaAll(
   { wave = config.server.lta.concurrency, maxPages = config.server.lta.maxPages } = {},
 ): Promise<any[]> {
   const page = async (skip: number): Promise<any[]> => {
-    for (let attempt = 1; ; attempt++) {
-      const response = await fetchProvider(`${url}?$skip=${skip}`, {
-        headers: { AccountKey: accountKey, accept: 'application/json' },
-        signal: AbortSignal.timeout(config.server.requestTimeoutMs),
-      });
-      if (response.ok) {
-        const data = await response.json();
-        if (!Array.isArray(data?.value)) throw new Error('Unexpected LTA payload');
-        return data.value;
-      }
-      // LTA throttles bursts; back off and try twice more.
-      await response.body?.cancel().catch(() => undefined);
-      if (attempt >= config.server.lta.attempts) throw new UpstreamHttpError(response.status);
-      await new Promise((r) => setTimeout(r, config.server.lta.retryDelayMs * attempt));
-    }
+    return readProvider(`${url}?$skip=${skip}`, async (response) => {
+      const data = await response.json();
+      if (!Array.isArray(data?.value)) throw new InvalidPayloadError();
+      return data.value;
+    }, { headers: { AccountKey: accountKey, accept: 'application/json' } });
   };
   const records: any[] = [];
   for (let start = 0; start < maxPages; start += wave) {
