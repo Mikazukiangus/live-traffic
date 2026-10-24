@@ -183,7 +183,12 @@ self.addEventListener('fetch', (event) => {
   } else if (url.pathname.startsWith('/assets/')) {
     event.respondWith(cacheFirst(request, ASSETS));
   } else if (url.pathname.startsWith('/api/')) {
-    event.respondWith(networkFirst(request, DATA));
+    // Traversal must check the current snapshot. Never persist per-page/token URLs or
+    // turn a stale offline page into a successful continuation of a live list.
+    if (['limit', 'offset', 'collection', 'snapshot'].some((key) => url.searchParams.has(key))) {
+      event.respondWith(boundedFetch(request, url.pathname === '/api/expresswayspeeds'
+        ? NETWORK_TIMEOUTS.speeds : NETWORK_TIMEOUTS.request));
+    } else event.respondWith(networkFirst(request, DATA));
   }
 });
 

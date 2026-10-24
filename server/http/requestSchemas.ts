@@ -1,9 +1,9 @@
-import { IMAGE_PROXY_HOSTS } from '../../config/policy.ts';
+import { IMAGE_PROXY_HOSTS, LIST_PAGINATION, LIVE_COLLECTIONS } from '../../config/policy.ts';
 
 /** Public request contracts. Errors contain fixed metadata only, never submitted values. */
 export class RequestValidationError extends Error {
   constructor(
-    readonly field: 'request' | 'method' | 'query' | 'body' | 'headers' | 'url' | '$skip' | 'include' | 'feed',
+    readonly field: 'request' | 'method' | 'query' | 'body' | 'headers' | 'url' | '$skip' | 'include' | 'feed' | 'limit' | 'offset' | 'collection' | 'snapshot',
     readonly status = 400,
     readonly code = 'INVALID_REQUEST',
   ) {
@@ -25,22 +25,59 @@ const feedName = (value: string | undefined): FeedName => {
   return value as FeedName;
 };
 
+export const PAGINATION_KEYS = ['limit', 'offset', 'collection', 'snapshot'] as const;
+export interface ListPage { limit: number; offset: number; collection: string; snapshot?: string }
+const pageInteger = (query: ReadonlyMap<string, string>, key: 'limit' | 'offset', fallback: number, min: number, max: number) => {
+  const raw = query.get(key);
+  if (raw === undefined) return fallback;
+  if (!/^(0|[1-9]\d*)$/.test(raw) || raw.length > 10 || Number(raw) < min || Number(raw) > max) invalid(key);
+  return Number(raw);
+};
+/** The rest of the route query is independently checked by its existing schema. */
+export function listPage(query: ReadonlyMap<string, string>, collections: readonly string[]): ListPage | null {
+  if (!PAGINATION_KEYS.some(key => query.has(key))) return null;
+  const limit = pageInteger(query, 'limit', LIST_PAGINATION.defaultLimit, 1, LIST_PAGINATION.maxLimit);
+  const offset = pageInteger(query, 'offset', 0, 0, LIST_PAGINATION.maxOffset);
+  const collection = query.get('collection') ?? (collections.length === 1 ? collections[0] : undefined);
+  if (!collection || !collections.includes(collection)) invalid('collection');
+  const snapshot = query.get('snapshot');
+  if ((snapshot !== undefined && !/^[a-f0-9]{64}$/.test(snapshot)) || (offset > 0 && snapshot === undefined)) invalid('snapshot');
+  return { limit, offset, collection, ...(snapshot === undefined ? {} : { snapshot }) };
+}
+export function listQuery<T>(schema: QuerySchema<T>, collections: readonly string[], available?: (query: T) => readonly string[]) {
+  return (query: ReadonlyMap<string, string>) => {
+    const base = new Map([...query].filter(([key]) => !(PAGINATION_KEYS as readonly string[]).includes(key)));
+    const parsed = schema(base);
+    return { base: parsed, page: listPage(query, available?.(parsed) ?? collections) };
+  };
+}
+
 export const requestSchemas = {
   empty: ((query) => { only(query, []); return {}; }) satisfies QuerySchema<Record<string, never>>,
   lta: ((query) => {
-    only(query, ['$skip']);
+    only(query, ['$skip', 'limit', 'offset']);
     const skip = query.get('$skip');
     // OData Int32, no coercion of signs, exponents, whitespace, fractions or empty values.
     if (skip !== undefined && (!/^(0|[1-9]\d{0,9})$/.test(skip) || Number(skip) > 2_147_483_647)) invalid('$skip');
-    return { skip: skip === undefined ? undefined : Number(skip) };
-  }) satisfies QuerySchema<{ skip?: number }>,
+    if (query.has('$skip') && query.has('offset')) invalid('offset');
+    const paged = query.has('limit') || query.has('offset');
+    const offset = pageInteger(query, 'offset', skip === undefined ? 0 : Number(skip), 0, LIST_PAGINATION.maxOffset);
+    if (paged && offset > LIST_PAGINATION.maxOffset) invalid('offset');
+    const limit = pageInteger(query, 'limit', LIST_PAGINATION.defaultLimit, 1, LIST_PAGINATION.maxLimit);
+    return { skip: paged ? offset : skip === undefined ? undefined : Number(skip), ...(paged ? { page: { offset, limit } } : {}) };
+  }) satisfies QuerySchema<{ skip?: number; page?: { offset: number; limit: number } }>,
   speeds: ((query) => {
     only(query, ['include']);
     const include = query.get('include');
     if (include !== undefined && include !== 'segments') invalid('include');
     return { includeSegments: include === 'segments' };
   }) satisfies QuerySchema<{ includeSegments: boolean }>,
-  live: ((query) => { only(query, ['feed']); return { feed: feedName(query.get('feed')) }; }) satisfies QuerySchema<{ feed: FeedName }>,
+  live: ((query) => {
+    only(query, ['feed', ...PAGINATION_KEYS]);
+    const feed = feedName(query.get('feed'));
+    listPage(query, LIVE_COLLECTIONS[feed]);
+    return { feed };
+  }) satisfies QuerySchema<{ feed: FeedName }>,
   image: ((query) => {
     only(query, ['url']);
     const imageUrl = query.get('url');

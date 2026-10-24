@@ -2,6 +2,7 @@ import { readRequestAccountKey, requestSchemas } from '../http/requestSchemas.ts
 import { withRequestSchema } from '../http/validateRequest.ts';
 import { config } from '../../config/server.ts';
 import { InvalidPayloadError, reportFailure, UpstreamHttpError } from '../../shared/diagnostics.ts';
+import { paginateProviderList, PAGE_HEADERS } from '../http/listPagination.ts';
 import { sendJson, setHeaders, liveCacheHeaders } from '../http/responses.ts';
 import { providerRetryHeaders, readProvider } from '../http/readProvider.ts';
 export interface LtaRequestOptions {
@@ -34,7 +35,7 @@ export async function handleLtaRequest(
 }
 
 async function runLtaRequest(
-  endpointUrl: string, res: any, query: { skip?: number }, accountKey: string | null,
+  endpointUrl: string, res: any, query: { skip?: number; page?: { offset: number; limit: number } }, accountKey: string | null,
   validate?: (value: unknown) => boolean,
 ): Promise<Response | void> {
   // If AccountKey is missing, return informative 401 response
@@ -66,13 +67,14 @@ async function runLtaRequest(
       return { data, status: response.status };
     }, { method: 'GET', headers: { AccountKey: accountKey, accept: 'application/json' } });
 
-    const cache = LTA_PROXY_CACHE;
+    const body = query.page ? paginateProviderList(data, query.page) : data;
+    const cache = query.page ? PAGE_HEADERS : LTA_PROXY_CACHE;
     if (res && typeof res.status === 'function') {
       setHeaders(res, cache);
-      return res.status(status).json(data);
+      return res.status(status).json(body);
     }
 
-    return new Response(JSON.stringify(data), {
+    return new Response(JSON.stringify(body), {
       status,
       headers: {
         'Content-Type': 'application/json',

@@ -1,6 +1,6 @@
 import { providerFailureStatus, providerFailureHeaders, failedDependency } from '../server/http/providerFailure.ts';
 import { internalFeedSchema } from '../server/http/requestSchemas.ts';
-import { withRequestSchema } from '../server/http/validateRequest.ts';
+import { withListResponse } from '../server/http/listPagination.ts';
 import { reportSourceFailure, safeFailure } from '../shared/diagnostics.ts';
 import { ltaSnapshots } from '../server/cache/ltaSnapshots.ts';
 import { snapshotCacheHeaders } from '../server/http/responses.ts';
@@ -15,7 +15,6 @@ import { config } from '../config/server.ts';
 import {
   NO_STORE,
   getLtaAccountKey,
-  sendJson,
 } from './_client.ts';
 
 // Road works are planned weeks ahead; traffic light faults change by the minute but are few.
@@ -45,10 +44,10 @@ const sgToday = () => new Date(Date.now() + 8 * 3600_000).toISOString().slice(0,
 const faultKind = (message: string) =>
   /black\s?out/i.test(message) ? 'Blackout' : /flash/i.test(message) ? 'Flashing yellow' : 'Fault';
 
-const handler = withRequestSchema(internalFeedSchema('roadconditions'), async (_req, res) => {
+const handler = withListResponse(internalFeedSchema('roadconditions'), 'roadconditions', ['roadWorks', 'faultyLights'], async (_req, res, { send }) => {
   const accountKey = getLtaAccountKey();
   if (!accountKey) {
-    return sendJson(res, 503, { success: false, error: 'LTA_ACCOUNT_KEY not configured' });
+    return send(503, { success: false, error: 'LTA_ACCOUNT_KEY not configured' });
   }
 
   const [works, lights] = await Promise.allSettled([
@@ -59,7 +58,7 @@ const handler = withRequestSchema(internalFeedSchema('roadconditions'), async (_
   if (lights.status === 'rejected') reportSourceFailure('lta', 'faulty_lights', lights.reason);
   if (works.status === 'rejected' && lights.status === 'rejected') {
     const error = failedDependency(works.reason, lights.reason);
-    return sendJson(res, providerFailureStatus(error), safeFailure('lta', error).body, providerFailureHeaders(error));
+    return send(providerFailureStatus(error), safeFailure('lta', error).body, providerFailureHeaders(error));
   }
 
   const today = sgToday();
@@ -90,8 +89,7 @@ const handler = withRequestSchema(internalFeedSchema('roadconditions'), async (_
         }))
       : null;
 
-  return sendJson(
-    res,
+  return send(
     200,
     { success: true, source: 'lta_roadworks_faultytrafficlights', date: today, roadWorks, faultyLights },
     // Partial responses never enter the CDN; a successful source can still reuse its original snapshot.

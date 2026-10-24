@@ -1,7 +1,7 @@
 import { isRecord } from '../shared/traffic/validation.ts';
 import { providerFailureStatus, providerFailureHeaders, failedDependency } from '../server/http/providerFailure.ts';
 import { requestSchemas } from '../server/http/requestSchemas.ts';
-import { withRequestSchema } from '../server/http/validateRequest.ts';
+import { withListResponse } from '../server/http/listPagination.ts';
 import { reportSourceFailure, safeFailure, InvalidPayloadError } from '../shared/diagnostics.ts';
 import { config } from '../config/server.ts';
 /**
@@ -11,25 +11,13 @@ import { config } from '../config/server.ts';
  * Returns the 24-hour PSI and the latest 1-hour PM2.5 for each of the five regions.
  * Either reading may be null when its feed fails; the endpoint fails only if both do.
  */
-import { fetchDataGovV2, NO_STORE, liveCacheHeaders, setHeaders } from './_client.ts';
+import { fetchDataGovV2, NO_STORE, liveCacheHeaders } from './_client.ts';
 
 const PSI_URL = config.server.upstreams.psi;
 const PM25_URL = config.server.upstreams.pm25;
 // NEA publishes both readings hourly.
 const CACHE = liveCacheHeaders(...config.server.cache.weather);
 const REGIONS = ['north', 'south', 'east', 'west', 'central'] as const;
-
-function send(res: any, status: number, body: unknown, cache = NO_STORE) {
-  if (res && typeof res.status === 'function') {
-    res.setHeader('Content-Type', 'application/json');
-    setHeaders(res, cache);
-    return res.status(status).json(body);
-  }
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { 'Content-Type': 'application/json', ...cache },
-  });
-}
 
 // v2 responses are wrapped: { code, errorMsg, data: { regionMetadata, items } }
 async function fetchLatest(url: string) {
@@ -43,13 +31,13 @@ async function fetchLatest(url: string) {
 
 const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null);
 
-const handler = withRequestSchema(requestSchemas.empty, async (_req, res) => {
+const handler = withListResponse(requestSchemas.empty, 'airquality', ['regions'], async (_req, res, { send }) => {
   const [psi, pm25] = await Promise.allSettled([fetchLatest(PSI_URL), fetchLatest(PM25_URL)]);
   if (psi.status === 'rejected') reportSourceFailure('nea', 'psi', psi.reason);
   if (pm25.status === 'rejected') reportSourceFailure('nea', 'pm25', pm25.reason);
   if (psi.status === 'rejected' && pm25.status === 'rejected') {
     const error = failedDependency(psi.reason, pm25.reason);
-    return send(res, providerFailureStatus(error), safeFailure('nea', error).body, providerFailureHeaders(error));
+    return send(providerFailureStatus(error), safeFailure('nea', error).body, providerFailureHeaders(error));
   }
 
   const psiData = psi.status === 'fulfilled' ? psi.value : null;
@@ -61,7 +49,6 @@ const handler = withRequestSchema(requestSchemas.empty, async (_req, res) => {
   const pm25Hour = pm25Data?.item.readings.pm25_one_hourly || {};
 
   return send(
-    res,
     200,
     {
       success: true,

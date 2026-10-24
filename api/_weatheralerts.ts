@@ -1,6 +1,6 @@
 import { providerFailureStatus, providerFailureHeaders, failedDependency } from '../server/http/providerFailure.ts';
 import { internalFeedSchema } from '../server/http/requestSchemas.ts';
-import { withRequestSchema } from '../server/http/validateRequest.ts';
+import { withListResponse } from '../server/http/listPagination.ts';
 import { reportSourceFailure, safeFailure } from '../shared/diagnostics.ts';
 import { config } from '../config/server.ts';
 /**
@@ -10,7 +10,7 @@ import { config } from '../config/server.ts';
  * Lightning: strikes in NEA's latest observation (every few minutes).
  * Heat stress: Wet Bulb Globe Temperature (WBGT) and NEA's Low / Moderate / High per station.
  */
-import { NO_STORE, fetchDataGovV2, liveCacheHeaders, sendJson } from './_client.ts';
+import { NO_STORE, fetchDataGovV2, liveCacheHeaders } from './_client.ts';
 
 const LIGHTNING_URL = config.server.upstreams.lightning;
 const WBGT_URL = config.server.upstreams.wbgt;
@@ -21,13 +21,13 @@ const num = (v: unknown) => {
   return Number.isFinite(n) ? n : null;
 };
 
-const handler = withRequestSchema(internalFeedSchema('weatheralerts'), async (_req, res) => {
+const handler = withListResponse(internalFeedSchema('weatheralerts'), 'weatheralerts', ['strikes', 'heatStations'], async (_req, res, { send }) => {
   const [lightning, wbgt] = await Promise.allSettled([fetchDataGovV2(LIGHTNING_URL), fetchDataGovV2(WBGT_URL)]);
   if (lightning.status === 'rejected') reportSourceFailure('nea', 'lightning', lightning.reason);
   if (wbgt.status === 'rejected') reportSourceFailure('nea', 'wbgt', wbgt.reason);
   if (lightning.status === 'rejected' && wbgt.status === 'rejected') {
     const error = failedDependency(lightning.reason, wbgt.reason);
-    return sendJson(res, providerFailureStatus(error), safeFailure('nea', error).body, providerFailureHeaders(error));
+    return send(providerFailureStatus(error), safeFailure('nea', error).body, providerFailureHeaders(error));
   }
 
   const lightningRecord = lightning.status === 'fulfilled' ? lightning.value.records?.[0] : null;
@@ -56,8 +56,7 @@ const handler = withRequestSchema(internalFeedSchema('weatheralerts'), async (_r
         .filter((s: any) => s.lat != null && s.lon != null && s.wbgt != null)
     : null;
 
-  return sendJson(
-    res,
+  return send(
     200,
     {
       success: true,
