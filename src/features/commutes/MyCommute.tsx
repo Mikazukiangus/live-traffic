@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Commute,
   commuteRouteKey,
@@ -11,11 +11,20 @@ import { CommuteCard } from './CommuteCard';
 import { CommuteEditor } from './CommuteEditor';
 import { summarizeCommute } from './summarizeCommute';
 import { getCommuteRepository } from './commuteStorage';
+import { createHistoryJobs } from './historyJobs';
+import { backgroundOwner, getBackgroundQueue } from '../background/browserQueue';
 export const MyCommute: React.FC<MyCommuteProps> = (props) => {
   const commutes = useCommutes();
   const storageNotice = useCommuteStorageNotice();
   const [editing, setEditing] = useState<Commute | null>(null);
+  const [historyNotice, setHistoryNotice] = useState<string | null>(null);
   const repository = getCommuteRepository();
+  const historyJobs = useRef<ReturnType<typeof createHistoryJobs> | null>(null);
+  useEffect(() => {
+    const jobs = createHistoryJobs(getBackgroundQueue(), backgroundOwner('history'), async rows => { await repository.recordBatch(rows); }, setHistoryNotice);
+    historyJobs.current = jobs;
+    return () => { jobs.dispose(); historyJobs.current = null; };
+  }, [repository]);
   const {
     routes,
     estimateMinutes,
@@ -45,7 +54,7 @@ export const MyCommute: React.FC<MyCommuteProps> = (props) => {
   );
   useEffect(() => {
     if (travelStatus !== 'live' || travelFetchedAt == null) return;
-    repository.recordBatch(
+    historyJobs.current?.record(
       readings.flatMap(({ commute, summary }) =>
         summary.total == null || summary.anyEstimated
           ? []
@@ -63,9 +72,9 @@ export const MyCommute: React.FC<MyCommuteProps> = (props) => {
 
   return (
     <section id="commute" aria-label="My commute" className="flex flex-col gap-3 scroll-mt-24">
-      {storageNotice && (
+      {(storageNotice || historyNotice) && (
         <p role="status" className="text-xs text-amber-800 bg-amber-50 rounded-lg px-3 py-2">
-          {storageNotice}
+          {storageNotice || historyNotice}
         </p>
       )}
       {readings.map(({ commute, summary }) => (

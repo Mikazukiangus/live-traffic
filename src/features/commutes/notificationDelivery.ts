@@ -32,8 +32,9 @@ export async function requestCommuteNotifications(port = browser): Promise<Permi
 }
 
 /** 'sent' means the browser accepted it, not proof that the OS displayed it or a person read it. */
-export async function sendCommuteNotification(title: string, body: string, port = browser): Promise<DeliveryOutcome> {
+export async function sendCommuteNotification(title: string, body: string, port = browser, signal?: AbortSignal): Promise<DeliveryOutcome> {
   try {
+    if (signal?.aborted) return 'failed';
     if (!port.supported()) return 'unsupported';
     if (port.permission() !== 'granted') return 'blocked';
     const options: NotificationOptions = {
@@ -42,6 +43,8 @@ export async function sendCommuteNotification(title: string, body: string, port 
     };
     try {
       const registration = await port.worker();
+      if (signal?.aborted) return 'failed';
+      if (port.permission() !== 'granted') return 'blocked';
       if (registration) {
         await registration.showNotification(title, options);
         return 'sent';
@@ -49,6 +52,8 @@ export async function sendCommuteNotification(title: string, body: string, port 
     } catch {
       // Desktop may still support the constructor; both paths have their own rejection handler.
     }
+    if (signal?.aborted) return 'failed';
+    if (port.permission() !== 'granted') return 'blocked';
     port.show(title, options);
     return 'sent';
   } catch {

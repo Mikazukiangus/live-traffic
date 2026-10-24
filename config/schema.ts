@@ -107,6 +107,9 @@ export const ENV_SCHEMA = {
   VITE_SPEED_SNAPSHOT_MAX_AGE_MS: integer('public', 'Maximum age of locally retained fallback speeds.', 86400000, 1000, 604800000),
   VITE_WALL_CYCLE_MS: poll('Wall display checkpoint/tab cycling interval.', 30000),
   VITE_VEHICLE_COUNTING_ENABLED: boolean('public', 'Enable the existing browser-side vehicle counting; disabling avoids loading its model/runtime.', true),
+  VITE_BACKGROUND_MAX_PENDING: integer('public', 'Maximum waiting device-local background jobs; running jobs have one slot per lane.', 32, 4, 256),
+  VITE_BACKGROUND_IDLE_TIMEOUT_MS: integer('public', 'Maximum wait for an idle browser turn before optional work starts.', 1000, 1, 10000),
+  VITE_BACKGROUND_JOB_MAX_AGE_MS: integer('public', 'Device-local background job lifetime including queue wait and retry backoff.', 120000, 1000, 600000),
   DEV_HOST: field('development', 'Local dev/preview bind host; default preserves existing LAN access.', '0.0.0.0', (v) => {
     try {
       const ipv6 = (v.match(/:/g)?.length || 0) > 1;
@@ -191,6 +194,8 @@ function publicConfig(v: Values) {
     timeouts: { request: v.VITE_REQUEST_TIMEOUT_MS, speeds: v.VITE_SPEED_REQUEST_TIMEOUT_MS, assets: v.VITE_ASSET_TIMEOUT_MS },
     wallCycleMs: v.VITE_WALL_CYCLE_MS,
     vehicleCountingEnabled: v.VITE_VEHICLE_COUNTING_ENABLED,
+    background: { maxPending: v.VITE_BACKGROUND_MAX_PENDING, idleTimeoutMs: v.VITE_BACKGROUND_IDLE_TIMEOUT_MS,
+      maxAgeMs: v.VITE_BACKGROUND_JOB_MAX_AGE_MS },
   };
 }
 /** Browser-safe projection: server settings are neither parsed nor returned here. */
