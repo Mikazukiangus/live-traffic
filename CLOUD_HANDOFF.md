@@ -14,8 +14,8 @@ Fetch current main to include this handoff and its log entry; do not reset to th
 older snapshot. The local checkout had no tracked changes and only a pre-existing
 untracked `.claude/` directory. No local-only implementation needs recovering.
 
-**The latest approved implementation is released.** PR #26 (list pagination) is merged as
-`6a0503d3616e03a3b2996e23d2652f8d35cc1617`, following PR #25's repeated-operation caching, PR #24's device-local background queue, PR #22's atomic request updates, PR #21's error handling, PR #20's circuit breakers, PR #19's retries and PR #18's timeouts.
+**The latest approved implementation is released.** PR #27 (weather result caching) is merged as
+`406fd7a3cd667eef8e158192038d7091dc57087f`, following PR #26's list pagination, PR #25's repeated-operation caching, PR #24's device-local background queue, PR #22's atomic request updates, PR #21's error handling, PR #20's circuit breakers, PR #19's retries and PR #18's timeouts.
 **PR #23 remains open/draft/unmerged:** cross-tab commute storage and wake-lock ownership on `codex/cross-tab-atomic-storage`, last published head `58ba18bfd6fa6c0de25a3919c98a49f4ccb6e812`. Do not merge it without explicit approval. It touches the commute receipt effect changed by PR #24; preserve the background-history wrapper around its coordinated repository call when integrating it. Turn 143 is recorded on that pending branch; current main has Turns 144–145 for the queue preview/release.
 **Caching PR #25 was explicitly approved and merged.** Final preview head
 `ef0a93910174b6a1d10684137180003abdf52479` passed 246 tests, type checking, transport audit and build.
@@ -31,13 +31,13 @@ LTA windows and network-only paged requests in the service worker. Read `docs/pa
 Turns 148–149 for API shapes, preview/release checks and limits. Existing complete-list dashboards
 remain compatible. Separate PR #23 still requires explicit approval.
 
-**Weather-result cache preview PR #27 is pending explicit approval:** `codex/weather-result-caching`,
-runtime head `0cbb0ba3d7518ca3e10be7d3660d5e3d87700aab`. Local full suite passes 275 tests; released
-main remains 264. It reuses complete air (5 minutes), 24-hour outlook (15 minutes, validity-capped)
-and lightning/heat (1 minute) results across full/paged reads. Three new server-only TTL settings
-accept zero; defaults need no new credentials. Read `docs/weather-caching.md` and Turn 150 for
-invalidation, source-age/health behavior and verification. No hosted cache is added. Do not merge
-this PR or separate PR #23 implicitly.
+**Weather-result cache PR #27 was explicitly approved and merged.** Final head
+`8b72d868ffdd1cb12e70352ac0a8a705345aa98f` passed both CI runs with 275 tests and zero skips.
+Main now reuses complete air (5 minutes), 24-hour outlook (15 minutes, validity-capped) and
+lightning/heat (1 minute) results across full/paged reads. Three new server-only TTL settings
+accept zero; defaults need no new credentials. Read `docs/weather-caching.md` and Turns 150–151
+for invalidation, source-age/health behavior and release verification. No hosted cache is added.
+Separate PR #23 still requires explicit approval.
 
 Application login, account creation and brute-force lockout are **on hold at the
 user's explicit request**. Do not resume them unless requested; see
@@ -220,9 +220,11 @@ See `docs/error-handling.md` for ownership and limits.
 
 [PR #26](https://github.com/Mikazukiangus/live-traffic/pull/26) adds opt-in limit/offset pagination (100 default, 500 maximum) with named collections, scoped revision checks for normalized lists and honest unknown-total live windows for raw LTA. Paged requests are no-store/network-only; existing complete-list dashboard and offline behavior remain compatible. See `docs/pagination.md` for first/next requests, 409 restarts and all limitations.
 
-**264 tests**, type checking, security source audit and production build passed.
-The Python wrapper ran four offline helper tests. Both final PR #26 checks and
-Vercel checks passed. The pagination release verified the canonical homepage/entry bundle, rendered worker and two consecutive rain pages with the same revision (two of 47 areas per page), plus safe 409 revision-conflict and 400 invalid-limit responses. These are selected HTTP/artifact checks, not actual browser activation or a real upstream mutation. The earlier approved caching release verified HTTP 200 for the canonical production homepage, its actual entry bundle and referenced camera chunk, including the new model-contract cache revision. These establish deployed artifacts, not cache hit rate, inference output or production savings. PR #22's earlier release verified the rendered worker's version guard. Earlier error-handling checks covered the following providers; they were not repeated for this cache release. Production homepage/entry bundle, air quality (5 regions),
+[PR #27](https://github.com/Mikazukiangus/live-traffic/pull/27) adds complete normalized air-quality (5 minutes), 24-hour outlook (15 minutes capped by published validity) and lightning/heat-stress (1 minute) result reuse across full/paged reads. Each handler retains one result up to 512 KiB serialized JSON, preserves original observations, shrinks CDN lifetime and exports internal invalidation. Partial/error/incomplete results are not retained; health probes remain uncached. No hosted cache or credentials are required. See `docs/weather-caching.md`.
+
+**275 tests**, type checking, security source audit and production build passed.
+The Python wrapper ran four offline helper tests. Both final PR #27 checks and
+Vercel checks passed. The weather-cache release verified HTTP 200 for the canonical homepage/entry bundle, paginated forecast (one of three periods) and air quality (two of five regions). These are selected deployed success paths, not measured cache hits, provider-wide health, browser performance or savings. The earlier pagination release verified the canonical homepage/entry bundle, rendered worker and two consecutive rain pages with the same revision (two of 47 areas per page), plus safe 409 revision-conflict and 400 invalid-limit responses. These are selected HTTP/artifact checks, not actual browser activation or a real upstream mutation. The earlier approved caching release verified HTTP 200 for the canonical production homepage, its actual entry bundle and referenced camera chunk, including the new model-contract cache revision. These establish deployed artifacts, not cache hit rate, inference output or production savings. PR #22's earlier release verified the rendered worker's version guard. Earlier error-handling checks covered the following providers; they were not repeated for this cache release. Production homepage/entry bundle, air quality (5 regions),
 incidents (9 source records at the check) and rain (47 areas) returned HTTP 200 on
 23 October. Interactive recovery-screen verification remains pending: the browser
 approval reviewer hit its usage limit. An isolated synthetic fixture and manual
@@ -239,8 +241,8 @@ These are recorded checks, not a guarantee of current provider health in the new
 - Canonical production: <https://live-traffic-carbon-bc04.vercel.app>.
 - Other observed production alias: <https://live-traffic-kappa.vercel.app>.
   `live-traffic.vercel.app` belongs to a different application; do not use it.
-- Last verified runtime deployment: `dpl_7W6jdhMuGmT1GLnzURHLc6ix9w2J`, READY for
-  production merge `6a0503d`. Subsequent main documentation pushes can create newer deployments;
+- Last verified runtime deployment: `dpl_GgmHMJR46BbveXkWEGevKivg2DRJ`, READY for
+  production merge `406fd7a`. Subsequent main documentation pushes can create newer deployments;
   verify current SHA/team/project/target rather than pinning that deployment forever.
 
 Use the new chat's authenticated Vercel tools if available; connector authorization

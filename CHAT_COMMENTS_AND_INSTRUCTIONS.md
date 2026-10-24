@@ -158,6 +158,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 148. [Turn 148: Offset Pagination for Live Lists on Preview](#148-turn-148-offset-pagination-for-live-lists-on-preview)
 149. [Turn 149: List Pagination Merged to Main](#149-turn-149-list-pagination-merged-to-main)
 150. [Turn 150: Cache Repeated Weather Result Builds on Preview](#150-turn-150-cache-repeated-weather-result-builds-on-preview)
+151. [Turn 151: Weather Result Caches Merged to Main](#151-turn-151-weather-result-caches-merged-to-main)
 
 ---
 
@@ -2685,6 +2686,23 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Deployment dpl_Acxq9dRtun2SjgUHFZcQWo7eKuXx is READY for the intended project/team, preview branch and implementation SHA: https://live-traffic-6b3r1f5dz-carbon-bc04.vercel.app. Authenticated homepage, forecast24h?limit=1 (one of three periods) and airquality?limit=2 (two of five regions) returned HTTP 200. These are selected deployed success-path checks, not measurements of cache hits, cross-instance reuse or production savings. No weather payload was printed and no real camera metadata/photo, user storage/permissions, notification or provider outage was probed.
 - Recorded publication evidence and all memory/freshness/invalidation/browser limits in docs/weather-caching.md. Updated CLOUD_HANDOFF.md with pending PR #27 and its 275-test preview versus 264-test released-main baseline. This final follow-up changes documentation only for commit/push under the standing instruction. Main/production remain unchanged; explicit merge approval is required. PR #23 remains separate and unmerged.
 
+
+---
+
+## 151. Turn 151: Weather Result Caches Merged to Main
+
+**User Instructions:**
+> "Merge"
+> "Continue last action"
+
+### Released and continuation completed (24 October 2026, SGT):
+- Received explicit approval for PR #27 (https://github.com/Mikazukiangus/live-traffic/pull/27), retained its chat attachment and verified final head 8b72d868ffdd1cb12e70352ac0a8a705345aa98f, main target, open draft and mergeable state. GitHub Checks runs 40060906284 and 40060908611 and Vercel deployment/feedback checks passed. Required CI job diagnostics confirm 275 passing tests, zero failures/skips, type checking, transport audit and build. Marked ready and merged with that expected head as 406fd7a3cd667eef8e158192038d7091dc57087f.
+- Fast-forwarded local main and retained preview branches. Released complete normalized air (five minutes), 24-hour outlook (fifteen minutes capped by validity) and lightning/heat (one minute) result reuse with bounded memory, original source timestamps, remaining-lifetime CDN headers, coalescing and explicit internal invalidation. Partial/error results remain uncached, health probes remain diagnostic and pagination contracts remain intact. No runtime edits or repeat broad local tests were needed for the approved merge.
+- While production was building, the user requested continuation. Continued the same authorized release verification/documentation work without starting another change or requesting repeated approval. Production deployment dpl_GgmHMJR46BbveXkWEGevKivg2DRJ is READY for the intended project/team, main merge SHA and production target. Aliases include live-traffic-carbon-bc04.vercel.app, live-traffic-kappa.vercel.app and the main branch URL. Used existing authenticated access without changing protection, hosting settings, credentials or environment values.
+- Authenticated canonical homepage, its actual referenced entry bundle, forecast24h?limit=1 (one of three periods) and airquality?limit=2 (two of five regions) returned HTTP 200. No weather payload or snapshot token was printed. These verify selected deployed success paths/artifacts, not cache hit rate, measured savings, provider-wide health, cross-instance reuse or actual browser execution. Synthetic tests establish TTL/invalidation/failure behavior.
+- Existing interactive-browser verification remains limited by the earlier automatic approval usage-limit block; no alternate browser/protocol workaround or visual pass was used. No real camera metadata/presigned photo, browser user storage/permissions, notification or provider outage was requested. Memory/cache-scope limits remain documented, and no new hosted service/dependency/authentication work was introduced.
+- Confirmed PR #23 remains open/draft/unmerged. This approval concerns PR #27 only; cross-tab/wake-lock work and Turn 143 remain separately preserved. Login stays on hold. Pre-existing .claude/, local secrets and dependency lockfiles remain untouched.
+- Updated docs/weather-caching.md, docs/caching.md and CLOUD_HANDOFF.md with the approved merge, 275-test main baseline and selected production checks. Updated this log/TOC for documentation-only commit/push on main under the standing instruction. The approved release and requested continuation are complete.
 
 ---
 

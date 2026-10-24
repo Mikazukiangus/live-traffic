@@ -1,6 +1,6 @@
 # Weather result caching after pagination
 
-Preview branch `codex/weather-result-caching`, from main `b1abb58`, 24 October 2026. This extends the caches already released in PR #25 and preserves PR #26's pagination contracts. Main merge requires explicit approval; PR #23 remains separate.
+Developed on `codex/weather-result-caching` from main `b1abb58` and released through explicitly approved PR #27 on 24 October 2026. This extends PR #25's caches and preserves PR #26's pagination contracts. PR #23 remains separate and unmerged.
 
 ## Remaining repeated cost
 
@@ -67,3 +67,11 @@ Implementation `0cbb0ba3d7518ca3e10be7d3660d5e3d87700aab` is published in attach
 [Preview](https://live-traffic-6b3r1f5dz-carbon-bc04.vercel.app) is deployment `dpl_Acxq9dRtun2SjgUHFZcQWo7eKuXx`, READY for the intended project/team, preview branch and implementation SHA. Selected authenticated checks returned HTTP 200 for the homepage, `/api/forecast24h?limit=1` (one of three periods) and `/api/airquality?limit=2` (two of five regions).
 
 These verify selected deployed success paths. They do not measure cache hit rate, provider savings, cross-instance reuse, real browser execution or every feed's current health; synthetic tests establish cache policies and call counts. No real camera metadata/photo, user storage/permissions, notification or provider outage was probed. This follow-up updates documentation/handoff only; main/production remain unchanged, PR #27 awaits explicit merge approval, and PR #23 remains independently pending.
+
+## Production release — 24 October 2026
+
+The user approved PR #27 with “Merge” and then requested “Continue last action” while release verification was in progress. Verified final head `8b72d868ffdd1cb12e70352ac0a8a705345aa98f`, main target, mergeable state and successful checks. GitHub Checks runs `40060906284` and `40060908611` and Vercel checks passed. Required CI job diagnostics confirm 275 passing tests, zero failures/skips, type checking, transport audit and build. Marked ready and merged with that expected head as `406fd7a3cd667eef8e158192038d7091dc57087f`; local main was fast-forwarded. No runtime edits or additional broad local tests were needed for the approved merge.
+
+Production deployment `dpl_GgmHMJR46BbveXkWEGevKivg2DRJ` is READY for the intended project/team, main merge SHA and production target. At [canonical production](https://live-traffic-carbon-bc04.vercel.app), authenticated homepage, its actual referenced entry bundle, `/api/forecast24h?limit=1` (one of three periods), and `/api/airquality?limit=2` (two of five regions) returned HTTP 200. No weather payload or snapshot token was printed.
+
+These verify selected deployed success paths and artifacts, not production cache hit rate, measured savings, every source's health, cross-instance reuse or actual browser execution. Synthetic tests establish the cache/invalidation/failure policies. No real camera metadata/photo, user storage/permissions, notification or provider outage was requested; earlier interactive-browser verification limits remain. PR #23 is still open/draft/unmerged and requires separate approval. The project log and cloud handoff are updated in a documentation-only main commit under the standing instruction.
