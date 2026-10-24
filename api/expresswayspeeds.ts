@@ -1,29 +1,16 @@
 import { providerFailureStatus, providerFailureHeaders } from '../server/http/providerFailure.ts';
 import { requestSchemas } from '../server/http/requestSchemas.ts';
-import { withRequestSchema } from '../server/http/validateRequest.ts';
+import { withListResponse } from '../server/http/listPagination.ts';
 import { reportFailure } from '../shared/diagnostics.ts';
 import { snapshotCacheHeaders } from '../server/http/responses.ts';
 import { config } from '../config/server.ts';
 import { getSpeedSummary } from '../server/traffic/speedService.ts';
-import { NO_STORE, getLtaAccountKey, setHeaders } from './_client.ts';
+import { NO_STORE, getLtaAccountKey } from './_client.ts';
 export type { ExpresswaySpeedSummary, CheckpointApproach, SpeedSegment } from '../shared/traffic/types.ts';
 export { traceCheckpoint, CHECKPOINT_ROUTES } from '../server/traffic/traceCheckpoint.ts';
 
-const handler = withRequestSchema(requestSchemas.speeds, async (_req, res, input) => {
-  const send = (status: number, body: any, cache: Record<string, string>) => {
-    if (res && typeof res.status === 'function') {
-      res.setHeader('Content-Type', 'application/json');
-      setHeaders(res, cache);
-      return res.status(status).json(body);
-    }
-    return new Response(JSON.stringify(body), {
-      status,
-      headers: {
-        'Content-Type': 'application/json',
-        ...cache,
-      },
-    });
-  };
+const handler = withListResponse(requestSchemas.speeds, 'expresswayspeeds', ['expressways', 'checkpoints', 'segments'], async (_req, res, input) => {
+  const { send } = input;
 
   const accountKey = getLtaAccountKey();
   if (!accountKey) {
@@ -37,7 +24,7 @@ const handler = withRequestSchema(requestSchemas.speeds, async (_req, res, input
   } catch (err: any) {
     return send(providerFailureStatus(err), reportFailure('lta', err), providerFailureHeaders(err));
   }
-});
+}, query => query.includeSegments ? ['expressways', 'checkpoints', 'segments'] : ['expressways', 'checkpoints']);
 export default handler;
 
 export async function GET(request: Request) {

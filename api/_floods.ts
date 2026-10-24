@@ -1,6 +1,6 @@
 import { providerFailureStatus, providerFailureHeaders } from '../server/http/providerFailure.ts';
 import { internalFeedSchema } from '../server/http/requestSchemas.ts';
-import { withRequestSchema } from '../server/http/validateRequest.ts';
+import { withListResponse } from '../server/http/listPagination.ts';
 import { reportFailure } from '../shared/diagnostics.ts';
 import { config } from '../config/server.ts';
 /**
@@ -12,7 +12,7 @@ import { config } from '../config/server.ts';
  * ([lat, lon, radius km]); a Cancel record ends an earlier Alert through `references`
  * ("sender,identifier,sentTime"). PUB doesn't always send a Cancel, so an alert lapses after an hour.
  */
-import { NO_STORE, fetchDataGovV2, liveCacheHeaders, sendJson } from './_client.ts';
+import { fetchDataGovV2, liveCacheHeaders } from './_client.ts';
 
 const FLOOD_URL = config.server.upstreams.floods;
 const CACHE = liveCacheHeaders(...config.server.cache.weatherAlerts);
@@ -108,13 +108,13 @@ async function recentRecords(now: number) {
   return { records, latest };
 }
 
-const handler = withRequestSchema(internalFeedSchema('floods'), async (req, res) => {
+const handler = withListResponse(internalFeedSchema('floods'), 'floods', ['alerts'], async (req, res, { send }) => {
   try {
     const now = Date.now();
     const { records, latest } = await recentRecords(now);
-    return sendJson(res, 200, { success: true, source: 'pub_flood_alerts', checkedAt: latest, alerts: activeFloodAlerts(records, now) }, CACHE);
+    return send(200, { success: true, source: 'pub_flood_alerts', checkedAt: latest, alerts: activeFloodAlerts(records, now) }, CACHE);
   } catch (err: any) {
-    return sendJson(res, providerFailureStatus(err), reportFailure('nea', err), providerFailureHeaders(err));
+    return send(providerFailureStatus(err), reportFailure('nea', err), providerFailureHeaders(err));
   }
 });
 export default handler;

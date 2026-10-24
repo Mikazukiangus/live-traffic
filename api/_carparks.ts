@@ -1,6 +1,6 @@
 import { providerFailureStatus, providerFailureHeaders } from '../server/http/providerFailure.ts';
 import { internalFeedSchema } from '../server/http/requestSchemas.ts';
-import { withRequestSchema } from '../server/http/validateRequest.ts';
+import { withListResponse } from '../server/http/listPagination.ts';
 import { reportFailure } from '../shared/diagnostics.ts';
 import { ltaSnapshots } from '../server/cache/ltaSnapshots.ts';
 import { snapshotCacheHeaders } from '../server/http/responses.ts';
@@ -11,7 +11,7 @@ import { config } from '../config/server.ts';
  * Returns every car park compactly so the browser picks the nearest ones itself:
  * the visitor's location is never sent here.
  */
-import { getLtaAccountKey, sendJson } from './_client.ts';
+import { getLtaAccountKey } from './_client.ts';
 
 const CARPARKS_URL = config.server.upstreams.carParks;
 // LTA updates lots every minute.
@@ -22,9 +22,9 @@ const LOT_KEY: Record<string, 'car' | 'motorcycle' | 'heavy'> = { C: 'car', Y: '
 const titleCase = (s: string) =>
   s.toLowerCase().replace(/\b([a-z])/g, (m) => m.toUpperCase()).replace(/\bBlk\b/g, 'Blk');
 
-const handler = withRequestSchema(internalFeedSchema('carparks'), async (_req, res) => {
+const handler = withListResponse(internalFeedSchema('carparks'), 'carparks', ['carParks'], async (_req, res, { send }) => {
   const accountKey = getLtaAccountKey();
-  if (!accountKey) return sendJson(res, 503, { success: false, error: 'LTA_ACCOUNT_KEY not configured' });
+  if (!accountKey) return send(503, { success: false, error: 'LTA_ACCOUNT_KEY not configured' });
 
   try {
     const snapshot = await ltaSnapshots.get(CARPARKS_URL, accountKey, config.server.snapshotCache.carParksMs);
@@ -47,14 +47,13 @@ const handler = withRequestSchema(internalFeedSchema('carparks'), async (_req, r
       }
       byId.get(id)![lot] = r.AvailableLots;
     }
-    return sendJson(
-      res,
+    return send(
       200,
       { success: true, source: 'lta_carparkavailabilityv2', fetchedAt: new Date(snapshot.storedAt).toISOString(), carParks: [...byId.values()] },
       snapshotCacheHeaders(snapshot.expiresAt, config.server.cache.carParks)
     );
   } catch (err: any) {
-    return sendJson(res, providerFailureStatus(err), reportFailure('lta', err), providerFailureHeaders(err));
+    return send(providerFailureStatus(err), reportFailure('lta', err), providerFailureHeaders(err));
   }
 });
 export default handler;

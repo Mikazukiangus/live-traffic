@@ -24,6 +24,13 @@ counts, and stronger speed-cache isolation/invalidation/CDN deadlines. Read `doc
 Turns 146–147 for TTLs, controls and release verification. No hosted shared cache is provisioned.
 PR #23 still requires separate approval.
 
+**Pagination preview PR #26 is pending explicit approval:** `codex/list-pagination`, runtime head
+`7569e7a088f3e9c00c4c85e6d651256e0a27e378`. Both CI runs pass 264 tests; released main remains
+246 tests. It adds opt-in bounded offset pagination, normalized-list revision checks, honest native
+LTA windows and network-only paged requests in the service worker. Read `docs/pagination.md` and
+Turn 148 for API shapes, live preview checks and limits. Existing complete-list dashboards remain
+compatible. Do not merge this PR or separate PR #23 implicitly.
+
 Application login, account creation and brute-force lockout are **on hold at the
 user's explicit request**. Do not resume them unless requested; see
 `AUTHENTICATION_PLAN.md`.

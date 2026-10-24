@@ -1,6 +1,6 @@
 import { providerFailureStatus, providerFailureHeaders } from '../server/http/providerFailure.ts';
 import { requestSchemas } from '../server/http/requestSchemas.ts';
-import { withRequestSchema } from '../server/http/validateRequest.ts';
+import { withListResponse } from '../server/http/listPagination.ts';
 import { reportFailure } from '../shared/diagnostics.ts';
 import { config } from '../config/server.ts';
 /**
@@ -8,26 +8,14 @@ import { config } from '../config/server.ts';
  * Upstream: https://api-open.data.gov.sg/v2/real-time/api/twenty-four-hr-forecast
  * Returns the island-wide outlook and the forecast for each region over the next three periods.
  */
-import { fetchDataGovV2, NO_STORE, liveCacheHeaders, setHeaders } from './_client.ts';
+import { fetchDataGovV2, liveCacheHeaders } from './_client.ts';
 
 const TWENTY_FOUR_HR_FORECAST = config.server.upstreams.forecast24h;
 // NEA reissues this a few times a day.
 const CACHE = liveCacheHeaders(...config.server.cache.forecast24h);
 const REGIONS = ['north', 'south', 'east', 'west', 'central'] as const;
 
-function send(res: any, status: number, body: unknown, cache = NO_STORE) {
-  if (res && typeof res.status === 'function') {
-    res.setHeader('Content-Type', 'application/json');
-    setHeaders(res, cache);
-    return res.status(status).json(body);
-  }
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { 'Content-Type': 'application/json', ...cache },
-  });
-}
-
-const handler = withRequestSchema(requestSchemas.empty, async (_req, res) => {
+const handler = withListResponse(requestSchemas.empty, 'forecast24h', ['periods'], async (_req, res, { send }) => {
   try {
     const data = await fetchDataGovV2(TWENTY_FOUR_HR_FORECAST);
 
@@ -36,7 +24,6 @@ const handler = withRequestSchema(requestSchemas.empty, async (_req, res) => {
     const { general } = record;
 
     return send(
-      res,
       200,
       {
         success: true,
@@ -64,7 +51,7 @@ const handler = withRequestSchema(requestSchemas.empty, async (_req, res) => {
       CACHE,
     );
   } catch (error: any) {
-    return send(res, providerFailureStatus(error), reportFailure('nea', error), providerFailureHeaders(error));
+    return send(providerFailureStatus(error), reportFailure('nea', error), providerFailureHeaders(error));
   }
 });
 export default handler;

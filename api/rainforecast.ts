@@ -1,10 +1,10 @@
 import { providerFailureStatus, providerFailureHeaders } from '../server/http/providerFailure.ts';
 import { requestSchemas } from '../server/http/requestSchemas.ts';
-import { withRequestSchema } from '../server/http/validateRequest.ts';
+import { withListResponse } from '../server/http/listPagination.ts';
 import { reportFailure } from '../shared/diagnostics.ts';
 import { config } from '../config/server.ts';
 import { createRainService } from '../server/weather/rainService.ts';
-import { fetchDataGovV2, NO_STORE, liveCacheHeaders, sendJson } from './_client.ts';
+import { fetchDataGovV2, NO_STORE, liveCacheHeaders } from './_client.ts';
 
 const service = createRainService({
   fetch: () => fetchDataGovV2(config.server.upstreams.rain),
@@ -15,7 +15,7 @@ const service = createRainService({
     reportFailure('nea', error);
   },
 });
-const handler = withRequestSchema(requestSchemas.empty, async (req, res) => {
+const handler = withListResponse(requestSchemas.empty, 'rainforecast', ['areas'], async (req, res, { send }) => {
   try {
     const { data, cacheSeconds } = await service.get();
     // No stale CDN window: the edge must not serve beyond the forecast's published end.
@@ -25,9 +25,9 @@ const handler = withRequestSchema(requestSchemas.empty, async (req, res) => {
         : liveCacheHeaders(Math.min(cacheSeconds, config.server.cache.weather[0]), 0);
     if (data.delivery?.retryAt && data.delivery.retryAt > Date.now())
       headers['Retry-After'] = String(Math.ceil((data.delivery.retryAt - Date.now()) / 1000));
-    return sendJson(res, 200, data, headers);
+    return send(200, data, headers);
   } catch (error) {
-    return sendJson(res, providerFailureStatus(error), reportFailure('nea', error), providerFailureHeaders(error));
+    return send(providerFailureStatus(error), reportFailure('nea', error), providerFailureHeaders(error));
   }
 });
 export default handler;
