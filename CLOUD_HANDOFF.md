@@ -48,13 +48,20 @@ on `codex/public-api-rate-limits`, pending review
 and activation.** Read `docs/api-rate-limiting.md` and Turn 152. The user confirmed
 Hobby, so the proposal uses one 300-per-60-second rule with OR groups for `/api/`
 and SDK ID `trafficpulse-public-api-v1`; default application mode is off until setup.
-The user reports creating a dashboard draft, but connector reads still return 404.
-Their screenshot confirms its name/enabled toggle/Log action, but not the conditions
-or rate-limit settings; detailed settings were requested before publication.
+Turn 153 resolved inspection through official Vercel CLI 65.2.0 after verifying
+the exact existing project/team. There is no active custom Firewall configuration;
+draft version 1 exists. The original rule matched only exact /api/ and had plain
+Log with no rate limit. Corrected existing rule
+rule_traffic_pulse_public_api_rate_limit_3e38zR through a targeted CLI draft update:
+Path starts /api/ OR SDK ID, Fixed Window 300/60s, IP, Log on excess. Remote readback
+confirms valid/no errors, one rule, only insert/update changes for the same rule,
+unrelated settings unchanged and active still null. No publication was performed.
 Automatic approval rejected replacing the entire unknown Firewall configuration;
-do not retry that overwrite or work around the rejection. Inspect the user's
-screenshot/draft, then have the user review/publish log-only coverage before preview
-enforcement. No rule publication or production activation has been confirmed.
+do not retry that overwrite or work around the rejection. Have the user review/publish
+the corrected log-only draft and review its traffic before preview-only Default
+(429), then approved production blocking. Native WAF IP enforcement needs no app
+redeploy or SDK mode change; SDK admission must remain off until its separate setup
+works. No rule publication or production activation has been confirmed.
 Future verified-user bucket support is tested but has no identity provider while
 login is on hold. A browser ID/header/provider key is not an authenticated user.
 Implementation 8d1ac9e passed both CI runs with 287 tests, zero failures/skips,

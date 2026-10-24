@@ -7,20 +7,48 @@ The Vercel Firewall skill was already installed and was used for this work.
 The account is **Hobby**, confirmed by the user. The design uses **one** rate-limit
 rule, matching Hobby's allowance. It does not require Redis or a plan upgrade.
 
-The project/team IDs were verified through the connector. Reading active, draft,
-or latest Firewall configuration and inserting a draft returned `404 Seawall Config
-not found`. Automatic approval review rejected initializing the entire configuration
-with PUT because unknown security controls could be replaced. No Firewall change
-was confirmed; subsequent reads still returned 404. Do not work around that rejection
-or overwrite the entire configuration. The user confirmed they can create rules in
-the dashboard; use that safe route to establish the initial draft and inspect it.
-The user subsequently reported creating a draft. Connector reads still returned
-404 afterward. The supplied screenshot confirms the named rule is enabled with
-Log selected; its conditions, rate-limit algorithm/threshold/key and publication
-state are not visible. A screenshot of those settings was requested. Do not infer
-a missing rule from that API error, assume an ordinary Log action is a configured
-rate limiter, or create a duplicate. In the detailed rule editor, select Rate Limit
-as the action and Log as the action *when the limit is exceeded*.
+**Turn 153: the existing draft has now been inspected and corrected.** The official
+Vercel CLI 65.2.0 worked through the documented connector fallback, after verifying
+the exact project/team. CLI overview showed `active: null` and draft version 1;
+the active configuration API's 404 did not establish a team authorization failure.
+The original draft had exact Path equals `/api/`, plain Log, and no rate-limit
+configuration. It would not match actual endpoints such as `/api/traffic`.
+
+Corrected only existing rule `rule_traffic_pulse_public_api_rate_limit_3e38zR` in
+the unpublished draft: Path **starts with** `/api/` OR SDK ID
+`trafficpulse-public-api-v1`, Rate Limit, Fixed Window 300/60s, IP, Log on excess.
+The connector rejected targeted edit arguments before API execution; the supported
+CLI targeted update succeeded. Subsequent overview/diff checks confirmed a valid
+rule, no validation errors, one rule, only insert/update changes for this rule,
+and unchanged unrelated Firewall settings. **There is still no active configuration.**
+
+The earlier automatic approval rejection of entire-configuration PUT still stands.
+No whole-config overwrite, publication, production enforcement or duplicate rule
+was performed. Use the known targeted draft and user publication flow below.
+
+## Next action in the dashboard
+
+1. Open <https://vercel.com/carbon-bc04/live-traffic/firewall>, choose **Review Changes**,
+   and inspect the corrected `TrafficPulse public API rate limit` rule. The two draft
+   changes are the original insertion and this targeted correction of the same rule.
+2. **Publish the log-only draft yourself**, then review matching traffic at
+   <https://vercel.com/carbon-bc04/live-traffic/firewall/traffic?filter=rule_traffic_pulse_public_api_rate_limit_3e38zR>.
+   Publication is the missing activation step; the enabled toggle in a draft does
+   not mean it is live. The Vercel Firewall skill requires user publication and
+   traffic review before advancing to blocking.
+3. After log review, test blocking with **Environment = Preview AND each OR group**,
+   and change the rate limit's **when exceeded** action to **Default (429)**. Review
+   and publish that preview-only draft yourself. This rejects excess requests,
+   while an unconditional Deny on the API path would reject normal API traffic too.
+4. After preview verification and production traffic review, remove both preview
+   environment conditions and publish 429 enforcement for production when approved.
+
+Native WAF IP blocking happens before the API/CDN and **does not require an app
+redeploy, the PR merge, or `API_RATE_LIMIT_MODE=enforce`**. That environment setting
+controls the additional application SDK admission only. Leave it off until the
+SDK/protection-bypass setup and preview checks below are complete. No application
+code or login change is needed just to enable the native IP rule. Per-account
+enforcement remains future work while login is on hold.
 
 `API_RATE_LIMIT_MODE=off` is the safe setup default. Deploying this branch alone
 does **not** activate limiting. Complete the rollout below before claiming protection.
