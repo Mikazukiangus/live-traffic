@@ -14,14 +14,15 @@ Fetch current main to include this handoff and its log entry; do not reset to th
 older snapshot. The local checkout had no tracked changes and only a pre-existing
 untracked `.claude/` directory. No local-only implementation needs recovering.
 
-**The latest approved implementation is released.** PR #24 (device-local background queue) is merged as
-`c3956f053cc233452cee2b56f36483ffd846675f`, following PR #22's atomic request updates, PR #21's error handling, PR #20's circuit breakers, PR #19's retries and PR #18's timeouts.
+**The latest approved implementation is released.** PR #25 (bounded repeated-operation caching) is merged as
+`72e35ec8f42efb2da2c94201ccd64caedd06c9a2`, following PR #24's device-local background queue, PR #22's atomic request updates, PR #21's error handling, PR #20's circuit breakers, PR #19's retries and PR #18's timeouts.
 **PR #23 remains open/draft/unmerged:** cross-tab commute storage and wake-lock ownership on `codex/cross-tab-atomic-storage`, last published head `58ba18bfd6fa6c0de25a3919c98a49f4ccb6e812`. Do not merge it without explicit approval. It touches the commute receipt effect changed by PR #24; preserve the background-history wrapper around its coordinated repository call when integrating it. Turn 143 is recorded on that pending branch; current main has Turns 144–145 for the queue preview/release.
-**Caching preview PR #25 is also pending approval:** `codex/bounded-result-caching`, runtime head
-`357aa4abfefa0a2e511ea4b55c3673e7231e6bcc` (246 tests, main remains 229). It adds warm-instance
-roadworks/car park/fault caches, page-memory exact-photo vehicle counts, and strengthens speed-cache
-isolation/invalidation/CDN deadlines. Read `docs/caching.md` and Turn 146 for TTLs, controls and
-verification. No hosted shared cache is provisioned; do not merge either pending PR implicitly.
+**Caching PR #25 was explicitly approved and merged.** Final preview head
+`ef0a93910174b6a1d10684137180003abdf52479` passed 246 tests, type checking, transport audit and build.
+Main now includes warm-instance roadworks/car park/fault caches, page-memory exact-photo vehicle
+counts, and stronger speed-cache isolation/invalidation/CDN deadlines. Read `docs/caching.md` and
+Turns 146–147 for TTLs, controls and release verification. No hosted shared cache is provisioned.
+PR #23 still requires separate approval.
 
 Application login, account creation and brute-force lockout are **on hold at the
 user's explicit request**. Do not resume them unless requested; see
@@ -200,9 +201,11 @@ See `docs/error-handling.md` for ownership and limits.
 
 [PR #24](https://github.com/Mikazukiangus/live-traffic/pull/24) adds a bounded page-lifetime queue for visitor-device vehicle analysis, optional commute-history receipts and notification attempts. Three independent lanes each have one physical slot. Defaults are 32 waiting jobs, a 1000-ms idle timeout and a 120000-ms lifetime, validated in config and `.env.example`. Only recomputable photo analysis opts into executor retries; existing notification policy retains its own limits. User saves/permissions and live API answers remain foreground. Closing the page discards pending jobs; no hosted/durable queue was added. See `docs/background-queue.md`.
 
-**229 tests**, type checking, security source audit and production build passed.
-The Python wrapper ran four offline helper tests. Both final PR #24 checks and
-Vercel checks passed. The approved queue production merge verified HTTP 200 for the homepage and its referenced entry bundle, including the new queue diagnostic marker. PR #22's earlier release verified the rendered worker's version guard. Earlier error-handling checks covered the following providers; they were not repeated for this browser-only release. Production homepage/entry bundle, air quality (5 regions),
+[PR #25](https://github.com/Mikazukiangus/live-traffic/pull/25) adds bounded warm-instance roadworks (five minutes), car park/fault (one minute) caches and page-memory exact-photo vehicle counts (five minutes, 32 entries), plus account-isolated speed-cache invalidation and remaining-lifetime CDN headers. Original timestamps survive hits; partial/error results are not retained. No shared/durable cache service or new environment value is required. See `docs/caching.md`.
+
+**246 tests**, type checking, security source audit and production build passed.
+The Python wrapper ran four offline helper tests. Both final PR #25 checks and
+Vercel checks passed. The approved caching release verified HTTP 200 for the canonical production homepage, its actual entry bundle and referenced camera chunk, including the new model-contract cache revision. These establish deployed artifacts, not cache hit rate, inference output or production savings. PR #22's earlier release verified the rendered worker's version guard. Earlier error-handling checks covered the following providers; they were not repeated for this cache release. Production homepage/entry bundle, air quality (5 regions),
 incidents (9 source records at the check) and rain (47 areas) returned HTTP 200 on
 23 October. Interactive recovery-screen verification remains pending: the browser
 approval reviewer hit its usage limit. An isolated synthetic fixture and manual
@@ -219,8 +222,8 @@ These are recorded checks, not a guarantee of current provider health in the new
 - Canonical production: <https://live-traffic-carbon-bc04.vercel.app>.
 - Other observed production alias: <https://live-traffic-kappa.vercel.app>.
   `live-traffic.vercel.app` belongs to a different application; do not use it.
-- Last verified runtime deployment: `dpl_DDzCp8tNFSPXUBpsNzxT2YwUggF7`, READY for
-  merge `c3956f0`. Subsequent main documentation pushes can create newer deployments;
+- Last verified runtime deployment: `dpl_EEAbBFso24XrnbpDS71g5AAp94fQ`, READY for
+  production merge `72e35ec`. Subsequent main documentation pushes can create newer deployments;
   verify current SHA/team/project/target rather than pinning that deployment forever.
 
 Use the new chat's authenticated Vercel tools if available; connector authorization

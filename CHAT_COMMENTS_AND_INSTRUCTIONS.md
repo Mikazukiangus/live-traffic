@@ -154,6 +154,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 144. [Turn 144: Device-Local Background Queue on Preview](#144-turn-144-device-local-background-queue-on-preview)
 145. [Turn 145: Background Queue Merged to Main](#145-turn-145-background-queue-merged-to-main)
 146. [Turn 146: Bounded Caches for Repeated Work on Preview](#146-turn-146-bounded-caches-for-repeated-work-on-preview)
+147. [Turn 147: Repeated-Operation Caches Merged to Main](#147-turn-147-repeated-operation-caches-merged-to-main)
 
 ---
 
@@ -2599,6 +2600,22 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Updated docs/caching.md and CLOUD_HANDOFF.md with final runtime verification, default TTLs and pending PR #25, preserving separate PR #23 and the released main baseline. This final follow-up is documentation only, for commit/push under the standing instruction. Main/production remain unchanged; draft PR #25 awaits explicit merge approval.
 
 
+
+---
+
+## 147. Turn 147: Repeated-Operation Caches Merged to Main
+
+**User Instruction:**
+> "Merge to main"
+
+### Released (24 October 2026, SGT):
+- Received explicit approval for PR #25 (https://github.com/Mikazukiangus/live-traffic/pull/25), retained the chat attachment and verified final head ef0a93910174b6a1d10684137180003abdf52479, main target, open draft and mergeable state. Both GitHub Checks runs 40054164769 and 40054175669 and Vercel deployment/feedback checks passed. Required CI job diagnostics confirm 246 passing tests and zero failures/skips, plus type checking, transport audit and build. Marked ready and merged with that expected head as 72e35ec8f42efb2da2c94201ccd64caedd06c9a2.
+- Fast-forwarded local main and retained preview branches. Released five-minute roadworks and exact-photo count reuse, one-minute car park/fault snapshots, bounded account-isolated speed caching, explicit invalidation, original timestamps and remaining-lifetime CDN headers. All cache settings/defaults and .env.example are already validated. No runtime changes or repeated broad local tests were necessary for this approved merge.
+- Production deployment dpl_EEAbBFso24XrnbpDS71g5AAp94fQ is READY for the intended project/team, main merge SHA and production target. Aliases include live-traffic-carbon-bc04.vercel.app, live-traffic-kappa.vercel.app and the main branch URL. Used existing authenticated access without changing deployment protection, credentials or hosting settings.
+- Authenticated canonical production homepage, its actual referenced entry bundle and camera chunk returned HTTP 200. The camera bundle contains the model-contract cache revision. These verify deployed artifacts, not browser inference, cache hit rates, current provider health or measured production savings. Synthetic tests establish TTL/invalidation/failure policies. No real camera metadata/presigned image, user storage, permissions, notification or provider outage was requested.
+- The earlier automatic approval usage-limit block still limits interactive browser/performance verification; no alternate browser/protocol workaround or visual pass was used. The user approved this release after that limitation was disclosed. Caches remain page/process memory, scoped to their owning tab/instance; internal invalidation does not purge another owner or an existing CDN copy. No hosted/durable cache or new dependency/service/auth work was introduced.
+- Confirmed PR #23 remains open/draft/unmerged. This approval applies to PR #25 only; the cross-tab/wake-lock work and Turn 143 remain separately preserved. Login stays on hold. Pre-existing .claude/, local secrets/environment values and dependencies/lockfiles are untouched.
+- Updated docs/caching.md and CLOUD_HANDOFF.md with the approved merge, 246-test baseline and production artifact checks. Updated this log/TOC for documentation-only commit/push on main under the standing instruction. The approved caching merge and selected production verification are complete.
 
 ---
 

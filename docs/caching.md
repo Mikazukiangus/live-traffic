@@ -1,6 +1,6 @@
 # Repeated-operation caching
 
-Preview work from main `db6958e` on `codex/bounded-result-caching` (24 October 2026). Main merge requires explicit approval. Separate draft PR #23 remains unmerged.
+Developed from main `db6958e` on `codex/bounded-result-caching` and released through explicitly approved PR #25 on 24 October 2026. Separate draft PR #23 remains unmerged.
 
 ## Where the cost is
 
@@ -91,3 +91,11 @@ Runtime head `357aa4abfefa0a2e511ea4b55c3673e7231e6bcc`, including the recovery 
 Updated [preview](https://live-traffic-9wvbe3jq8-carbon-bc04.vercel.app) is deployment `dpl_2TMkuFLR8hAag9FUMt5TKpsgWByr`, READY for the intended project/team, preview branch and runtime SHA. Authenticated homepage, actual referenced entry and camera chunk returned HTTP 200; the chunk contains the cache contract revision. Browser execution/performance remains unverified as described above.
 
 This final follow-up changes documentation only, recording the runtime proof and cloud handoff. Draft PR #25 awaits explicit approval; main/production and PR #23 are unchanged.
+
+## Production release — 24 October 2026
+
+The user approved PR #25's merge. Final head `ef0a93910174b6a1d10684137180003abdf52479` passed both GitHub Checks runs (`40054164769`, `40054175669`) and Vercel checks. Required CI diagnostics confirm 246 passing tests and zero failures/skips, type checking, transport audit and build. Marked ready and merged with that expected head as `72e35ec8f42efb2da2c94201ccd64caedd06c9a2`; local main was fast-forwarded. No runtime edits or additional broad local testing were required for this approved release.
+
+Production deployment `dpl_EEAbBFso24XrnbpDS71g5AAp94fQ` is READY for the intended project/team, main merge SHA and production target. [Canonical production](https://live-traffic-carbon-bc04.vercel.app) homepage, its actual entry bundle and the referenced camera chunk returned HTTP 200. The camera bundle contains the model-contract cache revision. These are deployed artifact checks, not proof of browser inference, cache hit rate, current provider health or measured savings. Existing synthetic tests establish TTL, invalidation and failure behavior.
+
+The page/process memory boundaries, original-age policies and earlier interactive-browser verification limitation remain. No real camera metadata/photo, permissions, notifications, user storage or provider outage was requested. PR #23 remains separate and unmerged. The release log and cloud handoff are updated in a documentation-only main commit under the standing instruction.
