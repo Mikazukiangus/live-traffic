@@ -1,6 +1,6 @@
 # TrafficPulse — cloud workspace handoff
 
-Prepared 22 October 2026; release status refreshed 24 October 2026 (Asia/Singapore). Repository:
+Prepared 22 October 2026; release status refreshed 25 October 2026 (Asia/Singapore). Repository:
 <https://github.com/Mikazukiangus/live-traffic>.
 
 ## Start here
@@ -14,7 +14,13 @@ Fetch current main to include this handoff and its log entry; do not reset to th
 older snapshot. The local checkout had no tracked changes and only a pre-existing
 untracked `.claude/` directory. No local-only implementation needs recovering.
 
-**The latest approved implementation is released.** PR #27 (weather result caching) is merged as
+**The latest approved implementation is released.** PR #28 (authentication and rate-limit foundation)
+is merged as `b34bc20c1870ad8e78ccc739d400cf0f98bba896`. Its final head passed CI
+with all 299 tests. Production deployment dpl_6TiXaeNmkzD3Giu2UozyfdvURPHs is READY
+and canonical-host readback resolves to this exact merge. Homepage, referenced entry
+bundle and paged 24-hour forecast returned 200; auth returned the intended
+503 AUTH_NOT_CONFIGURED with private/no-store. Production login remains disabled, SDK mode defaults off and
+the native Firewall remains Preview-only. PR #27 (weather result caching) was merged as
 `406fd7a3cd667eef8e158192038d7091dc57087f`, following PR #26's list pagination, PR #25's repeated-operation caching, PR #24's device-local background queue, PR #22's atomic request updates, PR #21's error handling, PR #20's circuit breakers, PR #19's retries and PR #18's timeouts.
 **PR #23 remains open/draft/unmerged:** cross-tab commute storage and wake-lock ownership on `codex/cross-tab-atomic-storage`, last published head `58ba18bfd6fa6c0de25a3919c98a49f4ccb6e812`. Do not merge it without explicit approval. It touches the commute receipt effect changed by PR #24; preserve the background-history wrapper around its coordinated repository call when integrating it. Turn 143 is recorded on that pending branch; current main has Turns 144–145 for the queue preview/release.
 **Caching PR #25 was explicitly approved and merged.** Final preview head
@@ -40,8 +46,8 @@ for invalidation, source-age/health behavior and release verification. No hosted
 Separate PR #23 still requires explicit approval.
 
 **Login was explicitly resumed** for per-user rate limits on 24 October 2026.
-Continue draft [PR #28](https://github.com/Mikazukiangus/live-traffic/pull/28), branch
-`codex/public-api-rate-limits`; production login remains disabled. Do not restore
+[PR #28](https://github.com/Mikazukiangus/live-traffic/pull/28) is merged to main
+by explicit Turn 158 approval; production login remains disabled. Do not restore
 the superseded login hold. See `docs/authentication.md`, `AUTHENTICATION_PLAN.md`
 and Turns 155–156. Starting defaults: operator-created accounts, optional sign-in,
 public traffic unchanged; no public signup/email delivery/account sync.
@@ -78,15 +84,15 @@ with no provider work. A single request in the next window returned HTTP 400 aga
 shows five rate-limit events. See `docs/api-rate-limiting.md` for the full evidence.
 Production is excluded, including prior custom-rule logging. Do not replace the
 whole Firewall config (previous automatic-review rejection); use targeted edits.
-SDK self-call readiness is confirmed; application SDK remains observe and does not
-enforce account/IP failures. SDK enforce, production expansion and main merge are
-separate unapproved actions. Browser UI remains unverified.
+SDK self-call readiness is confirmed; Preview SDK remains observe and does not
+enforce account/IP failures. SDK enforce and production expansion remain separate
+rollout steps; the main merge is now approved and completed. Browser UI remains unverified.
 Verified account admission is before CDN hits; signing out remains anonymous and
 subject to IP protection. Regional counters are not a global quota. No client
 user ID, provider key or arbitrary cookie proves identity.
 
-Main/production and separate draft PR #23 remain unchanged. PR #28 requires explicit
-merge approval after preview verification. Existing browser verification remains
+PR #28 is merged to main; separate draft PR #23 remains unmerged and requires its
+own approval. Production login/limit activation remains disabled. Existing browser verification remains
 unperformed after the earlier automatic approval usage-limit block; do not bypass it.
 
 This note prepares a cloud development workspace. Production hosting is Vercel.

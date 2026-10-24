@@ -3,8 +3,9 @@
 ## Status and scope
 
 The user explicitly resumed login on 24 October 2026 to enable per-user rate limits.
-Implementation is on `codex/public-api-rate-limits` in draft PR #28; production login
-is disabled. Starting defaults announced while product choices were pending are:
+Implementation was merged from `codex/public-api-rate-limits` in PR #28 on
+25 October 2026 as `b34bc20c1870ad8e78ccc739d400cf0f98bba896`; production login
+remains disabled. Starting defaults announced while product choices were pending are:
 administrator-created accounts and optional sign-in. Traffic stays public. Public
 signup, email delivery, social login and cloud commute sync are not enabled.
 
@@ -200,4 +201,23 @@ draft. A bounded 305-request invalid-input probe produced 300 HTTP 400 and five
 HTTP 429 without provider calls. The next-window request returned HTTP 400 again; exact-rule aggregate traffic
 confirms five rate-limit events. Details are in `api-rate-limiting.md`.
 The SDK still observes; account-threshold exhaustion/enforce mode and production
-rollout remain separate. Production login and the main merge are not enabled.
+rollout remain separate. The source merge is approved/completed in Turn 158;
+production login/SDK enforcement were not enabled.
+
+
+## Main release, 25 October 2026
+
+The user explicitly approved merging PR #28. Final head
+`ef04a8a38b284639f78ead4cac0b0f188e8cfa56` passed both CI runs with all 299 tests
+and no failures/skips, type checking, audit and build. Merged with an expected-head
+guard as `b34bc20c1870ad8e78ccc739d400cf0f98bba896`. Production deployment
+`dpl_6TiXaeNmkzD3Giu2UozyfdvURPHs` is READY and canonical-host readback resolves
+to this exact merge. Homepage, referenced entry bundle and paged forecast return
+200. The intended /api/auth/ok response is 503 AUTH_NOT_CONFIGURED and private/no-store.
+
+Only source was released: Preview auth/secret/observe settings and the isolated
+database were not copied to production. Production login remains disabled and SDK
+mode defaults off. Native Firewall v2 still enforces Preview only. Production
+feature activation/SDK enforce/native-rule expansion need their own rollout; the
+merge alone does not turn them on. No real account or production DB was provisioned.
+Separate draft PR #23 remains outside this merge.

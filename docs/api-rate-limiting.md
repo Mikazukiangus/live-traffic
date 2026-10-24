@@ -2,7 +2,8 @@
 
 ## Current status
 
-Prepared on `codex/public-api-rate-limits` / draft PR #28. The user explicitly
+Merged from `codex/public-api-rate-limits` in PR #28 on 25 October 2026 as
+`b34bc20c1870ad8e78ccc739d400cf0f98bba896`. The user explicitly
 instructed the agent to publish using the CLI, superseding the skill's default
 user-publication workflow for this concrete draft.
 
@@ -22,7 +23,7 @@ five rate-limit events, without client-IP/header inspection.
 This establishes the native edge IP threshold for one client/region/window, not a
 global quota, production throttling or isolated account-threshold exhaustion.
 
-The application SDK remains **observe**: actual verified-account admission readiness
+The Preview application SDK remains **observe** (production defaults off): actual verified-account admission readiness
 was confirmed in Turn 156, but middleware does not turn SDK account/IP rejections
 into HTTP errors until enforce mode is approved/configured and redeployed. Native
 WAF IP enforcement operates before CDN and does not need the PR merged or SDK mode
@@ -241,4 +242,17 @@ completed in 16.421 seconds: 300 HTTP 400, five HTTP 429. The next-window recove
 request returned HTTP 400 in 2.019 seconds. Aggregate traffic for the exact rule
 shows five rate-limit events. No provider/production load, user account or browser
 state was used. No runtime changes or broad test rerun were needed. SDK observe,
-production exclusion, regional-counter limits and pending main merge remain.
+production exclusion and regional-counter limits remain. The main merge was
+approved and completed in Turn 158; feature activation is still separate.
+
+
+### Turn 158 main merge
+
+PR #28 was approved and merged as b34bc20c1870ad8e78ccc739d400cf0f98bba896, after
+final-head CI verified 299 passing tests, zero failures/skips, type checking, audit
+and build. Production dpl_6TiXaeNmkzD3Giu2UozyfdvURPHs is READY at the canonical
+site; homepage, actual entry bundle and paged forecast return 200. Auth /ok returns
+intended 503 AUTH_NOT_CONFIGURED/private no-store. No rollout environment value
+or Firewall scope was changed by the merge. Preview native IP 429 remains active,
+Preview SDK remains observe, production auth/SDK defaults remain disabled/off, and
+production is outside the native custom rule. Separate draft PR #23 remains unmerged.

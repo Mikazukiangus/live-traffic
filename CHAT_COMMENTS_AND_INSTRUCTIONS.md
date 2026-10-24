@@ -165,6 +165,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 155. [Turn 155: Resume Login for Verified Account Limits](#155-turn-155-resume-login-for-verified-account-limits)
 156. [Turn 156: Complete Authentication Setup on Preview](#156-turn-156-complete-authentication-setup-on-preview)
 157. [Turn 157: Publish Preview Firewall Rate Limiting by CLI](#157-turn-157-publish-preview-firewall-rate-limiting-by-cli)
+158. [Turn 158: Merge Authentication and Rate Limit Foundation to Main](#158-turn-158-merge-authentication-and-rate-limit-foundation-to-main)
 
 ---
 
@@ -2827,6 +2828,21 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Ran one bounded 305-request probe against the already verified protected Preview deployment dpl_GkcsBFaEzWS9WuUUjXf3hFo6jZ2y, /api/rainforecast?limit=0, starting near a fresh fixed window. All 305 responses were received in 16.421 seconds: exactly 300 HTTP 400 validation errors and five HTTP 429. The invalid input exits before provider/business work; no camera/photo, account, browser storage, credentials or production load was used. Protection headers were supplied internally by the supported Vercel curl command and never printed. The following single request in the next window returned HTTP 400 in 2.019 seconds, confirming recovery.
 - Exact-rule aggregate traffic inspection corroborates five rate-limit events; query contained no client-IP/header detail. This confirms native edge IP admission for one client, region and fixed window. It does not prove a global quota, production enforcement or independently exhausted per-account thresholds; SDK remains observe and was not promoted to enforce. No app deploy is needed for this native configuration change. No broad tests were repeated for operational/docs-only work; the prior 299-test runtime baseline is unchanged.
 - Updated docs/api-rate-limiting.md, docs/authentication.md and CLOUD_HANDOFF.md to replace stale current-status publication instructions with active v2 and verified rejection/recovery evidence. The explicit user publication instruction takes precedence over skill defaults; no extra confirmation was requested. Updated this log/TOC for documentation-only commit/push on existing preview branch/PR #28. Main/production application code, production login/settings and separate draft PR #23 remain unchanged. Production's custom-rule logging is excluded by the disclosed Preview scope; production blocking/merge requires separate approval.
+
+---
+
+## 158. Turn 158: Merge Authentication and Rate Limit Foundation to Main
+
+**User Instruction:**
+> "Merge to main"
+
+### Approved merge (25 October 2026, SGT):
+- Received explicit approval for PR #28 only. Verified open/draft/mergeable state, main base, exact final head ef04a8a38b284639f78ead4cac0b0f188e8cfa56 and both successful GitHub Checks runs 40111176037/40111170695 plus successful Vercel deployment/feedback status. Required CI job diagnostics confirm 299 tests, zero failures/skips, type checking, transport audit and build. Existing source was already preview-tested; no broad tests or runtime edits were repeated for this merge.
+- Retained the PR attachment, marked PR #28 ready, then merged with the expected-head guard as b34bc20c1870ad8e78ccc739d400cf0f98bba896. Fast-forwarded local main without altering unrelated .agents/, .claude/ or skills-lock.json. Kept preview branches and separate draft PR #23. No merge of the latter or additional work was inferred.
+- Read auth/rate environment metadata only, without decrypting values. Login server/UI/signing-secret and SDK observe settings remain branch-only Preview, database connections remain Preview/development, and no production auth/database/rate setting was added. Production defaults remain login disabled and SDK off. Native Firewall active v2 remains Preview-only; merge approval does not expand its scope or enable production throttling. No secret/env/protection/database migration was performed.
+- Production deployment dpl_6TiXaeNmkzD3Giu2UozyfdvURPHs reached READY for the correct project/team, main merge SHA and production target. Canonical-host deployment readback resolves live-traffic-carbon-bc04.vercel.app to this exact release. Authenticated canonical homepage and its actual referenced entry bundle returned HTTP 200; forecast24h?limit=1 returned HTTP 200 with one period. Auth /ok returned the intended HTTP 503 AUTH_NOT_CONFIGURED with private/no-store, confirming production login stays disabled without querying preview auth data. No health/provider-wide or UI/browser pass is inferred.
+- Confirmed PR #23 remains open/draft/unmerged. Existing browser verification remains limited by the earlier automatic-review usage block; no alternate browser/protocol workaround, camera/photo, user browser state or production quota load was used. No additional auth enrollment, database migration or Firewall/environment mutation was needed.
+- Updated AUTHENTICATION_PLAN.md, docs/authentication.md, docs/api-rate-limiting.md and CLOUD_HANDOFF.md with completed main merge, the 299-test baseline, selected production checks and remaining feature gates. Updated this log/TOC for documentation-only commit/push on main under the standing instruction. Preview login and Preview-native 429 enforcement remain available; production login/SDK enforcement and production native-rule expansion remain separate rollout steps.
 
 ---
 

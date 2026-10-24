@@ -1,13 +1,13 @@
 # Application login implementation plan
 
 Status: **login resumed by explicit user approval**, 24 October 2026, on preview
-branch `codex/public-api-rate-limits` / PR #28. The user answered “Resume login for
+branch `codex/public-api-rate-limits` / PR #28 (merged to main on 25 October 2026). The user answered “Resume login for
 per-user limits” and then “Continue last tasks”. Do not treat login as on hold.
 
 Current implementation uses Better Auth 1.7.12, Argon2id and a dedicated free Neon
 database connected only to preview/development. Migration, real PostgreSQL synthetic
-login/logout, and 299 local tests passed. Production login remains disabled pending
-preview verification and explicit merge/release approval. Read `docs/authentication.md`
+login/logout, and 299 local tests passed. Production login remains disabled after the approved source merge; production
+configuration/enrollment and feature activation are separate rollout steps. Read `docs/authentication.md`
 and the latest project log for current rollout state.
 
 The user selected a **new application login** in response to the login-target question.
