@@ -27,6 +27,10 @@ const NMS_IOU = 0.45;
 // Boxes wider than this share of the photo are merged groups of vehicles, not one vehicle.
 const MAX_BOX_WIDTH = 0.25;
 
+// Bump the revision if replacing model bytes at the same path or changing unlisted decoding logic.
+export const VEHICLE_ANALYSIS_VERSION = JSON.stringify(['yolox-nano-decode-v1', MODEL_URL, SIZE, STRIDES,
+  COCO_VEHICLES, TILE_COLS, TILE_ROWS, TILE_OVERLAP, MIN_SCORE, NMS_IOU, MAX_BOX_WIDTH]);
+
 type Ort = typeof import('onnxruntime-web');
 type Box = [number, number, number, number]; // x, y, width, height
 

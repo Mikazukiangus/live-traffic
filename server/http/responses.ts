@@ -41,3 +41,11 @@ export function handlePreflight(req: any, res?: any) {
     ...NO_STORE,
   } });
 }
+
+/** Never give an origin cache hit a fresh full CDN lifetime (or SWR beyond its deadline). */
+export function snapshotCacheHeaders(expiresAt: number, profile: readonly [number, number], now = Date.now()): Record<string, string> {
+  const remaining = Math.max(0, Math.floor((expiresAt - now) / 1000));
+  const fresh = Math.min(profile[0], remaining);
+  const stale = Math.min(profile[1], Math.max(0, remaining - fresh));
+  return liveCacheHeaders(fresh, stale);
+}

@@ -88,6 +88,7 @@ const { default: airHandler } = await import('../api/airquality.ts');
 const { default: weatherHandler } = await import('../api/_weatheralerts.ts');
 const { default: roadsHandler } = await import('../api/_roadconditions.ts');
 const { config } = await import('../config/server.ts');
+const { ltaSnapshots } = await import('../server/cache/ltaSnapshots.ts');
 const u = config.server.upstreams;
 const marker = 'synthetic-private-provider-marker';
 const cases = [
@@ -114,6 +115,8 @@ for (const mode of ['web', 'node']) {
       for (const example of cases) {
         for (const failed of [0, 1, 2]) {
           logs = [];
+          // Independent outage scenarios start cold; a warm success is covered in caching integration tests.
+          ltaSnapshots.clear();
           globalThis.fetch = async input => {
             const url = new URL(String(input)); url.searchParams.delete('$skip');
             const index = example.urls.indexOf(url.toString());
