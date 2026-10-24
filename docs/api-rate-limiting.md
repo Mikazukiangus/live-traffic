@@ -15,9 +15,12 @@ was confirmed; subsequent reads still returned 404. Do not work around that reje
 or overwrite the entire configuration. The user confirmed they can create rules in
 the dashboard; use that safe route to establish the initial draft and inspect it.
 The user subsequently reported creating a draft. Connector reads still returned
-404 afterward, so its actual conditions, action and publication state remain
-unverified; a screenshot was requested. Do not infer a missing rule from that API
-error or create a duplicate.
+404 afterward. The supplied screenshot confirms the named rule is enabled with
+Log selected; its conditions, rate-limit algorithm/threshold/key and publication
+state are not visible. A screenshot of those settings was requested. Do not infer
+a missing rule from that API error, assume an ordinary Log action is a configured
+rate limiter, or create a duplicate. In the detailed rule editor, select Rate Limit
+as the action and Log as the action *when the limit is exceeded*.
 
 `API_RATE_LIMIT_MODE=off` is the safe setup default. Deploying this branch alone
 does **not** activate limiting. Complete the rollout below before claiming protection.
@@ -169,6 +172,16 @@ SDK requests; no live providers, real camera metadata or presigned images are us
 These verify the application integration, **not** a real WAF rollout, remote
 counter atomicity, browser performance or production traffic behavior. Complete
 the deployment steps before considering this task activated.
+
+Published as [draft PR #28](https://github.com/Mikazukiangus/live-traffic/pull/28).
+Implementation `8d1ac9ea2af7e406a8a1e8d025bf5c64a509ce92` passed both GitHub Checks
+runs (40078047859, 40078073915): 287 tests, no failures/skips, type checking, audit
+and build. Preview deployment `dpl_8F7wkKQGAXn37eAbm6S7jMgDEEY1` is READY for the
+correct project/branch/SHA at
+<https://live-traffic-rgnqeaglv-carbon-bc04.vercel.app>.
+Protected homepage returned 200, and `/api/rainforecast?limit=0` returned safe
+400 INVALID_REQUEST without provider work. These are selected deployment/import
+checks, not active throttling/traffic, live provider health or browser verification.
 
 Official references: [Rate Limiting SDK](https://vercel.com/docs/vercel-firewall/vercel-waf/rate-limiting-sdk),
 [WAF limits and rollout](https://vercel.com/docs/vercel-firewall/vercel-waf/rate-limiting),

@@ -43,17 +43,23 @@ Application login, account creation and brute-force lockout are **on hold at the
 user's explicit request**. Do not resume them unless requested; see
 `AUTHENTICATION_PLAN.md`.
 
-**Public API rate limits are prepared on `codex/public-api-rate-limits`, pending review
+**Public API rate limits are prepared in draft [PR #28](https://github.com/Mikazukiangus/live-traffic/pull/28)
+on `codex/public-api-rate-limits`, pending review
 and activation.** Read `docs/api-rate-limiting.md` and Turn 152. The user confirmed
 Hobby, so the proposal uses one 300-per-60-second rule with OR groups for `/api/`
 and SDK ID `trafficpulse-public-api-v1`; default application mode is off until setup.
 The user reports creating a dashboard draft, but connector reads still return 404.
+Their screenshot confirms its name/enabled toggle/Log action, but not the conditions
+or rate-limit settings; detailed settings were requested before publication.
 Automatic approval rejected replacing the entire unknown Firewall configuration;
 do not retry that overwrite or work around the rejection. Inspect the user's
 screenshot/draft, then have the user review/publish log-only coverage before preview
 enforcement. No rule publication or production activation has been confirmed.
 Future verified-user bucket support is tested but has no identity provider while
 login is on hold. A browser ID/header/provider key is not an authenticated user.
+Implementation 8d1ac9e passed both CI runs with 287 tests, zero failures/skips,
+type check/audit/build. Its Vercel preview is READY; selected homepage/invalid-input
+checks passed, not active limit verification. Default off and setup blockers remain.
 The separate pending PR #23 remains unmerged.
 
 This note prepares a cloud development workspace. Production hosting is Vercel.
