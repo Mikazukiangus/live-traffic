@@ -64,8 +64,11 @@ to fit Hobby's one-rule allowance. See `api-rate-limiting.md` for native publica
 
 `/api/auth/:authPath` rewrites to the existing `/api/live` function with `feed=auth`.
 The auth dispatcher runs before the public GET/OPTIONS feed schema, then applies its
-own strict contract. There is no extra auth API function. The platform proxy is
-configured separately; its actual deployed build must be checked on Vercel.
+own strict contract. There is no extra auth API function. The Node platform proxy counts toward Hobby’s function budget. The first build
+exceeded twelve functions; the 24-hour forecast now shares the live gateway via
+a public /api/forecast24h rewrite. Eleven API functions plus the proxy fit twelve.
+Public forecast URL, schema, pagination and cache semantics are preserved; actual
+deployed verification remains pending.
 
 | Path | Method | Purpose |
 | --- | --- | --- |

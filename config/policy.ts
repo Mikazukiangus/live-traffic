@@ -8,5 +8,5 @@ export const IMAGE_PROXY_HOSTS = Object.freeze([
 export const LIST_PAGINATION = Object.freeze({ defaultLimit: 100, maxLimit: 500, maxOffset: 1_000_000 });
 export const LIVE_COLLECTIONS = {
   carparks: ['carParks'], roadconditions: ['roadWorks', 'faultyLights'],
-  weatheralerts: ['strikes', 'heatStations'], floods: ['alerts'],
+  weatheralerts: ['strikes', 'heatStations'], floods: ['alerts'], forecast24h: ['periods'],
 } as const;

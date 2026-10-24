@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 process.env.DATA_GOV_MIN_INTERVAL_MS = '0';
 process.env.DATA_GOV_RETRY_DELAY_MS = '0';
-const air = await import('../api/airquality.ts'), forecast = await import('../api/forecast24h.ts'), alerts = await import('../api/_weatheralerts.ts');
+const air = await import('../api/airquality.ts'), forecast = await import('../api/_forecast24h.ts'), alerts = await import('../api/_weatheralerts.ts');
 const { config } = await import('../config/server.ts');
 const { probeDataGov } = await import('../server/healthProbes.ts');
 const u = config.server.upstreams;

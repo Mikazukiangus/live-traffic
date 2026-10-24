@@ -193,7 +193,7 @@ test('every real Node and Web endpoint rejects at the production guard before pr
     };
     console.warn = () => {};
     const names = ['traffic', 'trafficflow', 'vms', 'traveltimes', 'trafficimages', 'expresswayspeeds',
-      'health', 'rainforecast', 'forecast24h', 'airquality', 'imageproxy', 'live',
+      'health', 'rainforecast', '_forecast24h', 'airquality', 'imageproxy', 'live',
       '_carparks', '_roadconditions', '_weatheralerts', '_floods'];
     for (const name of names) {
       const module = await import('./api/' + name + '.ts');

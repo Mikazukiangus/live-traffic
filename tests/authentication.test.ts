@@ -210,6 +210,7 @@ test('authentication config is validated, disabled by default, server-only, with
   const v = JSON.parse(readFileSync(new URL('../vercel.json', import.meta.url), 'utf8'));
   assert.equal(v.proxy.entrypoint, 'proxy.ts'); assert.deepEqual(v.proxy.matcher, ['/api/:path*']);
   assert.ok(v.rewrites.some((r: any) => r.source.startsWith('/api/auth/') && r.destination.startsWith('/api/live?feed=auth')));
+  assert.ok(v.rewrites.some((r: any) => r.source === '/api/forecast24h' && r.destination === '/api/live?feed=forecast24h'));
 });
 
 test('account client uses POST/no-store even for session lookup and never exposes server error text', async () => {
