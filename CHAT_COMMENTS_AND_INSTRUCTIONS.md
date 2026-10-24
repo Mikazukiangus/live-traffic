@@ -156,6 +156,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 146. [Turn 146: Bounded Caches for Repeated Work on Preview](#146-turn-146-bounded-caches-for-repeated-work-on-preview)
 147. [Turn 147: Repeated-Operation Caches Merged to Main](#147-turn-147-repeated-operation-caches-merged-to-main)
 148. [Turn 148: Offset Pagination for Live Lists on Preview](#148-turn-148-offset-pagination-for-live-lists-on-preview)
+149. [Turn 149: List Pagination Merged to Main](#149-turn-149-list-pagination-merged-to-main)
 
 ---
 
@@ -2643,6 +2644,22 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Selected deployed keyless rain API checks passed: first page returned two of 47 areas with next offset 2; continuation returned two areas at offset 2 with the same revision and next offset 4. A deliberately wrong revision returned 409 PAGINATION_SNAPSHOT_CHANGED and invalid limit 0 returned 400 INVALID_REQUEST. No snapshot token or weather payload was printed. These establish selected API behavior, not a real upstream change, actual browser/worker activation or health/performance of every feed. No real camera metadata/photo, browser user storage/permission or notification was requested.
 - Recorded endpoint examples/limitations and publication evidence in docs/pagination.md, and refreshed CLOUD_HANDOFF.md with pending PR #26 and the 264-test preview versus 246-test main baseline. This follow-up changes documentation only for commit/push under the standing instruction. Main/production remain unchanged; explicit merge approval is required. PR #23 remains independently unmerged.
 
+
+---
+
+## 149. Turn 149: List Pagination Merged to Main
+
+**User Instruction:**
+> "Merge to main"
+
+### Released (24 October 2026, SGT):
+- Received explicit approval for PR #26 (https://github.com/Mikazukiangus/live-traffic/pull/26), retained the chat attachment and verified final head ce495abfe32602745305ca18baaf3d50f0a2ef30, main target, open draft and mergeable state. GitHub Checks runs 40055792290 and 40055794964 and Vercel deployment/feedback checks passed. Required CI job diagnostics confirm 264 passing tests, zero failures/skips, type checking, security audit and build. Marked ready and merged with that expected head as 6a0503d3616e03a3b2996e23d2652f8d35cc1617.
+- Fast-forwarded local main and retained preview branches. Released bounded opt-in offset pagination, normalized collection revision checks, safe 409/503 behavior, native LTA live windows with unknown totals, and network-only service-worker paging. Existing complete-list dashboard/map requests and legacy $skip contracts remain compatible. No runtime edits or repeated broad local tests were necessary for this approved merge.
+- Production deployment dpl_7W6jdhMuGmT1GLnzURHLc6ix9w2J is READY for the intended project/team, main merge SHA and production target. Aliases include live-traffic-carbon-bc04.vercel.app, live-traffic-kappa.vercel.app and the main branch URL. Used existing authenticated access without changing deployment protection, hosting settings, credentials or environment values.
+- Authenticated canonical homepage, its actual entry bundle and rendered /sw.js returned HTTP 200. Worker source contains network-only paging and rendered timeouts. Selected live rain checks passed: first page returned two of 47 areas at offset 0; continuation returned two at offset 2 with the same revision. A deliberately wrong revision returned 409 PAGINATION_SNAPSHOT_CHANGED and invalid limit 0 returned 400 INVALID_REQUEST. No snapshot token or weather payload was printed.
+- These establish selected production API behavior/artifact availability, not an actual upstream mutation, browser/worker activation, provider-wide health or measured performance. Earlier interactive-browser verification remains limited by the automatic approval usage-limit block; no alternate browser/protocol workaround or visual pass was used. No real camera metadata/presigned image, browser user storage/permissions, notification or provider outage was requested.
+- Confirmed PR #23 remains open/draft/unmerged. This approval applies to PR #26 only; cross-tab/wake-lock work and Turn 143 remain separately preserved. Login stays on hold. Pre-existing .claude/, local secrets and dependencies/lockfiles remain untouched.
+- Updated docs/pagination.md and CLOUD_HANDOFF.md with the approved merge, 264-test main baseline and selected production checks. Updated this log/TOC for documentation-only commit/push on main under the standing instruction. The approved pagination merge and production verification are complete.
 
 ---
 

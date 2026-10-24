@@ -1,6 +1,6 @@
 # List endpoint pagination
 
-Developed from main `1dfe769` on `codex/list-pagination`, 24 October 2026. Runtime changes require preview review and explicit approval before merging. Pending PR #23 remains separate.
+Developed from main `1dfe769` on `codex/list-pagination` and released through explicitly approved PR #26 on 24 October 2026. Pending PR #23 remains separate.
 
 ## Choice: offset with live-snapshot checking
 
@@ -132,3 +132,11 @@ Implementation `7569e7a088f3e9c00c4c85e6d651256e0a27e378` is published in attach
 - Rendered `/sw.js` returned HTTP 200, contains the paging-network-only branch and no unreplaced timeout placeholder.
 
 These verify selected deployed API paths and worker-source availability. They do not demonstrate an actual provider revision change between two calls, interactive browser/worker activation, current health of every other feed or measured performance. No real camera metadata/photo, user storage/permission or notification was probed. Main/production and separate PR #23 remain unchanged. The follow-up records documentation only; PR #26 awaits explicit approval to merge.
+
+## Production release — 24 October 2026
+
+The user approved merging PR #26. Verified final head `ce495abfe32602745305ca18baaf3d50f0a2ef30`, main target, mergeable state and successful checks. GitHub Checks runs `40055792290` and `40055794964` and Vercel checks passed; required CI job diagnostics confirm 264 passing tests, zero failures/skips, type checking, security audit and build. Marked ready and merged with that expected head as `6a0503d3616e03a3b2996e23d2652f8d35cc1617`; local main was fast-forwarded. No runtime edits or repeat broad local tests were needed for the approved merge.
+
+Production deployment `dpl_7W6jdhMuGmT1GLnzURHLc6ix9w2J` is READY for the intended project/team, main merge SHA and production target. At [canonical production](https://live-traffic-carbon-bc04.vercel.app), authenticated homepage, its actual entry bundle and rendered `/sw.js` returned HTTP 200. The worker contains network-only paging and rendered timeout settings. Selected rain API checks passed: first and second pages each returned two of 47 areas, offsets 0/2 and an identical revision; a deliberately incorrect revision returned 409 `PAGINATION_SNAPSHOT_CHANGED`, and `limit=0` returned 400 `INVALID_REQUEST`.
+
+These establish selected deployed behavior and artifacts, not an actual upstream mutation, browser/worker activation, provider-wide health or performance. No real camera metadata/photo, browser user storage/permissions or notification was requested. Existing interactive-browser verification limits remain. PR #23 is still open/draft/unmerged and needs separate approval. This release log/handoff follow-up is documentation only under the standing instruction.

@@ -14,8 +14,8 @@ Fetch current main to include this handoff and its log entry; do not reset to th
 older snapshot. The local checkout had no tracked changes and only a pre-existing
 untracked `.claude/` directory. No local-only implementation needs recovering.
 
-**The latest approved implementation is released.** PR #25 (bounded repeated-operation caching) is merged as
-`72e35ec8f42efb2da2c94201ccd64caedd06c9a2`, following PR #24's device-local background queue, PR #22's atomic request updates, PR #21's error handling, PR #20's circuit breakers, PR #19's retries and PR #18's timeouts.
+**The latest approved implementation is released.** PR #26 (list pagination) is merged as
+`6a0503d3616e03a3b2996e23d2652f8d35cc1617`, following PR #25's repeated-operation caching, PR #24's device-local background queue, PR #22's atomic request updates, PR #21's error handling, PR #20's circuit breakers, PR #19's retries and PR #18's timeouts.
 **PR #23 remains open/draft/unmerged:** cross-tab commute storage and wake-lock ownership on `codex/cross-tab-atomic-storage`, last published head `58ba18bfd6fa6c0de25a3919c98a49f4ccb6e812`. Do not merge it without explicit approval. It touches the commute receipt effect changed by PR #24; preserve the background-history wrapper around its coordinated repository call when integrating it. Turn 143 is recorded on that pending branch; current main has Turns 144–145 for the queue preview/release.
 **Caching PR #25 was explicitly approved and merged.** Final preview head
 `ef0a93910174b6a1d10684137180003abdf52479` passed 246 tests, type checking, transport audit and build.
@@ -24,12 +24,12 @@ counts, and stronger speed-cache isolation/invalidation/CDN deadlines. Read `doc
 Turns 146–147 for TTLs, controls and release verification. No hosted shared cache is provisioned.
 PR #23 still requires separate approval.
 
-**Pagination preview PR #26 is pending explicit approval:** `codex/list-pagination`, runtime head
-`7569e7a088f3e9c00c4c85e6d651256e0a27e378`. Both CI runs pass 264 tests; released main remains
-246 tests. It adds opt-in bounded offset pagination, normalized-list revision checks, honest native
+**Pagination PR #26 was explicitly approved and merged.** Final head
+`ce495abfe32602745305ca18baaf3d50f0a2ef30` passed both CI runs with 264 tests and zero skips.
+Main now includes opt-in bounded offset pagination, normalized-list revision checks, honest native
 LTA windows and network-only paged requests in the service worker. Read `docs/pagination.md` and
-Turn 148 for API shapes, live preview checks and limits. Existing complete-list dashboards remain
-compatible. Do not merge this PR or separate PR #23 implicitly.
+Turns 148–149 for API shapes, preview/release checks and limits. Existing complete-list dashboards
+remain compatible. Separate PR #23 still requires explicit approval.
 
 Application login, account creation and brute-force lockout are **on hold at the
 user's explicit request**. Do not resume them unless requested; see
@@ -210,9 +210,11 @@ See `docs/error-handling.md` for ownership and limits.
 
 [PR #25](https://github.com/Mikazukiangus/live-traffic/pull/25) adds bounded warm-instance roadworks (five minutes), car park/fault (one minute) caches and page-memory exact-photo vehicle counts (five minutes, 32 entries), plus account-isolated speed-cache invalidation and remaining-lifetime CDN headers. Original timestamps survive hits; partial/error results are not retained. No shared/durable cache service or new environment value is required. See `docs/caching.md`.
 
-**246 tests**, type checking, security source audit and production build passed.
-The Python wrapper ran four offline helper tests. Both final PR #25 checks and
-Vercel checks passed. The approved caching release verified HTTP 200 for the canonical production homepage, its actual entry bundle and referenced camera chunk, including the new model-contract cache revision. These establish deployed artifacts, not cache hit rate, inference output or production savings. PR #22's earlier release verified the rendered worker's version guard. Earlier error-handling checks covered the following providers; they were not repeated for this cache release. Production homepage/entry bundle, air quality (5 regions),
+[PR #26](https://github.com/Mikazukiangus/live-traffic/pull/26) adds opt-in limit/offset pagination (100 default, 500 maximum) with named collections, scoped revision checks for normalized lists and honest unknown-total live windows for raw LTA. Paged requests are no-store/network-only; existing complete-list dashboard and offline behavior remain compatible. See `docs/pagination.md` for first/next requests, 409 restarts and all limitations.
+
+**264 tests**, type checking, security source audit and production build passed.
+The Python wrapper ran four offline helper tests. Both final PR #26 checks and
+Vercel checks passed. The pagination release verified the canonical homepage/entry bundle, rendered worker and two consecutive rain pages with the same revision (two of 47 areas per page), plus safe 409 revision-conflict and 400 invalid-limit responses. These are selected HTTP/artifact checks, not actual browser activation or a real upstream mutation. The earlier approved caching release verified HTTP 200 for the canonical production homepage, its actual entry bundle and referenced camera chunk, including the new model-contract cache revision. These establish deployed artifacts, not cache hit rate, inference output or production savings. PR #22's earlier release verified the rendered worker's version guard. Earlier error-handling checks covered the following providers; they were not repeated for this cache release. Production homepage/entry bundle, air quality (5 regions),
 incidents (9 source records at the check) and rain (47 areas) returned HTTP 200 on
 23 October. Interactive recovery-screen verification remains pending: the browser
 approval reviewer hit its usage limit. An isolated synthetic fixture and manual
@@ -229,8 +231,8 @@ These are recorded checks, not a guarantee of current provider health in the new
 - Canonical production: <https://live-traffic-carbon-bc04.vercel.app>.
 - Other observed production alias: <https://live-traffic-kappa.vercel.app>.
   `live-traffic.vercel.app` belongs to a different application; do not use it.
-- Last verified runtime deployment: `dpl_EEAbBFso24XrnbpDS71g5AAp94fQ`, READY for
-  production merge `72e35ec`. Subsequent main documentation pushes can create newer deployments;
+- Last verified runtime deployment: `dpl_7W6jdhMuGmT1GLnzURHLc6ix9w2J`, READY for
+  production merge `6a0503d`. Subsequent main documentation pushes can create newer deployments;
   verify current SHA/team/project/target rather than pinning that deployment forever.
 
 Use the new chat's authenticated Vercel tools if available; connector authorization
