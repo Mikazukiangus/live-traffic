@@ -2,6 +2,8 @@
 
 Developed from main `db6958e` on `codex/bounded-result-caching` and released through explicitly approved PR #25 on 24 October 2026. Separate draft PR #23 remains unmerged.
 
+A later preview extends reuse to normalized weather results after pagination; see [weather-caching.md](weather-caching.md). It is separate from the released PR #25 baseline below.
+
 ## Where the cost is
 
 These rankings come from the code and synthetic call-count tests, not production billing or latency measurements. There is no database/query engine in this app.

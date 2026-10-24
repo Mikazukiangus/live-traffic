@@ -1,3 +1,5 @@
+import { createFeedResultCache, feedResult } from '../server/cache/feedResult.ts';
+import { parseSgt } from '../shared/time.ts';
 import { isRecord } from '../shared/traffic/validation.ts';
 import { providerFailureStatus, providerFailureHeaders, failedDependency } from '../server/http/providerFailure.ts';
 import { requestSchemas } from '../server/http/requestSchemas.ts';
@@ -31,13 +33,13 @@ async function fetchLatest(url: string) {
 
 const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null);
 
-const handler = withListResponse(requestSchemas.empty, 'airquality', ['regions'], async (_req, res, { send }) => {
+async function loadAirQuality() {
   const [psi, pm25] = await Promise.allSettled([fetchLatest(PSI_URL), fetchLatest(PM25_URL)]);
   if (psi.status === 'rejected') reportSourceFailure('nea', 'psi', psi.reason);
   if (pm25.status === 'rejected') reportSourceFailure('nea', 'pm25', pm25.reason);
   if (psi.status === 'rejected' && pm25.status === 'rejected') {
     const error = failedDependency(psi.reason, pm25.reason);
-    return send(providerFailureStatus(error), safeFailure('nea', error).body, providerFailureHeaders(error));
+    return feedResult(providerFailureStatus(error), safeFailure('nea', error).body, providerFailureHeaders(error));
   }
 
   const psiData = psi.status === 'fulfilled' ? psi.value : null;
@@ -48,7 +50,7 @@ const handler = withListResponse(requestSchemas.empty, 'airquality', ['regions']
   const pm25Day = psiData?.item.readings.pm25_twenty_four_hourly || {};
   const pm25Hour = pm25Data?.item.readings.pm25_one_hourly || {};
 
-  return send(
+  return feedResult(
     200,
     {
       success: true,
@@ -67,6 +69,14 @@ const handler = withListResponse(requestSchemas.empty, 'airquality', ['regions']
     // A partial answer is served but not cached, so the next request tries both feeds again.
     psiData && pm25Data ? CACHE : NO_STORE,
   );
+}
+const resultCache = createFeedResultCache({ load: loadAirQuality, ttlMs: config.server.weather.airCacheTtlMs,
+  profile: config.server.cache.weather, complete: body => Array.isArray(body.regions) && parseSgt(body.psiTimestamp) !== null && parseSgt(body.pm25Timestamp) !== null });
+/** Internal instance-local invalidation; not a public cache-bypass endpoint. */
+export const invalidateResultCache = resultCache.invalidate;
+const handler = withListResponse(requestSchemas.empty, 'airquality', ['regions'], async (_req, _res, { send }) => {
+  const result = await resultCache.get();
+  return send(result.status, result.body, result.headers);
 });
 export default handler;
 

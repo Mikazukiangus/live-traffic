@@ -1,3 +1,5 @@
+import { createFeedResultCache, feedResult } from '../server/cache/feedResult.ts';
+import { parseSgt } from '../shared/time.ts';
 import { providerFailureStatus, providerFailureHeaders } from '../server/http/providerFailure.ts';
 import { requestSchemas } from '../server/http/requestSchemas.ts';
 import { withListResponse } from '../server/http/listPagination.ts';
@@ -15,7 +17,7 @@ const TWENTY_FOUR_HR_FORECAST = config.server.upstreams.forecast24h;
 const CACHE = liveCacheHeaders(...config.server.cache.forecast24h);
 const REGIONS = ['north', 'south', 'east', 'west', 'central'] as const;
 
-const handler = withListResponse(requestSchemas.empty, 'forecast24h', ['periods'], async (_req, res, { send }) => {
+async function loadForecast() {
   try {
     const data = await fetchDataGovV2(TWENTY_FOUR_HR_FORECAST);
 
@@ -23,7 +25,7 @@ const handler = withListResponse(requestSchemas.empty, 'forecast24h', ['periods'
     if (!record?.general) throw new Error('No forecast issued');
     const { general } = record;
 
-    return send(
+    return feedResult(
       200,
       {
         success: true,
@@ -51,8 +53,16 @@ const handler = withListResponse(requestSchemas.empty, 'forecast24h', ['periods'
       CACHE,
     );
   } catch (error: any) {
-    return send(providerFailureStatus(error), reportFailure('nea', error), providerFailureHeaders(error));
+    return feedResult(providerFailureStatus(error), reportFailure('nea', error), providerFailureHeaders(error));
   }
+}
+const resultCache = createFeedResultCache({ load: loadForecast, ttlMs: config.server.weather.forecast24hCacheTtlMs,
+  profile: config.server.cache.forecast24h, complete: body => Array.isArray(body.periods) && parseSgt(body.issuedAt) !== null && typeof body.general?.forecast === 'string', validUntil: body => parseSgt(body.general?.validPeriod?.end) });
+/** Internal instance-local invalidation; not a public cache-bypass endpoint. */
+export const invalidateResultCache = resultCache.invalidate;
+const handler = withListResponse(requestSchemas.empty, 'forecast24h', ['periods'], async (_req, _res, { send }) => {
+  const result = await resultCache.get();
+  return send(result.status, result.body, result.headers);
 });
 export default handler;
 

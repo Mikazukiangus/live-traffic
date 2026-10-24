@@ -44,7 +44,7 @@ export function createAsyncTtlCache<K, T>(options: Options<T>) {
   const store = createTtlStore<K, T>(options);
   const pending = new Map<K, Promise<CacheEntry<T>>>();
   return {
-    get(key: K, ttlMs: number, load: () => Promise<T>): Promise<CacheEntry<T>> {
+    get(key: K, ttlMs: number | ((value: T) => number), load: () => Promise<T>): Promise<CacheEntry<T>> {
       const cached = store.get(key);
       if (cached) return Promise.resolve(cached);
       const existing = pending.get(key);
@@ -52,9 +52,10 @@ export function createAsyncTtlCache<K, T>(options: Options<T>) {
       // Reserve before calling user/provider code; excess distinct work bypasses retention.
       const retain = pending.size < options.maxEntries;
       const request = Promise.resolve().then(load).then(value => {
-        if (retain && pending.get(key) === request) return store.set(key, value, ttlMs);
+        const lifetime = typeof ttlMs === 'number' ? ttlMs : ttlMs(value);
+        if (retain && pending.get(key) === request) return store.set(key, value, lifetime);
         const storedAt = options.now();
-        return { value, storedAt, expiresAt: storedAt + ttlMs };
+        return { value, storedAt, expiresAt: storedAt + lifetime };
       }).finally(() => { if (pending.get(key) === request) pending.delete(key); });
       if (retain) pending.set(key, request);
       return request;

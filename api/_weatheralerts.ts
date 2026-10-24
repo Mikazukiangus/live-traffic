@@ -1,3 +1,5 @@
+import { createFeedResultCache, feedResult } from '../server/cache/feedResult.ts';
+import { parseSgt } from '../shared/time.ts';
 import { providerFailureStatus, providerFailureHeaders, failedDependency } from '../server/http/providerFailure.ts';
 import { internalFeedSchema } from '../server/http/requestSchemas.ts';
 import { withListResponse } from '../server/http/listPagination.ts';
@@ -21,13 +23,13 @@ const num = (v: unknown) => {
   return Number.isFinite(n) ? n : null;
 };
 
-const handler = withListResponse(internalFeedSchema('weatheralerts'), 'weatheralerts', ['strikes', 'heatStations'], async (_req, res, { send }) => {
+async function loadAlerts() {
   const [lightning, wbgt] = await Promise.allSettled([fetchDataGovV2(LIGHTNING_URL), fetchDataGovV2(WBGT_URL)]);
   if (lightning.status === 'rejected') reportSourceFailure('nea', 'lightning', lightning.reason);
   if (wbgt.status === 'rejected') reportSourceFailure('nea', 'wbgt', wbgt.reason);
   if (lightning.status === 'rejected' && wbgt.status === 'rejected') {
     const error = failedDependency(lightning.reason, wbgt.reason);
-    return send(providerFailureStatus(error), safeFailure('nea', error).body, providerFailureHeaders(error));
+    return feedResult(providerFailureStatus(error), safeFailure('nea', error).body, providerFailureHeaders(error));
   }
 
   const lightningRecord = lightning.status === 'fulfilled' ? lightning.value.records?.[0] : null;
@@ -56,7 +58,7 @@ const handler = withListResponse(internalFeedSchema('weatheralerts'), 'weatheral
         .filter((s: any) => s.lat != null && s.lon != null && s.wbgt != null)
     : null;
 
-  return send(
+  return feedResult(
     200,
     {
       success: true,
@@ -68,5 +70,13 @@ const handler = withListResponse(internalFeedSchema('weatheralerts'), 'weatheral
     },
     strikes && heatStations ? CACHE : NO_STORE
   );
+}
+const resultCache = createFeedResultCache({ load: loadAlerts, ttlMs: config.server.weather.alertsCacheTtlMs,
+  profile: config.server.cache.weatherAlerts, complete: body => Array.isArray(body.strikes) && Array.isArray(body.heatStations) && parseSgt(body.lightningAt) !== null && parseSgt(body.heatAt) !== null });
+/** Internal instance-local invalidation; not a public cache-bypass endpoint. */
+export const invalidateResultCache = resultCache.invalidate;
+const handler = withListResponse(internalFeedSchema('weatheralerts'), 'weatheralerts', ['strikes', 'heatStations'], async (_req, _res, { send }) => {
+  const result = await resultCache.get();
+  return send(result.status, result.body, result.headers);
 });
 export default handler;
