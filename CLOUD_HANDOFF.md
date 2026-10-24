@@ -52,7 +52,13 @@ are migrated. Real synthetic PostgreSQL login/session/logout passed and test row
 were removed. Better Auth 1.7.12 uses Argon2id, shared revocable sessions and atomic
 IP attempt budgets. The account UI, bounded CSRF-safe facade and pre-CDN verified
 account admission are implemented. All 299 local Node tests, type check, audit and
-build passed. Preview deployment verification remains a separate gate.
+build passed. Final runtime source 5a4d5cd is READY at
+https://live-traffic-et2v7hq8q-carbon-bc04.vercel.app. CI passes all 299 tests;
+deployed synthetic login/session/logout and fixed RATE_LIMIT_ALLOWED evidence
+confirm actual verified account SDK admission in observe mode. The rewritten
+forecast endpoint also returned 200. No interactive UI pass or threshold rejection
+is implied. The new proxy shares Hobby’s twelve slots by consolidating forecast24h
+into the existing live gateway, preserving its public URL.
 
 Branch-only preview settings enable server/UI login and SDK **observe** mode.
 No production DB/secret/auth setting was enabled. Do not export environments or
@@ -69,8 +75,8 @@ is still required by the Firewall skill. Production blocking is not active.
 Publishing this preview-only rule temporarily excludes production custom-rule
 logging. Do not replace the entire Firewall config (previous automatic-review
 rejection); preserve the single targeted draft. Read `docs/api-rate-limiting.md`.
-SDK self-call/protection compatibility, preview 429/recovery and browser UI remain
-separate verification gates. Observe permits requests and does not enforce quotas.
+SDK self-call readiness is now confirmed by the fixed runtime success diagnostic;
+preview 429/recovery and browser UI remain separate verification gates. Observe permits requests and does not enforce quotas.
 Verified account admission is before CDN hits; signing out remains anonymous and
 subject to IP protection. Regional counters are not a global quota. No client
 user ID, provider key or arbitrary cookie proves identity.

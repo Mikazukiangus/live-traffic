@@ -68,7 +68,7 @@ own strict contract. There is no extra auth API function. The Node platform prox
 exceeded twelve functions; the 24-hour forecast now shares the live gateway via
 a public /api/forecast24h rewrite. Eleven API functions plus the proxy fit twelve.
 Public forecast URL, schema, pagination and cache semantics are preserved; actual
-deployed verification remains pending.
+deployed verification passed in the checks below.
 
 | Path | Method | Purpose |
 | --- | --- | --- |
@@ -180,3 +180,21 @@ warm proxy instance per minute, containing no identity/address/credential. This
 makes SDK readiness distinguishable from silent skipping; enforcement omits success
 noise. A permitted response in observe mode alone does not prove the limiter worked.
 Actual preview quota rejection/recovery requires publication of the staged rule.
+
+
+Final runtime source 5a4d5cdfd8de4c32f180374f19100a6a7ed0f385 is READY:
+https://live-traffic-et2v7hq8q-carbon-bc04.vercel.app
+(deployment dpl_GkcsBFaEzWS9WuUUjXf3hFo6jZ2y). Both Checks runs
+40110167552 and 40110164229 passed; required job diagnostics confirm all 299 tests.
+Repeated deployed synthetic login/session/logout passed and cleaned its rows.
+The targeted runtime diagnostic records RATE_LIMIT_ALLOWED from the pre-cache
+proxy after the verified session and SDK check, establishing actual check readiness
+in observe mode. This does not establish threshold rejection. The homepage and
+rewritten /api/forecast24h?limit=1 both returned 200; the latter returned one period.
+A scoped ten-minute error/fatal count query returned no groups, not a service-wide
+health guarantee. Interactive UI execution remains unverified.
+
+User review/publication of the existing preview-only v2 Firewall draft is pending.
+The skill requires the user to publish. Actual 429/recovery and enforce-mode rollout
+remain pending; current SDK observe and native Log modes do not reject excess use.
+Production login/rate enforcement and the main merge are not enabled by these checks.

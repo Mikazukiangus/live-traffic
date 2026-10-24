@@ -253,3 +253,18 @@ logout check passed and cleaned its account rows. The older deployment above is
 evidence for the previous IP-only foundation, not the new authentication source.
 Deployment verification and published preview quota rejection/recovery remain
 separate gates. Main and production are unchanged.
+
+
+Final preview source 5a4d5cdfd8de4c32f180374f19100a6a7ed0f385 is READY at
+https://live-traffic-et2v7hq8q-carbon-bc04.vercel.app. CI confirms 299 tests, no
+failures/skips, and audit/type check/build. Deployed synthetic authentication and
+revocation passed; fixed RATE_LIMIT_ALLOWED runtime evidence confirms a verified
+account traversed the pre-cache SDK check successfully in observe mode. The public
+24-hour forecast URL still returns its paginated result through the combined live
+function. This fits eleven API functions plus one proxy on Hobby.
+
+Active v1 Log and unpublished preview-only v2 Default 429 were re-read unchanged
+on 25 October. User publication was explicitly requested with the skill's reason;
+no response/publication is assumed. Preview rejection/recovery, SDK enforce mode
+and production rollout remain pending. Read `authentication.md` for operator
+account creation and the isolated database. No real account was created.
