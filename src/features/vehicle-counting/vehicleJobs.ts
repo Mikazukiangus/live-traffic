@@ -8,6 +8,7 @@ interface Ports {
   queue: BackgroundQueue; owner: string;
   count: (url: string, signal: AbortSignal) => Promise<number>;
   retryMs: number;
+  cached?: (url: string) => number | undefined;
   publish: (state: State) => void;
 }
 /** Latest-photo jobs only; inference stays in the existing on-device ONNX worker. */
@@ -35,7 +36,16 @@ export function createVehicleJobs(ports: Ports) {
       if (enabled && visible) cameras.forEach((camera, priority) => {
         const existing = jobs.get(camera.id);
         if (existing) { existing.handle.prioritize(priority); return; }
-        if (counts[camera.id]?.imageUrl === camera.imageUrl || failed.get(camera.id) === camera.imageUrl) return;
+        if (ports.cached) {
+          const count = ports.cached(camera.imageUrl);
+          if (count !== undefined) {
+            counts = { ...counts, [camera.id]: { count, imageUrl: camera.imageUrl } };
+            return;
+          }
+          // Expiry/invalidation can require reanalysis even when the photo URL is unchanged.
+          if (counts[camera.id]) { counts = { ...counts }; delete counts[camera.id]; }
+        } else if (counts[camera.id]?.imageUrl === camera.imageUrl) return;
+        if (failed.get(camera.id) === camera.imageUrl) return;
         const handle = ports.queue.enqueue({ lane: 'analysis', key: `${ports.owner}:${camera.id}:${camera.imageUrl}`, priority,
           retry: { maxAttempts: 2, delayMs: ports.retryMs },
           run: async signal => {

@@ -2,6 +2,8 @@ import { providerFailureStatus, providerFailureHeaders, failedDependency } from 
 import { internalFeedSchema } from '../server/http/requestSchemas.ts';
 import { withRequestSchema } from '../server/http/validateRequest.ts';
 import { reportSourceFailure, safeFailure } from '../shared/diagnostics.ts';
+import { ltaSnapshots } from '../server/cache/ltaSnapshots.ts';
+import { snapshotCacheHeaders } from '../server/http/responses.ts';
 import { config } from '../config/server.ts';
 /**
  * Road works on the expressways and faulty traffic lights, from LTA DataMall.
@@ -12,15 +14,12 @@ import { config } from '../config/server.ts';
  */
 import {
   NO_STORE,
-  fetchLtaAll,
   getLtaAccountKey,
-  liveCacheHeaders,
   sendJson,
 } from './_client.ts';
 
 // Road works are planned weeks ahead; traffic light faults change by the minute but are few.
-// The CDN keeps the whole answer 5 minutes, so the 17-page road works list is rarely refetched.
-const CACHE = liveCacheHeaders(...config.server.cache.roadConditions);
+// Cache each complete source independently; failed sources are retried on the next request.
 
 // LTA road names (and tunnel variants) -> expressway code
 const EXPRESSWAY_ROAD_NAMES: [RegExp, string][] = [
@@ -53,8 +52,8 @@ const handler = withRequestSchema(internalFeedSchema('roadconditions'), async (_
   }
 
   const [works, lights] = await Promise.allSettled([
-    fetchLtaAll(config.server.upstreams.roadWorks, accountKey),
-    fetchLtaAll(config.server.upstreams.faultyLights, accountKey, { wave: 1, maxPages: 4 }),
+    ltaSnapshots.get(config.server.upstreams.roadWorks, accountKey, config.server.snapshotCache.roadWorksMs),
+    ltaSnapshots.get(config.server.upstreams.faultyLights, accountKey, config.server.snapshotCache.faultyLightsMs, { wave: 1, maxPages: 4 }),
   ]);
   if (works.status === 'rejected') reportSourceFailure('lta', 'roadworks', works.reason);
   if (lights.status === 'rejected') reportSourceFailure('lta', 'faulty_lights', lights.reason);
@@ -66,7 +65,7 @@ const handler = withRequestSchema(internalFeedSchema('roadconditions'), async (_
   const today = sgToday();
   const roadWorks =
     works.status === 'fulfilled'
-      ? works.value
+      ? works.value.value
           .map((w) => ({ w, code: expresswayFor(String(w.RoadName || '')) }))
           .filter(({ w, code }) => code && w.StartDate <= today && (!w.EndDate || w.EndDate >= today))
           .map(({ w, code }) => ({
@@ -82,7 +81,7 @@ const handler = withRequestSchema(internalFeedSchema('roadconditions'), async (_
 
   const faultyLights =
     lights.status === 'fulfilled'
-      ? lights.value.map((l) => ({
+      ? lights.value.value.map((l) => ({
           id: String(l.AlarmID),
           kind: faultKind(String(l.Message || '')),
           since: l.StartDate ? String(l.StartDate).slice(0, 16) : null,
@@ -95,8 +94,10 @@ const handler = withRequestSchema(internalFeedSchema('roadconditions'), async (_
     res,
     200,
     { success: true, source: 'lta_roadworks_faultytrafficlights', date: today, roadWorks, faultyLights },
-    // A partial answer is not cached, so the next request tries both feeds again.
-    roadWorks && faultyLights ? CACHE : NO_STORE
+    // Partial responses never enter the CDN; a successful source can still reuse its original snapshot.
+    works.status === 'fulfilled' && lights.status === 'fulfilled'
+      ? snapshotCacheHeaders(Math.min(works.value.expiresAt, lights.value.expiresAt, Date.parse(today + 'T00:00:00+08:00') + 86400000), config.server.cache.roadConditions)
+      : NO_STORE
   );
 });
 export default handler;

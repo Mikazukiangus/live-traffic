@@ -2,9 +2,10 @@ import { providerFailureStatus, providerFailureHeaders } from '../server/http/pr
 import { requestSchemas } from '../server/http/requestSchemas.ts';
 import { withRequestSchema } from '../server/http/validateRequest.ts';
 import { reportFailure } from '../shared/diagnostics.ts';
+import { snapshotCacheHeaders } from '../server/http/responses.ts';
 import { config } from '../config/server.ts';
 import { getSpeedSummary } from '../server/traffic/speedService.ts';
-import { NO_STORE, getLtaAccountKey, liveCacheHeaders, setHeaders } from './_client.ts';
+import { NO_STORE, getLtaAccountKey, setHeaders } from './_client.ts';
 export type { ExpresswaySpeedSummary, CheckpointApproach, SpeedSegment } from '../shared/traffic/types.ts';
 export { traceCheckpoint, CHECKPOINT_ROUTES } from '../server/traffic/traceCheckpoint.ts';
 
@@ -32,7 +33,7 @@ const handler = withRequestSchema(requestSchemas.speeds, async (_req, res, input
   try {
     const cache = await getSpeedSummary(accountKey);
     const body = input.query.includeSegments ? { ...cache.payload, segments: cache.segments } : cache.payload;
-    return send(200, body, liveCacheHeaders(...config.server.cache.speeds));
+    return send(200, body, snapshotCacheHeaders(cache.expiresAt, config.server.cache.speeds));
   } catch (err: any) {
     return send(providerFailureStatus(err), reportFailure('lta', err), providerFailureHeaders(err));
   }

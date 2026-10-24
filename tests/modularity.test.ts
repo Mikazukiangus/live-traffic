@@ -351,7 +351,9 @@ test('server speed service coalesces full aggregations and preserves metadata in
       });
     };
     const [a, b] = await Promise.all([getSpeedSummary('synthetic-only'), getSpeedSummary('synthetic-only')]);
-    assert.equal(a, b);
+    assert.equal(a.payload, b.payload);
+    assert.equal(a.segments, b.segments);
+    assert.equal(a.expiresAt, b.expiresAt);
     assert.equal(calls, config.server.speeds.concurrency);
     assert.equal(a.payload.lastUpdatedTime, '2026-10-19T09:00:00+08:00');
     assert.equal(a.segments.length, 1);
