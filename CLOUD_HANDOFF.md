@@ -17,6 +17,12 @@ untracked `.claude/` directory. No local-only implementation needs recovering.
 **The latest approved implementation is released.** PR #24 (device-local background queue) is merged as
 `c3956f053cc233452cee2b56f36483ffd846675f`, following PR #22's atomic request updates, PR #21's error handling, PR #20's circuit breakers, PR #19's retries and PR #18's timeouts.
 **PR #23 remains open/draft/unmerged:** cross-tab commute storage and wake-lock ownership on `codex/cross-tab-atomic-storage`, last published head `58ba18bfd6fa6c0de25a3919c98a49f4ccb6e812`. Do not merge it without explicit approval. It touches the commute receipt effect changed by PR #24; preserve the background-history wrapper around its coordinated repository call when integrating it. Turn 143 is recorded on that pending branch; current main has Turns 144–145 for the queue preview/release.
+**Caching preview PR #25 is also pending approval:** `codex/bounded-result-caching`, runtime head
+`357aa4abfefa0a2e511ea4b55c3673e7231e6bcc` (246 tests, main remains 229). It adds warm-instance
+roadworks/car park/fault caches, page-memory exact-photo vehicle counts, and strengthens speed-cache
+isolation/invalidation/CDN deadlines. Read `docs/caching.md` and Turn 146 for TTLs, controls and
+verification. No hosted shared cache is provisioned; do not merge either pending PR implicitly.
+
 Application login, account creation and brute-force lockout are **on hold at the
 user's explicit request**. Do not resume them unless requested; see
 `AUTHENTICATION_PLAN.md`.

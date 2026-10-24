@@ -83,3 +83,11 @@ Draft [PR #25](https://github.com/Mikazukiangus/live-traffic/pull/25) is attache
 Initial [preview](https://live-traffic-morq6ol0k-carbon-bc04.vercel.app) is deployment `dpl_2ojEEQLLB1RYTFQQLLqsSmHPvuie`, READY for the intended project/team, preview branch and implementation SHA. Authenticated homepage, its actual entry bundle and the referenced camera chunk returned HTTP 200; the camera chunk contains the model-contract cache revision. These are artifact-availability checks, not actual browser/inference or performance verification.
 
 Final code review also found that another consumer's successful cached count needed to clear the resource's earlier same-photo error marker. Corrected that branch and extended the existing queue/cache integration test to check recovery to ready. The focused 13 cache test groups and type checking pass. The follow-up commit includes this recovery correction and the initial publication evidence; final runtime verification follows below when available. Main/production and PR #23 remain unchanged.
+
+### Final runtime verification
+
+Runtime head `357aa4abfefa0a2e511ea4b55c3673e7231e6bcc`, including the recovery correction, passed both GitHub Checks runs (`40054064549`, `40054068312`). Required CI job diagnostics confirm 246 tests passed, zero failures/skips, plus type checking, transport audit and build.
+
+Updated [preview](https://live-traffic-9wvbe3jq8-carbon-bc04.vercel.app) is deployment `dpl_2TMkuFLR8hAag9FUMt5TKpsgWByr`, READY for the intended project/team, preview branch and runtime SHA. Authenticated homepage, actual referenced entry and camera chunk returned HTTP 200; the chunk contains the cache contract revision. Browser execution/performance remains unverified as described above.
+
+This final follow-up changes documentation only, recording the runtime proof and cloud handoff. Draft PR #25 awaits explicit approval; main/production and PR #23 are unchanged.
