@@ -126,6 +126,8 @@ test('auth boundaries reject CSRF, ambiguous routing, extra fields, unsupported 
   assert.equal(touched, 0);
   assert.throws(() => validateAuthOrigin(new Headers({ origin: origin + ',https://evil.test' }), 'POST', [origin]), reject(403));
   assert.equal(authRoute(post('sign-in')), 'sign-in');
+  assert.equal(authRoute(new Request(`${origin}/api/auth/ok?feed=auth&authPath=ok`)), 'ok');
+  assert.throws(() => authRoute(new Request(`${origin}/api/auth/ok?feed=auth&authPath=session`)), reject(400));
   assert.equal(authRoute({ url: '/api/live', method: 'POST', query: { feed: 'auth', authPath: 'session' } }), 'session');
   assert.throws(() => authRoute({ url: '/api/live', method: 'POST', query: { feed: 'auth', authPath: ['session', 'sign-in'] } }), reject(400));
   assert.throws(() => authRoute({ url: '/api/live?authPath=session', method: 'POST', query: { feed: 'auth', authPath: 'session' } }), reject(400));

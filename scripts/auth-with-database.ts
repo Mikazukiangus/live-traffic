@@ -4,8 +4,8 @@ import { randomBytes } from 'node:crypto';
 
 /** Narrow operator bootstrap: only two explicitly selected development DB settings enter memory. */
 async function run() {
-  const [task, databaseId, directId] = process.argv.slice(2);
-  if (!['migrate', 'smoke', 'create-user'].includes(task) || !/^[a-zA-Z0-9_-]{5,80}$/.test(databaseId ?? '') || !/^[a-zA-Z0-9_-]{5,80}$/.test(directId ?? '')) throw new Error('Invalid operator arguments');
+  const [task, databaseId, directId, deployment] = process.argv.slice(2);
+  if (!['migrate', 'smoke', 'preview-smoke', 'create-user'].includes(task) || !/^[a-zA-Z0-9_-]{5,80}$/.test(databaseId ?? '') || !/^[a-zA-Z0-9_-]{5,80}$/.test(directId ?? '')) throw new Error('Invalid operator arguments');
   const link = JSON.parse(readFileSync(new URL('../.vercel/project.json', import.meta.url), 'utf8'));
   const project = 'prj_OaQqagITm0LQjotv9EgoPZOWwjzT', team = 'team_ZEUyUqyAE43B7bGMi6Rdux14';
   if (link.projectId !== project || link.orgId !== team) throw new Error('Unexpected project context');
@@ -26,6 +26,7 @@ async function run() {
   process.env.BETTER_AUTH_SECRET = randomBytes(48).toString('base64url');
   if (task === 'migrate') await (await import('./auth-migrate.ts')).migrateAuth();
   else if (task === 'smoke') await (await import('./auth-smoke.ts')).smokeAuth();
+  else if (task === 'preview-smoke') await (await import('./auth-preview-smoke.ts')).smokePreview(deployment);
   else await (await import('./auth-create-user.ts')).createAccount();
 }
 void run().catch((error) => {

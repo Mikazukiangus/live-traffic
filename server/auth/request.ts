@@ -20,8 +20,10 @@ export function authRoute(req: any): AuthRoute {
   let params = url.searchParams;
   let route: string;
   if (url.pathname.startsWith('/api/auth/')) {
-    if ([...params].length) throw new AuthRequestError(400);
     route = url.pathname.slice('/api/auth/'.length);
+    // Vercel can retain the public pathname while appending its rewrite controls.
+    if (params.size && (params.size !== 2 || params.getAll('feed').length !== 1 || params.get('feed') !== 'auth' || params.getAll('authPath').length !== 1 || params.get('authPath') !== route))
+      throw new AuthRequestError(400);
   } else {
     // Node adapters may expose rewrite controls in req.query rather than req.url.
     // Never replace URL parameters or collapse duplicate/array values.

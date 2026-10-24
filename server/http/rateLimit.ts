@@ -120,5 +120,5 @@ export function createRateLimitGuard(options: {
   };
 }
 
-// Login is on hold: no client-provided pseudo identity, new cookie, or fake account limit.
+// Account admission runs in the pre-CDN proxy; origin admission only counts IPs.
 export const publicRateLimitGuard = createRateLimitGuard({ settings: config.server.rateLimit });
