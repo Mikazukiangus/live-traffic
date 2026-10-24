@@ -1,6 +1,6 @@
 # TrafficPulse — cloud workspace handoff
 
-Prepared 22 October 2026; release status refreshed 23 October 2026 (Asia/Singapore). Repository:
+Prepared 22 October 2026; release status refreshed 24 October 2026 (Asia/Singapore). Repository:
 <https://github.com/Mikazukiangus/live-traffic>.
 
 ## Start here
@@ -14,10 +14,9 @@ Fetch current main to include this handoff and its log entry; do not reset to th
 older snapshot. The local checkout had no tracked changes and only a pre-existing
 untracked `.claude/` directory. No local-only implementation needs recovering.
 
-**The latest implementation is complete.** PR #22 (atomic concurrent request updates) is merged as
-`1252d0f3240cfd71d9c38bb8c5d337a5a93213be`, following PR #21's error handling, PR #20's circuit breakers, PR #19's retries and PR #18's timeouts.
-No implementation from this session
-is waiting to be merged.
+**The latest approved implementation is released.** PR #24 (device-local background queue) is merged as
+`c3956f053cc233452cee2b56f36483ffd846675f`, following PR #22's atomic request updates, PR #21's error handling, PR #20's circuit breakers, PR #19's retries and PR #18's timeouts.
+**PR #23 remains open/draft/unmerged:** cross-tab commute storage and wake-lock ownership on `codex/cross-tab-atomic-storage`, last published head `58ba18bfd6fa6c0de25a3919c98a49f4ccb6e812`. Do not merge it without explicit approval. It touches the commute receipt effect changed by PR #24; preserve the background-history wrapper around its coordinated repository call when integrating it. Turn 143 is recorded on that pending branch; current main has Turns 144–145 for the queue preview/release.
 Application login, account creation and brute-force lockout are **on hold at the
 user's explicit request**. Do not resume them unless requested; see
 `AUTHENTICATION_PLAN.md`.
@@ -193,9 +192,11 @@ See `docs/error-handling.md` for ownership and limits.
 
 [PR #22](https://github.com/Mikazukiangus/live-traffic/pull/22) reserves pending work before feed/health notifications, isolates polling snapshots by URL, serializes worker cache compare-and-put per key, guards location/install event ownership, and patches current commute fields after permission/editor completion. See `docs/atomic-updates.md`. Guarantees remain per resource/repository/active worker; separate-tab localStorage edits and distributed function replicas are not transactionally coordinated.
 
-**214 tests**, type checking, security source audit and production build passed.
-The Python wrapper ran four offline helper tests. Both final PR #22 checks and
-Vercel checks passed. The approved production merge also verified HTTP 200 for the homepage, its referenced entry bundle and rendered worker, including the new version guard. Earlier error-handling checks covered the following providers; they were not repeated for this browser-only release. Production homepage/entry bundle, air quality (5 regions),
+[PR #24](https://github.com/Mikazukiangus/live-traffic/pull/24) adds a bounded page-lifetime queue for visitor-device vehicle analysis, optional commute-history receipts and notification attempts. Three independent lanes each have one physical slot. Defaults are 32 waiting jobs, a 1000-ms idle timeout and a 120000-ms lifetime, validated in config and `.env.example`. Only recomputable photo analysis opts into executor retries; existing notification policy retains its own limits. User saves/permissions and live API answers remain foreground. Closing the page discards pending jobs; no hosted/durable queue was added. See `docs/background-queue.md`.
+
+**229 tests**, type checking, security source audit and production build passed.
+The Python wrapper ran four offline helper tests. Both final PR #24 checks and
+Vercel checks passed. The approved queue production merge verified HTTP 200 for the homepage and its referenced entry bundle, including the new queue diagnostic marker. PR #22's earlier release verified the rendered worker's version guard. Earlier error-handling checks covered the following providers; they were not repeated for this browser-only release. Production homepage/entry bundle, air quality (5 regions),
 incidents (9 source records at the check) and rain (47 areas) returned HTTP 200 on
 23 October. Interactive recovery-screen verification remains pending: the browser
 approval reviewer hit its usage limit. An isolated synthetic fixture and manual
@@ -212,8 +213,8 @@ These are recorded checks, not a guarantee of current provider health in the new
 - Canonical production: <https://live-traffic-carbon-bc04.vercel.app>.
 - Other observed production alias: <https://live-traffic-kappa.vercel.app>.
   `live-traffic.vercel.app` belongs to a different application; do not use it.
-- Last verified runtime deployment: `dpl_D56XazVJxDcgAHZ4gVuN1MVdBaWT`, READY for
-  merge `1252d0f`. Subsequent main documentation pushes can create newer deployments;
+- Last verified runtime deployment: `dpl_DDzCp8tNFSPXUBpsNzxT2YwUggF7`, READY for
+  merge `c3956f0`. Subsequent main documentation pushes can create newer deployments;
   verify current SHA/team/project/target rather than pinning that deployment forever.
 
 Use the new chat's authenticated Vercel tools if available; connector authorization

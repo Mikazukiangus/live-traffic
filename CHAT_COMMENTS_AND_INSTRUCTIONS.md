@@ -152,6 +152,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 141. [Turn 141: Atomic Concurrent Request Updates on Preview](#141-turn-141-atomic-concurrent-request-updates-on-preview)
 142. [Turn 142: Atomic Request Updates Merged to Main](#142-turn-142-atomic-request-updates-merged-to-main)
 144. [Turn 144: Device-Local Background Queue on Preview](#144-turn-144-device-local-background-queue-on-preview)
+145. [Turn 145: Background Queue Merged to Main](#145-turn-145-background-queue-merged-to-main)
 
 ---
 
@@ -2553,6 +2554,22 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Pushed implementation b25d9c542e9711aaedf076719a36df913e69f4cb and opened draft PR #24 (https://github.com/Mikazukiangus/live-traffic/pull/24), attached to this chat. GitHub Checks runs 40012228026 and 40012274759 and Vercel deployment/feedback checks passed at that exact head. Read CI diagnostics through the required code-review tool; all 229 tests passed with zero failures/skips.
 - Deployment dpl_4WAfuVowLGwaQqNzS28vLsRdanv2 is READY for the intended project/team, preview branch and implementation SHA: https://live-traffic-pgkm8vccs-carbon-bc04.vercel.app. Authenticated homepage and its actual referenced entry bundle returned HTTP 200. These are artifact-availability checks; they do not establish real browser scheduling, inference, notification display, permission behavior or performance. No real camera metadata/photo, user storage/permission or provider outage was requested.
 - Recorded this evidence in docs/background-queue.md. This follow-up is documentation only, with runtime checks pinned above. Updated the log for commit/push under the standing instruction. Main/production remain unchanged; PR #24 awaits explicit approval. PR #23 remains separate and unmerged. This queue is page-lifetime/device-local; persistent hosted work and shared speed-cache warming remain a separately documented backend design.
+
+---
+
+## 145. Turn 145: Background Queue Merged to Main
+
+**User Instruction:**
+> "Merge to main"
+
+### Released (24 October 2026, SGT):
+- Received explicit approval for PR #24 (https://github.com/Mikazukiangus/live-traffic/pull/24), retained its chat attachment and verified exact final head cce7292d8b2bf2855a35214ede5ce121170b264b, main target, open draft and mergeable state. GitHub Checks runs 40012454323 and 40012461419 and Vercel deployment/feedback checks passed at that head. Read CI job diagnostics with the required code-review tool; all 229 tests passed with zero failures/skips. Marked ready and merged with the expected head as c3956f053cc233452cee2b56f36483ffd846675f.
+- Fast-forwarded local main and retained preview branches. Released the bounded page-lifetime queue and three migrations: optional photo analysis, commute-history receipts and notification attempts. Live API reads and explicit user/permission actions retain their foreground paths. Defaults and .env.example are already validated. No runtime changes or repeat broad local tests were necessary for the approved merge; the full suite, four offline Python cases, type checks, transport audit and build were already verified.
+- Production deployment dpl_DDzCp8tNFSPXUBpsNzxT2YwUggF7 is READY for the intended project/team, main merge SHA and production target. Aliases include live-traffic-carbon-bc04.vercel.app, live-traffic-kappa.vercel.app and the main branch URL. Used existing authenticated access without changing hosted protection, credentials or settings.
+- Authenticated canonical production homepage and its actual referenced entry bundle returned HTTP 200. The bundle contains the new fixed background_job_failure marker. These establish deployed artifacts, not actual browser scheduling/inference, notification display or performance. No real camera metadata/presigned image, browser storage, permission, notification prompt or provider failure was requested.
+- The earlier automatic approval usage-limit block remains a limitation on interactive browser checks; no alternate browser/protocol workaround or visual pass was used. The user approved this merge after disclosure. The queue is browser-local and discarded on page close; native cancellation is cooperative. No hosted/durable worker/database or cross-tab notification leader was added.
+- Confirmed PR #23 remains open/draft/unmerged. This approval concerned the latest PR #24; PR #23 and its Turn 143 log remain separately preserved on codex/cross-tab-atomic-storage. Its receipt-effect conflict must retain the queued wrapper around the coordinated repository call if separately approved later. No unrelated preview merge was performed.
+- Updated docs/background-queue.md with the approved release and refreshed CLOUD_HANDOFF.md with the merge, 229-test baseline, production checks and pending PR #23. Login remains on hold and unrelated .claude/ stays untouched. Updated this log/table of contents for documentation-only commit/push on main under the standing instruction. The approved queue merge and selected production verification are complete.
 
 ---
 

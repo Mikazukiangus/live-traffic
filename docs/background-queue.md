@@ -1,6 +1,6 @@
 # Background queue
 
-Preview branch: `codex/browser-background-queue`, based on main `af19961`.
+Implemented on `codex/browser-background-queue`, based on main `af19961`; released through PR #24 as main merge `c3956f053cc233452cee2b56f36483ffd846675f`.
 The pending cross-tab storage/wake-lock work remains separately reviewable in PR #23 and is not merged into this branch.
 
 ## Operations and placement
@@ -51,11 +51,20 @@ Closing/reloading the page discards pending jobs, keys and notification receipts
 - The first targeted image-cancellation test aborted before the deadline helper's microtask had created an image; corrected the fixture to start the synthetic image before asserting active-request cleanup. Pre-aborted cancellation separately verifies no image creation. No runtime change was needed for that fixture failure.
 - Ports/timers/images/model results/storage/notifications are synthetic. No real provider outage, image/camera metadata, browser storage, permission or notification prompt was requested. The earlier browser approval usage-limit block remains; no alternate browser/protocol workaround or browser performance/visual pass is claimed.
 
-The queue changes are independent of unmerged PR #23. Explicit approval is required before merging this preview into main. See Turn 144 in `CHAT_COMMENTS_AND_INSTRUCTIONS.md` for publication evidence.
+The queue changes are independent of unmerged PR #23. The user approved PR #24's merge; PR #23 remains pending. See Turns 144–145 in `CHAT_COMMENTS_AND_INSTRUCTIONS.md` for preview/release evidence.
 
 
 ## Preview publication
 
 Implementation `b25d9c542e9711aaedf076719a36df913e69f4cb` is in draft [PR #24](https://github.com/Mikazukiangus/live-traffic/pull/24), attached to the chat. GitHub Checks runs `40012228026` and `40012274759` and Vercel deployment/feedback checks passed at that exact head. CI diagnostics confirm all 229 tests passed with zero skips.
 
-[Preview](https://live-traffic-pgkm8vccs-carbon-bc04.vercel.app) is deployment `dpl_4WAfuVowLGwaQqNzS28vLsRdanv2`, READY for the intended project/team, preview branch and implementation SHA. Authenticated homepage and its referenced entry bundle returned HTTP 200. These verify deployed artifact availability; synthetic tests establish scheduling/interleaving policies. No actual browser/inference/notification/performance pass is claimed. This follow-up records documentation only; runtime proof is pinned above. Main/production await explicit approval, with PR #23 still separately pending.
+[Preview](https://live-traffic-pgkm8vccs-carbon-bc04.vercel.app) is deployment `dpl_4WAfuVowLGwaQqNzS28vLsRdanv2`, READY for the intended project/team, preview branch and implementation SHA. Authenticated homepage and its referenced entry bundle returned HTTP 200. These verify deployed artifact availability; synthetic tests establish scheduling/interleaving policies. No actual browser/inference/notification/performance pass is claimed. This follow-up records documentation only; runtime proof is pinned above. At preview publication main/production awaited explicit approval, with PR #23 separately pending. The approved release follows.
+
+
+## Production release — 24 October 2026
+
+The user approved merging PR #24 after disclosure of the page-lifetime queue scope, browser verification limit and separate PR #23. Final head `cce7292d8b2bf2855a35214ede5ce121170b264b` passed both GitHub Checks runs (`40012454323`, `40012461419`) and Vercel checks. Required CI diagnostics confirm 229 passing tests and zero skips. Marked the draft ready and merged with that expected head as `c3956f053cc233452cee2b56f36483ffd846675f`; local main was fast-forwarded.
+
+Production deployment `dpl_DDzCp8tNFSPXUBpsNzxT2YwUggF7` is READY for the intended project/team, main merge SHA and production target. [Canonical production](https://live-traffic-carbon-bc04.vercel.app) homepage and its actual entry bundle returned HTTP 200; the served bundle contains the new fixed background-queue diagnostic marker. These are deployed artifact checks, not browser execution, inference, notification-display or performance proof. No real camera metadata/photo, browser storage or permissions were requested.
+
+PR #23 remains open/draft/unmerged and requires separate approval. This release introduces the device-local queue only, retains the current main storage repository, and does not provision a hosted/durable queue. The earlier interactive-browser limitation and all cancellation/durability boundaries above remain in effect.
