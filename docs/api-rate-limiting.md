@@ -2,82 +2,43 @@
 
 ## Current status
 
-Prepared on `codex/public-api-rate-limits`; **Log-only rule published, no production blocking**.
-The Vercel Firewall skill was already installed and was used for this work.
-The account is **Hobby**, confirmed by the user. The design uses **one** rate-limit
-rule, matching Hobby's allowance. It does not require Redis or a plan upgrade.
+Prepared on `codex/public-api-rate-limits` / draft PR #28. The user explicitly
+instructed the agent to publish using the CLI, superseding the skill's default
+user-publication workflow for this concrete draft.
 
-**Turn 154 verified publication:** active configuration version 1 has the corrected
-300/60s rule enabled with Log on excess. No draft was pending when publication was
-checked. Rule-filtered traffic for the last hour returned no series or path/action/host
-rows, so there is no observed threshold-exceeding traffic or blocking result yet.
+**Active Firewall version 2 enforces Preview-only HTTP 429**, with no pending draft.
+The single Hobby-compatible rule remains fixed-window 300 requests per 60 seconds,
+IP key; both the `/api/` and SDK-ID OR groups require environment Preview. Inspected
+the full diff and published only that existing rule update with official CLI 65.2.0.
+No global protection, secret, application environment or production scope changed.
+Production is excluded from this custom rule, including its earlier logging.
 
-**Preview-only blocking is now staged as draft version 2.** The same existing rule
-has Environment equals Preview ANDed into both OR groups and the excess action is
-`rate_limit` (Default 429). The threshold remains 300 requests/60s, key IP. Readback
-confirmed `valid: true`, one targeted update, the published version 1 unchanged,
-and unchanged unrelated rules/settings. The draft is not published. The application
-SDK preview mode is now observe after the user resumed login (Turns 155–156).
-PR #28 is unmerged and no production blocking was activated.
+A bounded probe against the protected Preview `/api/rainforecast?limit=0` made 305
+requests in approximately 16.4 seconds: exactly 300 validation errors (HTTP 400),
+then five HTTP 429 responses. Invalid requests exit before provider work; no camera,
+weather, account or production load was used. The single request in the next window returned HTTP 400 again (2.019 seconds),
+confirming recovery. Rule-filtered aggregate traffic independently records exactly
+five rate-limit events, without client-IP/header inspection.
+This establishes the native edge IP threshold for one client/region/window, not a
+global quota, production throttling or isolated account-threshold exhaustion.
 
-The next step is user traffic/draft review and publication for preview testing,
-as required by the Vercel Firewall skill. Hobby's one-rule allowance means publishing
-this preview-only rule temporarily ends this custom rule's production logging;
-it does not enable production throttling. Production enforcement is a later approved
-step after preview verification and traffic review.
+The application SDK remains **observe**: actual verified-account admission readiness
+was confirmed in Turn 156, but middleware does not turn SDK account/IP rejections
+into HTTP errors until enforce mode is approved/configured and redeployed. Native
+WAF IP enforcement operates before CDN and does not need the PR merged or SDK mode
+changed. Production login stays disabled. No runtime source change or merge was
+performed in Turn 157. Read `authentication.md` for operator-created login.
 
-**Turn 153: the existing draft has now been inspected and corrected.** The official
-Vercel CLI 65.2.0 worked through the documented connector fallback, after verifying
-the exact project/team. CLI overview showed `active: null` and draft version 1;
-the active configuration API's 404 did not establish a team authorization failure.
-The original draft had exact Path equals `/api/`, plain Log, and no rate-limit
-configuration. It would not match actual endpoints such as `/api/traffic`.
+## Next rollout actions
 
-Corrected only existing rule `rule_traffic_pulse_public_api_rate_limit_3e38zR` in
-the unpublished draft: Path **starts with** `/api/` OR SDK ID
-`trafficpulse-public-api-v1`, Rate Limit, Fixed Window 300/60s, IP, Log on excess.
-The connector rejected targeted edit arguments before API execution; the supported
-CLI targeted update succeeded. Subsequent overview/diff checks confirmed a valid
-rule, no validation errors, one rule, only insert/update changes for this rule,
-and unchanged unrelated Firewall settings. At the end of Turn 153 there was no active
-configuration; Turn 154's verified publication above supersedes that earlier state.
-
-The earlier automatic approval rejection of entire-configuration PUT still stands.
-No whole-config overwrite or duplicate rule was performed. The user subsequently
-published version 1; use the known targeted version 2 draft and publication flow below.
-
-## Next action in the dashboard
-
-1. Review the published rule's traffic at
-   <https://vercel.com/carbon-bc04/live-traffic/firewall/traffic?filter=rule_traffic_pulse_public_api_rate_limit_3e38zR>.
-   The first rule-filtered query had no events; it is not evidence of a passing load test.
-2. Open <https://vercel.com/carbon-bc04/live-traffic/firewall>, choose **Review Changes**,
-   and inspect the single update to `TrafficPulse public API rate limit` in draft
-   version 2: both groups require Preview; Fixed Window 300/60s, IP; excess Default 429.
-   The Vercel Firewall skill requires user publication and traffic review before
-   advancing to live blocking. **Publish this preview-only draft yourself when ready
-   for the preview test**, then confirm publication. It is currently staged only.
-3. Verify preview rejection/recovery with an agreed synthetic preview-only probe;
-   do not stress production or request camera metadata/photos to fill the quota.
-   429 rejects excess requests; an unconditional Deny on the API path would reject
-   normal API traffic too. This preview-only rule does not match production.
-4. After preview verification and production traffic review, remove both preview
-   environment conditions and publish 429 enforcement for production when approved.
-
-Native WAF IP blocking happens before the API/CDN and **does not require an app
-redeploy, the PR merge, or `API_RATE_LIMIT_MODE=enforce`**. That environment setting
-controls the additional application SDK admission only. Leave it off until the
-SDK/protection-bypass setup and preview checks below are complete. No application
-code or login change is needed just to enable the native IP rule. Per-account
-admission is implemented before CDN lookup in `proxy.ts`; deployment and enforcement
-verification remain pending. See `authentication.md`.
-
-`API_RATE_LIMIT_MODE=off` is the safe setup default. Deploying this branch alone
-does **not** activate limiting. Complete the rollout below before claiming protection.
-The user explicitly resumed login. Better Auth with dedicated preview PostgreSQL
-now verifies sessions for the pre-cache account limiter. Optional sign-in and
-operator-created accounts are implemented; no real account is created automatically.
-Preview SDK observe mode records outcomes and does not block. Production auth is disabled.
+- Review rule-filtered traffic at
+  <https://vercel.com/carbon-bc04/live-traffic/firewall/traffic?filter=rule_traffic_pulse_public_api_rate_limit_3e38zR>.
+- Keep Preview conditions in both OR groups. Do not recreate the existing rule or
+  publish a nonexistent draft. Read current configuration before any further change.
+- SDK enforce mode and production expansion remain separate rollout steps requiring
+  review; do not interpret Preview publication as production or main-merge approval.
+- The earlier automatic-review rejection of a whole-config overwrite still stands.
+  Use narrowly scoped rule edits; the log contains previous setup/inspection history.
 
 ## One rule for Hobby
 
@@ -115,9 +76,9 @@ review actual shared-network traffic before blocking. NAT users share an edge qu
 ## Rollout and explicit activation
 
 Open <https://vercel.com/carbon-bc04/live-traffic/firewall>.
-The steps below describe the complete rollout/reference for fresh setup. Version 1
-is already published; do not create another rule or repeat its publication. Continue
-with the existing preview-only version 2 draft and the next-action section above.
+The steps below describe the complete rollout/reference for fresh setup. Version 2
+is already published for Preview; do not recreate the rule or repeat old steps.
+The following is a reference sequence for fresh setup, not pending work.
 
 1. Create the single rule above as a **log-only draft**. Preserve existing rules,
    managed protections, bypasses and firewall settings. If the UI does not support
@@ -263,8 +224,21 @@ account traversed the pre-cache SDK check successfully in observe mode. The publ
 24-hour forecast URL still returns its paginated result through the combined live
 function. This fits eleven API functions plus one proxy on Hobby.
 
-Active v1 Log and unpublished preview-only v2 Default 429 were re-read unchanged
-on 25 October. User publication was explicitly requested with the skill's reason;
-no response/publication is assumed. Preview rejection/recovery, SDK enforce mode
-and production rollout remain pending. Read `authentication.md` for operator
+At the end of Turn 156, v1 was Log and v2 was a draft. Turn 157 supersedes that
+state: the user explicitly requested CLI publication, v2 is active for Preview and
+actual native 429 rejection was verified. SDK enforce mode and production rollout
+remain pending. Read `authentication.md` for operator
 account creation and the isolated database. No real account was created.
+
+
+### Turn 157 publication and recovery
+
+User authorization: “Use vercel cli to publish for me”. Official CLI publish
+succeeded; active readback is version 2 and draft is null. The reviewed change
+remained one existing rule update with Preview in both OR groups; all unrelated
+protection settings were preserved. A 305-request Preview-only invalid-input probe
+completed in 16.421 seconds: 300 HTTP 400, five HTTP 429. The next-window recovery
+request returned HTTP 400 in 2.019 seconds. Aggregate traffic for the exact rule
+shows five rate-limit events. No provider/production load, user account or browser
+state was used. No runtime changes or broad test rerun were needed. SDK observe,
+production exclusion, regional-counter limits and pending main merge remain.

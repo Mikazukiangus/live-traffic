@@ -179,7 +179,7 @@ Successful observe admission emits one fixed RATE_LIMIT_ALLOWED diagnostic per
 warm proxy instance per minute, containing no identity/address/credential. This
 makes SDK readiness distinguishable from silent skipping; enforcement omits success
 noise. A permitted response in observe mode alone does not prove the limiter worked.
-Actual preview quota rejection/recovery requires publication of the staged rule.
+Turn 157 below supersedes the earlier pending-publication state.
 
 
 Final runtime source 5a4d5cdfd8de4c32f180374f19100a6a7ed0f385 is READY:
@@ -194,7 +194,10 @@ rewritten /api/forecast24h?limit=1 both returned 200; the latter returned one pe
 A scoped ten-minute error/fatal count query returned no groups, not a service-wide
 health guarantee. Interactive UI execution remains unverified.
 
-User review/publication of the existing preview-only v2 Firewall draft is pending.
-The skill requires the user to publish. Actual 429/recovery and enforce-mode rollout
-remain pending; current SDK observe and native Log modes do not reject excess use.
-Production login/rate enforcement and the main merge are not enabled by these checks.
+On 25 October the user explicitly authorized CLI publication. Turn 157 published
+active Firewall v2: Preview only, 300 requests/60s/IP, HTTP 429 on excess, no pending
+draft. A bounded 305-request invalid-input probe produced 300 HTTP 400 and five
+HTTP 429 without provider calls. The next-window request returned HTTP 400 again; exact-rule aggregate traffic
+confirms five rate-limit events. Details are in `api-rate-limiting.md`.
+The SDK still observes; account-threshold exhaustion/enforce mode and production
+rollout remain separate. Production login and the main merge are not enabled.

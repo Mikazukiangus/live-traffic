@@ -69,14 +69,18 @@ then deleted with explicit user approval and confirmed absent. Never retry that
 bootstrap path; use the narrow helper. No real account has been created.
 
 The Hobby Firewall uses one 300-per-60-second rule with OR groups for `/api/` and
-SDK ID `trafficpulse-public-api-v1`. Active version 1 is **Log on excess**. Draft
-version 2 adds Preview to both OR groups and Default 429; user review/publication
-is still required by the Firewall skill. Production blocking is not active.
-Publishing this preview-only rule temporarily excludes production custom-rule
-logging. Do not replace the entire Firewall config (previous automatic-review
-rejection); preserve the single targeted draft. Read `docs/api-rate-limiting.md`.
-SDK self-call readiness is now confirmed by the fixed runtime success diagnostic;
-preview 429/recovery and browser UI remain separate verification gates. Observe permits requests and does not enforce quotas.
+SDK ID `trafficpulse-public-api-v1`. **Turn 157: user explicitly authorized CLI
+publication. Active version 2 now enforces HTTP 429 for Preview in both OR groups,
+with no pending draft.** Full diff/readback confirmed only that targeted rule
+changed; unrelated protection settings are intact. A bounded Preview-only probe
+made 305 invalid-input requests in about 16.4s: exactly 300 HTTP 400 and five 429,
+with no provider work. A single request in the next window returned HTTP 400 again; exact-rule traffic
+shows five rate-limit events. See `docs/api-rate-limiting.md` for the full evidence.
+Production is excluded, including prior custom-rule logging. Do not replace the
+whole Firewall config (previous automatic-review rejection); use targeted edits.
+SDK self-call readiness is confirmed; application SDK remains observe and does not
+enforce account/IP failures. SDK enforce, production expansion and main merge are
+separate unapproved actions. Browser UI remains unverified.
 Verified account admission is before CDN hits; signing out remains anonymous and
 subject to IP protection. Regional counters are not a global quota. No client
 user ID, provider key or arbitrary cookie proves identity.
