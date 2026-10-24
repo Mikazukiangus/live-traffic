@@ -80,6 +80,11 @@ export const ENV_SCHEMA = {
     return Number(v);
   }),
   IMAGE_CACHE_SECONDS: integer('server', 'Immutable camera-image HTTP/CDN cache seconds; capped at the 15-minute signed-link lifetime.', 900, 0, 900),
+  API_RATE_LIMIT_MODE: field('server', 'Vercel Firewall admission: off, observe, or enforce. Keep off until named rules are published; observe records outcomes without rejecting.', 'off', (v) => {
+    if (!['off', 'observe', 'enforce'].includes(v)) throw new Error('must be off, observe or enforce');
+    return v as 'off' | 'observe' | 'enforce';
+  }),
+  API_RATE_LIMIT_TIMEOUT_MS: integer('server', 'Deadline for each Vercel Firewall admission check; checks are never retried.', 1000, 100, 5000),
   API_CORS_ORIGINS: field('server', 'Comma-separated extra trusted frontend origins. Canonical site and exact Vercel deployment origins are included automatically. No wildcards.', '', (v) => {
     if (!v) return [];
     const origins = v.split(',');
@@ -258,6 +263,9 @@ export function createConfig(env: Environment = {}) {
       allowLoopbackHttp: !httpsOnly,
       accountKey: v.LTA_ACCOUNT_KEY || v.LTA_API_KEY,
       corsOrigins: [...corsOrigins],
+      rateLimit: { mode: v.API_RATE_LIMIT_MODE, timeoutMs: v.API_RATE_LIMIT_TIMEOUT_MS,
+        platform: env.VERCEL === '1', namespace: env.VERCEL_ENV === 'production' ? 'production' : 'preview',
+        host: env.VERCEL === '1' && typeof env.VERCEL_URL === 'string' ? env.VERCEL_URL : '' },
       requestTimeoutMs: v.REQUEST_TIMEOUT_MS, weatherTimeoutMs: v.DATA_GOV_TIMEOUT_MS, probeTimeoutMs: v.HEALTH_PROBE_TIMEOUT_MS,
       circuit: { failureThreshold: v.PROVIDER_CIRCUIT_FAILURE_THRESHOLD, windowMs: v.PROVIDER_CIRCUIT_WINDOW_MS, cooldownMs: v.PROVIDER_CIRCUIT_COOLDOWN_MS },
       retryMaxWaitMs: v.PROVIDER_RETRY_MAX_WAIT_MS,

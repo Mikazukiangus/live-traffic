@@ -4,11 +4,13 @@ import { corsHeaders, corsVary, setNodeCors, setWebCors } from './cors.ts';
 import { InvalidPayloadError, reportFailure, UpstreamHttpError } from '../../shared/diagnostics.ts';
 import { reportApplicationFailure } from '../../shared/applicationDiagnostics.ts';
 import { providerFailureHeaders } from './providerFailure.ts';
+import { publicRateLimitGuard, RateLimitRejection } from './rateLimit.ts';
 
 /** The business handler runs only after the entire public request contract succeeds. */
 export function withRequestSchema<T>(
   schema: QuerySchema<T>,
   handler: (req: any, res: any, input: { query: T; accountKey: string | null }) => any,
+  options: { rateLimit?: typeof publicRateLimitGuard } = {},
 ) {
   return async (req: any, res?: any) => {
     let headers: Record<string, string> = { Vary: 'Origin' };
@@ -28,8 +30,18 @@ export function withRequestSchema<T>(
       }
       setNodeCors(res, headers);
       if (input.preflight) return setWebCors(handlePreflight(req, res), headers);
-      return setWebCors(await handler(req, res, { query: input.query, accountKey: input.accountKey }), headers);
+      return setWebCors(await (options.rateLimit ?? publicRateLimitGuard).run(req, async () =>
+        handler(req, res, { query: input.query, accountKey: input.accountKey })), headers);
     } catch (error) {
+      if (error instanceof RateLimitRejection) {
+        setNodeCors(res, headers);
+        return setWebCors(sendJson(res, error.status, {
+          success: false, code: error.code,
+          error: error.status === 429 ? 'Too many requests. Please try again shortly.' : 'Service temporarily unavailable. Please try again shortly.',
+        }, { ...NO_STORE, 'CDN-Cache-Control': 'no-store', 'Vercel-CDN-Cache-Control': 'no-store',
+          'Access-Control-Expose-Headers': 'Retry-After',
+          'Retry-After': String(error.retryAfter) }), headers);
+      }
       const provider = error instanceof InvalidPayloadError || error instanceof UpstreamHttpError;
       const body = provider ? reportFailure('gateway', error) : reportApplicationFailure('api');
       // Never attempt a second response or disclose the original exception on the socket.
