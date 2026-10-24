@@ -7,8 +7,9 @@ process.env.LTA_MAX_ATTEMPTS = '1';
 process.env.SPEED_PAGE_CONCURRENCY = '1';
 process.env.SPEED_MAX_ATTEMPTS = '1';
 process.env.DATA_GOV_MIN_INTERVAL_MS = '0';
-const names = ['traffic', 'trafficflow', 'traveltimes', 'vms', 'trafficimages', 'expresswayspeeds', 'rainforecast', 'forecast24h', 'airquality', 'live', '_carparks', '_roadconditions', '_weatheralerts', '_floods', 'health', 'imageproxy'];
+const names = ['traffic', 'trafficflow', 'traveltimes', 'vms', 'trafficimages', 'expresswayspeeds', 'rainforecast', '_forecast24h', 'airquality', 'live', '_carparks', '_roadconditions', '_weatheralerts', '_floods', 'health', 'imageproxy'];
 const routes = Object.fromEntries(await Promise.all(names.map(async name => [name, (await import(`../api/${name}.ts`)).default])));
+routes.forecast24h = routes._forecast24h;
 const { config } = await import('../config/server.ts');
 const { ltaSnapshots } = await import('../server/cache/ltaSnapshots.ts');
 const { listQuery, requestSchemas } = await import('../server/http/requestSchemas.ts');
@@ -54,6 +55,7 @@ const lists: [string, string, string][] = [
   ['trafficimages', '', 'cameras'], ['expresswayspeeds', '?include=segments', 'segments'],
   ['expresswayspeeds', '', 'expressways'], ['expresswayspeeds', '', 'checkpoints'], ['rainforecast', '', 'areas'],
   ['forecast24h', '', 'periods'], ['airquality', '', 'regions'],
+  ['live', '?feed=forecast24h', 'periods'],
   ['live', '?feed=carparks', 'carParks'], ['live', '?feed=roadconditions', 'roadWorks'], ['live', '?feed=roadconditions', 'faultyLights'],
   ['live', '?feed=weatheralerts', 'strikes'], ['live', '?feed=weatheralerts', 'heatStations'], ['live', '?feed=floods', 'alerts'],
   ['_carparks', '', 'carParks'], ['_roadconditions', '', 'roadWorks'], ['_weatheralerts', '', 'heatStations'], ['_floods', '', 'alerts'],

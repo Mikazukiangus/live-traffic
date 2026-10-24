@@ -183,6 +183,11 @@ self.addEventListener('fetch', (event) => {
   } else if (url.pathname.startsWith('/assets/')) {
     event.respondWith(cacheFirst(request, ASSETS));
   } else if (url.pathname.startsWith('/api/')) {
+    // Session/account responses and cookies must never enter the offline public-feed cache.
+    if (url.pathname.startsWith('/api/auth/') || url.searchParams.getAll('feed').includes('auth')) {
+      event.respondWith(boundedFetch(request, NETWORK_TIMEOUTS.request));
+      return;
+    }
     // Traversal must check the current snapshot. Never persist per-page/token URLs or
     // turn a stale offline page into a successful continuation of a live list.
     if (['limit', 'offset', 'collection', 'snapshot'].some((key) => url.searchParams.has(key))) {

@@ -9,7 +9,7 @@ process.env.LTA_ACCOUNT_KEY = 'request-schema-synthetic-only';
 process.env.SPEED_PAGE_CONCURRENCY = '1';
 process.env.SPEED_MAX_PAGES = '1';
 const names = ['traffic', 'trafficflow', 'vms', 'traveltimes', 'trafficimages', 'expresswayspeeds',
-  'health', 'rainforecast', 'forecast24h', 'airquality', 'imageproxy', 'live',
+  'health', 'rainforecast', '_forecast24h', 'airquality', 'imageproxy', 'live',
   '_carparks', '_roadconditions', '_weatheralerts', '_floods'];
 const routes = await Promise.all(names.map(async (name) => ({ name, module: await import(`../api/${name}.ts`) })));
 const get = (url = '/api/test', rest: Record<string, unknown> = {}) => ({ method: 'GET', url, ...rest });

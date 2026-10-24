@@ -19,7 +19,7 @@ process.env.SPEED_PAGE_CONCURRENCY = '1';
 process.env.SPEED_MAX_PAGES = '1';
 const { handleLtaRequest } = await import('../api/_client.ts');
 const routes = await Promise.all([
-  ['rain', '../api/rainforecast.ts'], ['forecast', '../api/forecast24h.ts'],
+  ['rain', '../api/rainforecast.ts'], ['forecast', '../api/_forecast24h.ts'],
   ['air', '../api/airquality.ts'], ['carparks', '../api/_carparks.ts'],
   ['roads', '../api/_roadconditions.ts'], ['weather', '../api/_weatheralerts.ts'],
   ['floods', '../api/_floods.ts'], ['speeds', '../api/expresswayspeeds.ts'],

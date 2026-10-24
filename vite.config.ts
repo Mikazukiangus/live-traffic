@@ -19,7 +19,7 @@ const handlers: Record<string, () => Promise<{ default: (req: any, res?: any) =>
   '/api/imageproxy': () => import('./api/imageproxy.ts'),
   '/api/expresswayspeeds': () => import('./api/expresswayspeeds.ts'),
   '/api/rainforecast': () => import('./api/rainforecast.ts'),
-  '/api/forecast24h': () => import('./api/forecast24h.ts'),
+  '/api/forecast24h': () => import('./api/_forecast24h.ts'),
   '/api/airquality': () => import('./api/airquality.ts'),
   '/api/live': () => import('./api/live.ts'),
 };

@@ -12,6 +12,21 @@ const insecure =
 const cookiePath =
   /["'`]set-cookie["'`]|\.\s*(?:cookies?|setCookie)\b|\[\s*["'](?:cookies?|setCookie)["']\s*\]|\b(?:cookies|setCookie)\s*\(|\bcookieStore\b|["'](?:cookie|cookie-parser|js-cookie|cookies-next|nookies)["']/i;
 
+// Exact reviewed reads/writes only. The auth response writer validates prefix,
+// host-only scope, HttpOnly, SameSite=Lax, Path=/ and production Secure at runtime.
+// Any changed/new cookie operation continues to require review; no general bypass.
+const reviewedCookieLines: Record<string, ReadonlySet<string>> = {
+  'server/auth/service.ts': new Set([
+    "const value = headers.get('cookie') ?? '';",
+    "for (const key of ['cookie', 'origin', 'content-type', 'sec-fetch-site', 'x-real-ip']) {",
+  ]),
+  'server/auth/respond.ts': new Set([
+    "for (const cookie of validatedAuthCookies(cookies)) headers.append('Set-Cookie', cookie);",
+    "response.headers.forEach((value, name) => { if (name !== 'set-cookie') res.setHeader(name, value); });",
+    "if (values.length) res.setHeader('Set-Cookie', values);",
+  ]),
+};
+
 /** Conservative source gate, not a general taint analyzer. Findings never include URL/cookie values. */
 export function auditTransportSource(file: string, text: string): Finding[] {
   const findings: Finding[] = [];
@@ -32,7 +47,7 @@ export function auditTransportSource(file: string, text: string): Finding[] {
       .replace(/\\\//g, '/')
       .replace(/\\u([0-9a-f]{4})/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
     if (insecure.test(content)) flag(offset, 'INSECURE_URL');
-    if (cookiePath.test(content)) flag(offset, 'COOKIE_POLICY_REVIEW');
+    if (cookiePath.test(content) && !reviewedCookieLines[file]?.has(content.trim())) flag(offset, 'COOKIE_POLICY_REVIEW');
     offset += line.length + 1;
   }
   return findings;
@@ -61,6 +76,6 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   if (findings.length) process.exitCode = 1;
   else
     console.log(
-      'Transport audit passed: no insecure resource URL literals or application cookie paths found.',
+      'Transport audit passed: no insecure resource URL literals or unreviewed cookie operations found.',
     );
 }

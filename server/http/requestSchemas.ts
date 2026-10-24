@@ -18,7 +18,7 @@ export type QuerySchema<T> = (query: ReadonlyMap<string, string>) => T;
 function only(query: ReadonlyMap<string, string>, allowed: string[]) {
   if ([...query.keys()].some((key) => !allowed.includes(key))) invalid('query');
 }
-const FEEDS = ['roadconditions', 'carparks', 'weatheralerts', 'floods'] as const;
+const FEEDS = ['roadconditions', 'carparks', 'weatheralerts', 'floods', 'forecast24h'] as const;
 export type FeedName = typeof FEEDS[number];
 const feedName = (value: string | undefined): FeedName => {
   if (!FEEDS.includes(value as FeedName)) invalid('feed');

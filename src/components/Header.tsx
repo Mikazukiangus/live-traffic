@@ -5,6 +5,9 @@ import { TabType } from '../types/traffic';
 import { useInstallPrompt } from '../utils/installPrompt';
 import { THEME_LABEL, THEME_ORDER, setTheme, useTheme } from '../utils/theme';
 import { setLargeText, useLargeText } from '../utils/textSize';
+import { config as appConfig } from '../../config/client';
+
+const AccountMenu = React.lazy(() => import('../features/auth/AccountMenu'));
 
 interface HeaderProps {
   activeTab: TabType;
@@ -88,11 +91,12 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Right: Notification & Profile */}
         <div className="flex items-center gap-2 shrink-0">
+          {appConfig.authEnabled && <React.Suspense fallback={null}><AccountMenu /></React.Suspense>}
           {installer.mode === 'prompt' && (
             <button
               onClick={installer.install}
               title="Install TrafficPulse as an app"
-              className="h-9 px-3 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold flex items-center gap-1.5 transition-colors"
+              className={`h-9 px-3 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold ${appConfig.authEnabled ? 'hidden sm:flex' : 'flex'} items-center gap-1.5 transition-colors`}
             >
               <span className="material-symbols-outlined text-lg">install_mobile</span>
               <span className="hidden sm:inline">Install app</span>
@@ -113,7 +117,7 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={() => setTheme(nextTheme)}
             aria-label={`${THEME_LABEL[theme].label}. Switch to ${nextTheme === 'auto' ? 'device setting' : nextTheme}`}
             title={`${THEME_LABEL[theme].label} (click for ${nextTheme === 'auto' ? 'device setting' : nextTheme})`}
-            className="w-11 h-11 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900 transition-colors"
+            className={`${appConfig.authEnabled ? 'hidden sm:block ' : ''}w-11 h-11 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900 transition-colors`}
           >
             <span className="material-symbols-outlined text-xl">{THEME_LABEL[theme].icon}</span>
           </button>
@@ -177,6 +181,10 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
             <span className={`text-xs font-bold ${largeText ? 'text-sky-700' : 'text-slate-400'}`}>{largeText ? 'On' : 'Off'}</span>
           </button>
+          {appConfig.authEnabled && <>
+            <button type="button" onClick={() => setTheme(nextTheme)} className="sm:hidden text-left px-3 min-h-11 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-100">Appearance: {THEME_LABEL[theme].label}</button>
+            {installer.mode === 'prompt' && <button type="button" onClick={installer.install} className="sm:hidden text-left px-3 min-h-11 rounded-lg text-sm font-semibold text-sky-700 hover:bg-sky-50">Install app</button>}
+          </>}
           {installer.mode === 'ios' && (
             <div className="px-3 py-2.5 rounded-lg bg-sky-50 border border-sky-100 text-xs text-sky-900 flex items-start gap-2">
               <span className="material-symbols-outlined text-base text-sky-600">ios_share</span>

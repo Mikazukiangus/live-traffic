@@ -1,11 +1,27 @@
 # Application login implementation plan
 
-Status: **on hold at the user's request**, 22 October 2026. Login and lockout
-are not implemented. Resume only when the user explicitly requests it.
+Status: **login resumed by explicit user approval**, 24 October 2026, on preview
+branch `codex/public-api-rate-limits` / PR #28. The user answered “Resume login for
+per-user limits” and then “Continue last tasks”. Do not treat login as on hold.
+
+Current implementation uses Better Auth 1.7.12, Argon2id and a dedicated free Neon
+database connected only to preview/development. Migration, real PostgreSQL synthetic
+login/logout, and 299 local tests passed. Production login remains disabled pending
+preview verification and explicit merge/release approval. Read `docs/authentication.md`
+and the latest project log for current rollout state.
 
 The user selected a **new application login** in response to the login-target question.
 The user subsequently put this work on hold because the app has no login now.
-The proposal below is retained for future reference; it is not active work.
+The initial hold was superseded by the approval above. The original planning notes
+below are retained as background, not as a claim that old prerequisites remain missing.
+
+The announced starting defaults are administrator-created accounts and optional
+sign-in while traffic remains public. Public signup/email delivery and account data
+sync are not enabled. User-facing quotas use verified server sessions before the
+CDN cache; forged client user IDs never supply an identity. Authentication endpoints
+have separate atomic shared database throttles (five sign-in attempts per IP per
+15 minutes). This is attempt throttling, not the proposed failed-password/account
+lockout described below; that stronger policy remains separate pending work.
 
 ## Product choices to revisit if work resumes
 

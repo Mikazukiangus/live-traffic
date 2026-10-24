@@ -1,7 +1,7 @@
 import { createFeedResultCache, feedResult } from '../server/cache/feedResult.ts';
 import { parseSgt } from '../shared/time.ts';
 import { providerFailureStatus, providerFailureHeaders } from '../server/http/providerFailure.ts';
-import { requestSchemas } from '../server/http/requestSchemas.ts';
+import { internalFeedSchema } from '../server/http/requestSchemas.ts';
 import { withListResponse } from '../server/http/listPagination.ts';
 import { reportFailure } from '../shared/diagnostics.ts';
 import { config } from '../config/server.ts';
@@ -60,7 +60,7 @@ const resultCache = createFeedResultCache({ load: loadForecast, ttlMs: config.se
   profile: config.server.cache.forecast24h, complete: body => Array.isArray(body.periods) && parseSgt(body.issuedAt) !== null && typeof body.general?.forecast === 'string', validUntil: body => parseSgt(body.general?.validPeriod?.end) });
 /** Internal instance-local invalidation; not a public cache-bypass endpoint. */
 export const invalidateResultCache = resultCache.invalidate;
-const handler = withListResponse(requestSchemas.empty, 'forecast24h', ['periods'], async (_req, _res, { send }) => {
+const handler = withListResponse(internalFeedSchema('forecast24h'), 'forecast24h', ['periods'], async (_req, _res, { send }) => {
   const result = await resultCache.get();
   return send(result.status, result.body, result.headers);
 });

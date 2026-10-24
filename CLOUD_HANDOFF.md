@@ -39,9 +39,55 @@ accept zero; defaults need no new credentials. Read `docs/weather-caching.md` an
 for invalidation, source-age/health behavior and release verification. No hosted cache is added.
 Separate PR #23 still requires explicit approval.
 
-Application login, account creation and brute-force lockout are **on hold at the
-user's explicit request**. Do not resume them unless requested; see
-`AUTHENTICATION_PLAN.md`.
+**Login was explicitly resumed** for per-user rate limits on 24 October 2026.
+Continue draft [PR #28](https://github.com/Mikazukiangus/live-traffic/pull/28), branch
+`codex/public-api-rate-limits`; production login remains disabled. Do not restore
+the superseded login hold. See `docs/authentication.md`, `AUTHENTICATION_PLAN.md`
+and Turns 155–156. Starting defaults: operator-created accounts, optional sign-in,
+public traffic unchanged; no public signup/email delivery/account sync.
+
+The dedicated free Neon resource `trafficpulse-auth-preview` (Singapore,
+`store_MPzLJypjannI261q`) is connected only to preview/development. Five auth tables
+are migrated. Real synthetic PostgreSQL login/session/logout passed and test rows
+were removed. Better Auth 1.7.12 uses Argon2id, shared revocable sessions and atomic
+IP attempt budgets. The account UI, bounded CSRF-safe facade and pre-CDN verified
+account admission are implemented. All 299 local Node tests, type check, audit and
+build passed. Final runtime source 5a4d5cd is READY at
+https://live-traffic-et2v7hq8q-carbon-bc04.vercel.app. CI passes all 299 tests;
+deployed synthetic login/session/logout and fixed RATE_LIMIT_ALLOWED evidence
+confirm actual verified account SDK admission in observe mode. The rewritten
+forecast endpoint also returned 200. No interactive UI pass or threshold rejection
+is implied. The new proxy shares Hobby’s twelve slots by consolidating forecast24h
+into the existing live gateway, preserving its public URL.
+
+Branch-only preview settings enable server/UI login and SDK **observe** mode.
+No production DB/secret/auth setting was enabled. Do not export environments or
+print credentials. The user approved only database-only in-memory access using
+`scripts/auth-with-database.ts`; operator commands are in the authentication doc.
+CLI `env run` unexpectedly deployed a separate auth-migrate project. It was paused,
+then deleted with explicit user approval and confirmed absent. Never retry that
+bootstrap path; use the narrow helper. No real account has been created.
+
+The Hobby Firewall uses one 300-per-60-second rule with OR groups for `/api/` and
+SDK ID `trafficpulse-public-api-v1`. **Turn 157: user explicitly authorized CLI
+publication. Active version 2 now enforces HTTP 429 for Preview in both OR groups,
+with no pending draft.** Full diff/readback confirmed only that targeted rule
+changed; unrelated protection settings are intact. A bounded Preview-only probe
+made 305 invalid-input requests in about 16.4s: exactly 300 HTTP 400 and five 429,
+with no provider work. A single request in the next window returned HTTP 400 again; exact-rule traffic
+shows five rate-limit events. See `docs/api-rate-limiting.md` for the full evidence.
+Production is excluded, including prior custom-rule logging. Do not replace the
+whole Firewall config (previous automatic-review rejection); use targeted edits.
+SDK self-call readiness is confirmed; application SDK remains observe and does not
+enforce account/IP failures. SDK enforce, production expansion and main merge are
+separate unapproved actions. Browser UI remains unverified.
+Verified account admission is before CDN hits; signing out remains anonymous and
+subject to IP protection. Regional counters are not a global quota. No client
+user ID, provider key or arbitrary cookie proves identity.
+
+Main/production and separate draft PR #23 remain unchanged. PR #28 requires explicit
+merge approval after preview verification. Existing browser verification remains
+unperformed after the earlier automatic approval usage-limit block; do not bypass it.
 
 This note prepares a cloud development workspace. Production hosting is Vercel.
 No new cloud workspace, hosting migration or secret transfer was performed when

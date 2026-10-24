@@ -12,3 +12,4 @@ package-lock.json
 
 # Local Python helper environment
 .venv/
+.vercel

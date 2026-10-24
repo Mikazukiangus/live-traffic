@@ -166,7 +166,7 @@ for (const mode of ['node', 'web']) {
         }
       }
       assert.ok(urls.some((url) => url.endsWith('signature=kept%2B')), 'signed bytes changed');
-      for (const name of ['traffic', 'imageproxy', 'forecast24h', 'airquality']) {
+      for (const name of ['traffic', 'imageproxy', '_forecast24h', 'airquality']) {
         fail = true;
         const path = '/api/' + name + (name === 'imageproxy' ? '?url=' + encodeURIComponent('https://images.data.gov.sg/synthetic.jpg') : '');
         const res = mode === 'node' ? nodeResponse() : undefined;
