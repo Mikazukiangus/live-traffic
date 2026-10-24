@@ -2591,6 +2591,12 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Added docs/caching.md with cost evidence, TTLs, config, internal invalidation controls and limitations. Server caches are warm-instance memory; browser cache is page memory. They do not share across regions/instances/tabs or survive restart/reload, and internal clear does not purge an existing CDN response. No hosted cache, new dependency/lockfile, auth/login, external invalidation route, secret/environment value or hosting change was introduced.
 - No real camera metadata/presigned photo, browser user storage/permissions/notification or provider outage was requested. Interactive browser/performance verification remains unperformed after the prior automatic approval usage-limit block; no alternate browser/protocol workaround or visual pass was used. Updated this log/TOC for commit/push and reviewable draft preview publication; main merge requires explicit approval.
 
+### Preview publication and review:
+- Pushed implementation eb951b909dad651983f71120dd8b109db1625754 and opened attached draft PR #25 (https://github.com/Mikazukiangus/live-traffic/pull/25). Both GitHub Checks runs 40053915944 and 40053933405 and Vercel deployment/feedback checks passed at that head; read CI diagnostics using the required code-review tool.
+- Deployment dpl_2ojEEQLLB1RYTFQQLLqsSmHPvuie is READY for the intended project/team, preview branch and initial implementation SHA: https://live-traffic-morq6ol0k-carbon-bc04.vercel.app. Authenticated homepage, actual entry bundle and its referenced camera chunk returned HTTP 200; the chunk contains the model-contract cache revision. These establish artifact availability, not browser/inference/performance behavior. No camera metadata/photo or browser permission/storage was probed.
+- Final code review found that a successful count cached by another consumer should clear an earlier same-photo failure marker. Corrected that branch and extended the existing integration test to verify recovery to ready; the focused 13 cache groups and type checking pass. This follow-up includes that runtime correction plus initial publication evidence, with final runtime verification to follow. Main/production and separate PR #23 remain unchanged; explicit approval is required to merge.
+
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*

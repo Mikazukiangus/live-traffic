@@ -39,6 +39,7 @@ export function createVehicleJobs(ports: Ports) {
         if (ports.cached) {
           const count = ports.cached(camera.imageUrl);
           if (count !== undefined) {
+            failed.delete(camera.id);
             counts = { ...counts, [camera.id]: { count, imageUrl: camera.imageUrl } };
             return;
           }

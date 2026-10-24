@@ -171,7 +171,14 @@ test('new camera resource reuses counts without queue admission; expiry and clea
   assert.equal(state.status, 'ready'); assert.equal(queue.stats().waiting, 0); assert.equal(state.counts.a.count, 1);
   now = 100; second.update(cameras, options); await flush(); assert.equal(calls, 2);
   counter.clear(); second.update(cameras, options); await flush(); assert.equal(calls, 3);
-  second.dispose(); queue.dispose();
+  second.dispose();
+  let recovered: number | undefined;
+  const failed = createVehicleJobs({ queue, owner: 'recovery', count: async () => NaN, cached: () => recovered,
+    retryMs: 1000, publish: value => { state = value; } });
+  failed.update(cameras, options); await flush(); assert.equal(state.status, 'error');
+  recovered = 7; failed.update(cameras, options);
+  assert.equal(state.status, 'ready', 'another successful consumer clears the old failure on a cache hit');
+  assert.equal(state.counts.a.count, 7); failed.dispose(); queue.dispose();
 });
 
 test('cache configuration is validated, can disable new caches and stays within public/server scopes', () => {
