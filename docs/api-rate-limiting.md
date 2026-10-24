@@ -2,10 +2,28 @@
 
 ## Current status
 
-Prepared on `codex/public-api-rate-limits`; **not active in production**.
+Prepared on `codex/public-api-rate-limits`; **Log-only rule published, no production blocking**.
 The Vercel Firewall skill was already installed and was used for this work.
 The account is **Hobby**, confirmed by the user. The design uses **one** rate-limit
 rule, matching Hobby's allowance. It does not require Redis or a plan upgrade.
+
+**Turn 154 verified publication:** active configuration version 1 has the corrected
+300/60s rule enabled with Log on excess. No draft was pending when publication was
+checked. Rule-filtered traffic for the last hour returned no series or path/action/host
+rows, so there is no observed threshold-exceeding traffic or blocking result yet.
+
+**Preview-only blocking is now staged as draft version 2.** The same existing rule
+has Environment equals Preview ANDed into both OR groups and the excess action is
+`rate_limit` (Default 429). The threshold remains 300 requests/60s, key IP. Readback
+confirmed `valid: true`, one targeted update, the published version 1 unchanged,
+and unchanged unrelated rules/settings. The draft is not published. The application
+SDK mode remains off, PR #28 is unmerged and no production blocking was activated.
+
+The next step is user traffic/draft review and publication for preview testing,
+as required by the Vercel Firewall skill. Hobby's one-rule allowance means publishing
+this preview-only rule temporarily ends this custom rule's production logging;
+it does not enable production throttling. Production enforcement is a later approved
+step after preview verification and traffic review.
 
 **Turn 153: the existing draft has now been inspected and corrected.** The official
 Vercel CLI 65.2.0 worked through the documented connector fallback, after verifying
@@ -20,26 +38,28 @@ the unpublished draft: Path **starts with** `/api/` OR SDK ID
 The connector rejected targeted edit arguments before API execution; the supported
 CLI targeted update succeeded. Subsequent overview/diff checks confirmed a valid
 rule, no validation errors, one rule, only insert/update changes for this rule,
-and unchanged unrelated Firewall settings. **There is still no active configuration.**
+and unchanged unrelated Firewall settings. At the end of Turn 153 there was no active
+configuration; Turn 154's verified publication above supersedes that earlier state.
 
 The earlier automatic approval rejection of entire-configuration PUT still stands.
-No whole-config overwrite, publication, production enforcement or duplicate rule
-was performed. Use the known targeted draft and user publication flow below.
+No whole-config overwrite or duplicate rule was performed. The user subsequently
+published version 1; use the known targeted version 2 draft and publication flow below.
 
 ## Next action in the dashboard
 
-1. Open <https://vercel.com/carbon-bc04/live-traffic/firewall>, choose **Review Changes**,
-   and inspect the corrected `TrafficPulse public API rate limit` rule. The two draft
-   changes are the original insertion and this targeted correction of the same rule.
-2. **Publish the log-only draft yourself**, then review matching traffic at
+1. Review the published rule's traffic at
    <https://vercel.com/carbon-bc04/live-traffic/firewall/traffic?filter=rule_traffic_pulse_public_api_rate_limit_3e38zR>.
-   Publication is the missing activation step; the enabled toggle in a draft does
-   not mean it is live. The Vercel Firewall skill requires user publication and
-   traffic review before advancing to blocking.
-3. After log review, test blocking with **Environment = Preview AND each OR group**,
-   and change the rate limit's **when exceeded** action to **Default (429)**. Review
-   and publish that preview-only draft yourself. This rejects excess requests,
-   while an unconditional Deny on the API path would reject normal API traffic too.
+   The first rule-filtered query had no events; it is not evidence of a passing load test.
+2. Open <https://vercel.com/carbon-bc04/live-traffic/firewall>, choose **Review Changes**,
+   and inspect the single update to `TrafficPulse public API rate limit` in draft
+   version 2: both groups require Preview; Fixed Window 300/60s, IP; excess Default 429.
+   The Vercel Firewall skill requires user publication and traffic review before
+   advancing to live blocking. **Publish this preview-only draft yourself when ready
+   for the preview test**, then confirm publication. It is currently staged only.
+3. Verify preview rejection/recovery with an agreed synthetic preview-only probe;
+   do not stress production or request camera metadata/photos to fill the quota.
+   429 rejects excess requests; an unconditional Deny on the API path would reject
+   normal API traffic too. This preview-only rule does not match production.
 4. After preview verification and production traffic review, remove both preview
    environment conditions and publish 429 enforcement for production when approved.
 
@@ -92,6 +112,9 @@ review actual shared-network traffic before blocking. NAT users share an edge qu
 ## Rollout and explicit activation
 
 Open <https://vercel.com/carbon-bc04/live-traffic/firewall>.
+The steps below describe the complete rollout/reference for fresh setup. Version 1
+is already published; do not create another rule or repeat its publication. Continue
+with the existing preview-only version 2 draft and the next-action section above.
 
 1. Create the single rule above as a **log-only draft**. Preserve existing rules,
    managed protections, bypasses and firewall settings. If the UI does not support

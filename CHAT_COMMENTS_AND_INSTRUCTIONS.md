@@ -161,6 +161,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 151. [Turn 151: Weather Result Caches Merged to Main](#151-turn-151-weather-result-caches-merged-to-main)
 152. [Turn 152: Public API Rate Limit Guard and Hobby Firewall Setup](#152-turn-152-public-api-rate-limit-guard-and-hobby-firewall-setup)
 153. [Turn 153: Inspect and Correct the Vercel Firewall Draft](#153-turn-153-inspect-and-correct-the-vercel-firewall-draft)
+154. [Turn 154: Verify Firewall Publication and Stage Preview Blocking](#154-turn-154-verify-firewall-publication-and-stage-preview-blocking)
 
 ---
 
@@ -2746,6 +2747,21 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Re-read CLI overview and the full draft diff. Assertions verified the exact match groups/threshold/action, rule valid true with no validation errors, a single custom rule, only original insertion and this update for that same ID, active configuration still null, and equivalent structured unrelated draft settings/other rules. CLI's warning about other draft changes reflects the original insertion plus correction; do not silently discard either or publish unseen future changes. No provider requests, camera metadata/presigned images, live load/stress or browser data were used for verification.
 - Updated docs/api-rate-limiting.md and CLOUD_HANDOFF.md with the corrected remote state, identified rule/traffic link, and precise next steps. The Vercel Firewall skill requires the user to inspect/publish log-only coverage and review traffic before preview blocking. Blocking uses the rate limit's Default (429) excess action; an unconditional Deny on /api/ would block legitimate API calls. Preview scoping must be ANDed into both OR groups. Native WAF IP enforcement does not need a PR merge, app redeploy or API_RATE_LIMIT_MODE=enforce; that setting controls the additional SDK guard, which remains off pending its own setup. Per-user login remains on hold and regional counter/shared-IP limits remain documented.
 - The concrete log-only draft is ready for user review/publication at https://vercel.com/carbon-bc04/live-traffic/firewall. No active enforcement or production success is claimed. The existing 287-test implementation baseline is unchanged; no broad tests were repeated for this operational/documentation-only follow-up. Updated this log/TOC and handoff for commit/push under the standing instruction. Main/production and separate PR #23 remain unchanged.
+
+---
+
+## 154. Turn 154: Verify Firewall Publication and Stage Preview Blocking
+
+**User Instruction:**
+> "Published"
+
+### Verified publication and next draft (24 October 2026, SGT):
+- Continued the existing Firewall rollout in PR #28/branch codex/public-api-rate-limits. Verified the exact carbon-bc04/live-traffic project through official CLI 65.2.0 before reading configuration. Active version 1 is now published, firewallEnabled true, with the expected single valid enabled rule rule_traffic_pulse_public_api_rate_limit_3e38zR: Path starts /api/ OR SDK ID trafficpulse-public-api-v1, Fixed Window 300 requests/60s, IP key and Log on excess. No pending draft remained at the initial publication check. This confirms the user's publication, not blocking: excess action was still Log.
+- Inspected CLI traffic options and queried only that rule for the last hour with path/action/host aggregate dimensions, without client-IP/header detail. The returned stats were empty, with no series and no rows in any requested dimension. This is no observed threshold-exceeding traffic in that query, not proof of real throttling, an absence of false positives, or a healthy production load baseline. No synthetic production load, camera metadata/photos, user browser data or provider calls were used.
+- Prepared the next concrete reviewable stage under the original rate-limit/blocking request. Targeted only the existing rule in a new draft: Environment equals Preview ANDed into BOTH OR groups, excess action rate_limit (Default HTTP 429), fixed_window 300/60s, IP key; updated its description to match preview-only enforcement. CLI confirmed the draft update succeeded. Did not publish, discard, overwrite the entire config, change global protections, add a second Hobby rule, enable the SDK guard, or merge app code.
+- Re-read CLI overview and full diff. Verified draft version 2, rule valid true, exact preview scope in both groups, correct 429/threshold/key, one rules.update for the same existing ID, published version 1 unchanged and unrelated rules/settings unchanged. An initial JSON-string comparison detected only object property-order differences; deep structured comparison confirmed no published change. This verification is configuration readback, not an actual 429/recovery or SDK quota test.
+- The installed Vercel Firewall skill requires the user to review rule-filtered traffic and the concrete draft, then publish the preview-only change themselves before a preview probe. User review/publication remains the next required step; no production blocking is claimed. Publishing preview-only version 2 will temporarily exclude production from this custom rule's logging because Hobby allows one rate-limit rule, while leaving production requests unthrottled by this rule. Production enforcement remains a later approved step after preview verification/traffic review. Per-user auth remains on hold, the application's SDK mode stays off and PR #28 remains draft/unmerged.
+- Updated docs/api-rate-limiting.md and CLOUD_HANDOFF.md with active log-only version 1, pending preview-blocking version 2, verified scope and traffic limitations. Updated this log/TOC for commit/push under the standing instruction. No runtime files changed and the prior 287-test implementation baseline is unchanged; broad code tests were not repeated for this operational/documentation-only follow-up. Main/production application code and separate PR #23 remain unchanged.
 
 ---
 
