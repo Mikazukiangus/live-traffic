@@ -59,3 +59,11 @@ There is no public bypass/invalidation route or query flag. Clearing detaches pe
 - Synthetic tests do not establish production spend, real-world latency, cross-instance reuse or browser performance. No real camera metadata/photo, user storage, permissions or notification was requested. The earlier interactive-browser approval usage-limit limitation remains; no alternate browser/protocol workaround or visual pass is used.
 
 Official cache-layer guidance consulted: [Vercel Cache-Control headers](https://vercel.com/docs/caching/cache-control-headers). This implementation uses warm-instance memory and the existing CDN headers, not Vercel Runtime Cache.
+
+## Preview publication
+
+Implementation `0cbb0ba3d7518ca3e10be7d3660d5e3d87700aab` is published in attached draft [PR #27](https://github.com/Mikazukiangus/live-traffic/pull/27). GitHub Checks runs `40060770109` and `40060794975` and Vercel deployment/feedback checks passed at that exact head. Required CI job diagnostics confirm 275 passing tests, zero failures/skips, type checks, transport audit and build.
+
+[Preview](https://live-traffic-6b3r1f5dz-carbon-bc04.vercel.app) is deployment `dpl_Acxq9dRtun2SjgUHFZcQWo7eKuXx`, READY for the intended project/team, preview branch and implementation SHA. Selected authenticated checks returned HTTP 200 for the homepage, `/api/forecast24h?limit=1` (one of three periods) and `/api/airquality?limit=2` (two of five regions).
+
+These verify selected deployed success paths. They do not measure cache hit rate, provider savings, cross-instance reuse, real browser execution or every feed's current health; synthetic tests establish cache policies and call counts. No real camera metadata/photo, user storage/permissions, notification or provider outage was probed. This follow-up updates documentation/handoff only; main/production remain unchanged, PR #27 awaits explicit merge approval, and PR #23 remains independently pending.

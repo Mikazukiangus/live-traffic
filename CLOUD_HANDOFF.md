@@ -31,6 +31,14 @@ LTA windows and network-only paged requests in the service worker. Read `docs/pa
 Turns 148–149 for API shapes, preview/release checks and limits. Existing complete-list dashboards
 remain compatible. Separate PR #23 still requires explicit approval.
 
+**Weather-result cache preview PR #27 is pending explicit approval:** `codex/weather-result-caching`,
+runtime head `0cbb0ba3d7518ca3e10be7d3660d5e3d87700aab`. Local full suite passes 275 tests; released
+main remains 264. It reuses complete air (5 minutes), 24-hour outlook (15 minutes, validity-capped)
+and lightning/heat (1 minute) results across full/paged reads. Three new server-only TTL settings
+accept zero; defaults need no new credentials. Read `docs/weather-caching.md` and Turn 150 for
+invalidation, source-age/health behavior and verification. No hosted cache is added. Do not merge
+this PR or separate PR #23 implicitly.
+
 Application login, account creation and brute-force lockout are **on hold at the
 user's explicit request**. Do not resume them unless requested; see
 `AUTHENTICATION_PLAN.md`.

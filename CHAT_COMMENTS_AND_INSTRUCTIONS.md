@@ -2680,6 +2680,12 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Tests cover exact expiry, original timestamps, forecast validity, remaining CDN lifetime, errors/partial/incomplete/oversized/disabled cases, explicit invalidation and stale pending owners, recovery and a failing uncached health probe despite a fresh app success. This establishes policies, not measured production savings or cross-instance reuse.
 - Added docs/weather-caching.md with findings, TTL rationale, settings, invalidation controls and limits; linked from docs/caching.md. No real camera metadata/presigned image, user storage/permissions, notification or provider outage was requested. Interactive-browser/performance verification remains unperformed after the earlier automatic approval usage-limit block; no alternate browser/protocol workaround or visual pass was used. Pre-existing .claude/, local secrets and dependency lockfiles remain untouched. Updated this log/TOC for commit/push and preview publication; main/production remain unchanged pending approval.
 
+### Preview publication:
+- Pushed implementation 0cbb0ba3d7518ca3e10be7d3660d5e3d87700aab and opened attached draft PR #27 (https://github.com/Mikazukiangus/live-traffic/pull/27). GitHub Checks runs 40060770109 and 40060794975 and Vercel deployment/feedback checks passed at that exact head. Required CI job diagnostics confirm 275 passing tests with zero failures/skips, type checking, transport audit and build.
+- Deployment dpl_Acxq9dRtun2SjgUHFZcQWo7eKuXx is READY for the intended project/team, preview branch and implementation SHA: https://live-traffic-6b3r1f5dz-carbon-bc04.vercel.app. Authenticated homepage, forecast24h?limit=1 (one of three periods) and airquality?limit=2 (two of five regions) returned HTTP 200. These are selected deployed success-path checks, not measurements of cache hits, cross-instance reuse or production savings. No weather payload was printed and no real camera metadata/photo, user storage/permissions, notification or provider outage was probed.
+- Recorded publication evidence and all memory/freshness/invalidation/browser limits in docs/weather-caching.md. Updated CLOUD_HANDOFF.md with pending PR #27 and its 275-test preview versus 264-test released-main baseline. This final follow-up changes documentation only for commit/push under the standing instruction. Main/production remain unchanged; explicit merge approval is required. PR #23 remains separate and unmerged.
+
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*
