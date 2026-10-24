@@ -2637,6 +2637,13 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Added docs/pagination.md with the endpoint/collection catalogue, exact JSON shape, first/next requests, bounds, conflict handling, cursor-versus-offset choice and cache/offline/cold-work limits. Paging reduces transfer size but does not eliminate cold normalized aggregation or create database indexes. No new endpoint function, dependency, environment setting, hosted storage/service, authentication or durable snapshot registry was introduced.
 - No real camera metadata/presigned image, browser user storage/permission/notification or provider outage was requested. Interactive browser/performance verification remains unperformed after the earlier automatic approval usage-limit block; no alternate browser/protocol workaround or visual pass was used. Updated this log/TOC for commit/push and preview publication. Main/production remain unchanged pending explicit approval.
 
+### Preview publication:
+- Pushed implementation 7569e7a088f3e9c00c4c85e6d651256e0a27e378 and opened attached draft PR #26 (https://github.com/Mikazukiangus/live-traffic/pull/26). GitHub Checks runs 40055624595 and 40055651308 and Vercel deployment/feedback checks passed at that exact head. Required CI job diagnostics confirm 264 passing tests with zero failures/skips, type checking, security audit and build.
+- Deployment dpl_8nKWhLKf7LbUo6NBChNdRZuoNcFR is READY for the intended project/team, preview branch and implementation SHA: https://live-traffic-eh739cqq8-carbon-bc04.vercel.app. Authenticated homepage and rendered worker returned HTTP 200; worker includes network-only paging and rendered timeouts.
+- Selected deployed keyless rain API checks passed: first page returned two of 47 areas with next offset 2; continuation returned two areas at offset 2 with the same revision and next offset 4. A deliberately wrong revision returned 409 PAGINATION_SNAPSHOT_CHANGED and invalid limit 0 returned 400 INVALID_REQUEST. No snapshot token or weather payload was printed. These establish selected API behavior, not a real upstream change, actual browser/worker activation or health/performance of every feed. No real camera metadata/photo, browser user storage/permission or notification was requested.
+- Recorded endpoint examples/limitations and publication evidence in docs/pagination.md, and refreshed CLOUD_HANDOFF.md with pending PR #26 and the 264-test preview versus 246-test main baseline. This follow-up changes documentation only for commit/push under the standing instruction. Main/production remain unchanged; explicit merge approval is required. PR #23 remains independently unmerged.
+
+
 ---
 
 *Log verified and maintained by AI Studio Engineering Agent and Claude Code.*

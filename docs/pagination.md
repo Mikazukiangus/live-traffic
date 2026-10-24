@@ -118,3 +118,17 @@ Pagination reduces response size and supplies navigation. It does not turn in-me
 - Tests cover all normalized collections and native list entry points in Node and Web, direct/multiplexed routes, complete-list compatibility, early bounds/query rejection, correct first/middle/last/empty/beyond-end pages, revision changes/scopes, sibling omission, partial-source failure, original metadata, CORS/retry hints/cache headers and network-only worker traversal without disturbing ordinary offline feeds.
 - Type checking, transport audit, production build, generated-environment consistency (existing test) and whitespace checks passed. The initial synthetic rain fixture omitted the existing required validity text; corrected the fixture rather than loosening validation. An intermediate test invocation without loopback permission failed its existing socket fixture; the final full suite ran with the established loopback permission and passed.
 - Only synthetic provider/camera/model/storage ports were used for policy tests. No real camera metadata/presigned image, user storage, permission or notification was requested. The earlier interactive-browser approval usage-limit block remains; no alternate browser/protocol workaround or actual visual/performance claim is used. Live preview checks, if recorded below, are selected HTTP/deployment checks only.
+
+## Preview publication
+
+Implementation `7569e7a088f3e9c00c4c85e6d651256e0a27e378` is published in attached draft [PR #26](https://github.com/Mikazukiangus/live-traffic/pull/26). GitHub Checks runs `40055624595` and `40055651308` and Vercel deployment/feedback checks passed at that head. Required CI job diagnostics confirm 264 passing tests, zero failures/skips, plus type checks, security audit and build.
+
+[Preview](https://live-traffic-eh739cqq8-carbon-bc04.vercel.app) deployment `dpl_8nKWhLKf7LbUo6NBChNdRZuoNcFR` is READY for the intended project/team, preview branch and implementation SHA. Selected authenticated checks:
+
+- Homepage returned HTTP 200.
+- `/api/rainforecast?limit=2` returned two areas, `total=47`, offset 0 and next offset 2.
+- A continuation at offset 2 with the returned snapshot returned HTTP 200, two areas, next offset 4 and the identical revision.
+- A deliberately incorrect revision at offset 2 returned HTTP 409 `PAGINATION_SNAPSHOT_CHANGED`; `limit=0` returned HTTP 400 `INVALID_REQUEST`.
+- Rendered `/sw.js` returned HTTP 200, contains the paging-network-only branch and no unreplaced timeout placeholder.
+
+These verify selected deployed API paths and worker-source availability. They do not demonstrate an actual provider revision change between two calls, interactive browser/worker activation, current health of every other feed or measured performance. No real camera metadata/photo, user storage/permission or notification was probed. Main/production and separate PR #23 remain unchanged. The follow-up records documentation only; PR #26 awaits explicit approval to merge.
