@@ -14,7 +14,7 @@ export function createUserAdmission(options: {
   verify: (headers: Headers) => Promise<{ user: { id: string } } | null>;
   check?: RateLimitCheck; timeoutMs?: number; verifierTimeoutMs?: number;
 }) {
-  let nextWarning = 0;
+  let nextWarning = 0, nextObservedSuccess = 0;
   return async (request: Request): Promise<Response | null> => {
     const url = new URL(request.url);
     if (!options.enabled || options.mode === 'off' || !url.pathname.startsWith('/api/') || isAuthTransport(request) || request.method === 'OPTIONS' || !hasAuthCookie(request.headers)) return null;
@@ -32,6 +32,11 @@ export function createUserAdmission(options: {
       }), request.signal);
       if (!result || typeof result.rateLimited !== 'boolean' || result.error) throw new RateLimitRejection(503);
       if (result.rateLimited) throw new RateLimitRejection(429);
+      // Setup evidence without identities/cookies. No success noise after enforcement.
+      if (options.mode === 'observe' && Date.now() >= nextObservedSuccess) {
+        nextObservedSuccess = Date.now() + 60000;
+        console.info(JSON.stringify({ event: 'user_rate_limit', code: 'RATE_LIMIT_ALLOWED' }));
+      }
       return null;
     } catch (error) {
       if (error instanceof RequestValidationError) return setWebCors(authResponse(403, { success: false, code: 'CORS_ORIGIN_DENIED', error: 'Cross-origin request denied.' }), headers);

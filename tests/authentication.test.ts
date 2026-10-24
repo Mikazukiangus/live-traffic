@@ -198,6 +198,13 @@ test('user admission fails closed on verifier/storage/rule failures, and skips a
   assert.equal(await createUserAdmission({ ...opts, mode: 'off' })(new Request(`${origin}/api/traffic`, { headers: { cookie: 'trafficpulse.session_token=synthetic' } })), null);
   assert.equal(verified, 0);
   assert.equal(hasAuthCookie(new Headers({ cookie: 'unrelated=1' })), false);
+  const log = console.info, events: string[] = [];
+  console.info = (value: string) => { events.push(value); };
+  try {
+    const observed = createUserAdmission({ ...opts, mode: 'observe', verify: async () => ({ user: { id: 'private-account-marker' } }), check: async () => ({ rateLimited: false }) });
+    for (let i = 0; i < 2; i++) await observed(new Request(`${origin}/api/traffic`, { headers: { cookie: 'trafficpulse.session_token=private-cookie-marker', 'x-real-ip': '203.0.113.8' } }));
+    assert.deepEqual(events.map(value => JSON.parse(value)), [{ event: 'user_rate_limit', code: 'RATE_LIMIT_ALLOWED' }]);
+  } finally { console.info = log; }
 });
 
 test('authentication config is validated, disabled by default, server-only, with exact preview origins', () => {

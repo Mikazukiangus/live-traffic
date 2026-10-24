@@ -122,6 +122,8 @@ credentials. Run from the repository root:
 node --import tsx scripts/auth-with-database.ts migrate 8OK2dA8WCgZIw97z ww88OakVcj2Czo7w
 node --import tsx scripts/auth-with-database.ts smoke 8OK2dA8WCgZIw97z ww88OakVcj2Czo7w
 node --import tsx scripts/auth-with-database.ts create-user 8OK2dA8WCgZIw97z ww88OakVcj2Czo7w
+# Selected READY preview deployment; uses only a temporary synthetic account:
+node --import tsx scripts/auth-with-database.ts preview-smoke 8OK2dA8WCgZIw97z ww88OakVcj2Czo7w https://live-traffic-2qdjsodg1-carbon-bc04.vercel.app
 ```
 
 `create-user` requires a human TTY. It prompts for name/email and a twice-entered
@@ -159,3 +161,22 @@ limits, forged identities, client requests and worker privacy. Real PostgreSQL
 migration/login/logout passed separately. Deployment and interactive-browser
 verification are separate gates; no UI/browser pass or production activation is
 implied by these tests.
+
+
+## Deployed verification, 25 October 2026
+
+Implementation 82722783525e6c808d35053cbd0326397af7b573 reached READY at
+https://live-traffic-2qdjsodg1-carbon-bc04.vercel.app. Both GitHub Checks succeeded
+(40109894515, 40109890929); required job diagnostics confirm 299 passing tests,
+zero failures/skips, type checking, audit and build. Public auth rewrite /ok
+returns 200 with private/no-store headers. A protected CLI-only synthetic test
+passed anonymous session, real password sign-in, Secure cookie, session read,
+an API admission path, logout and rejection of the revoked session. Exact test
+account/session/user rows were removed. Passwords/cookies remained in process
+memory/stdin, with no real account or browser interaction.
+
+Successful observe admission emits one fixed RATE_LIMIT_ALLOWED diagnostic per
+warm proxy instance per minute, containing no identity/address/credential. This
+makes SDK readiness distinguishable from silent skipping; enforcement omits success
+noise. A permitted response in observe mode alone does not prove the limiter worked.
+Actual preview quota rejection/recovery requires publication of the staged rule.
