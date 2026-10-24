@@ -55,7 +55,7 @@ export const vercelRateLimitCheck: RateLimitCheck = async ({ id, key, ip, host, 
   return result;
 };
 
-function bucket(namespace: string, dimension: 'ip' | 'user', identity: string): string {
+export function rateLimitBucket(namespace: string, dimension: 'ip' | 'user', identity: string): string {
   return createHash('sha256').update(JSON.stringify(['trafficpulse-v1', namespace, dimension, identity])).digest('hex');
 }
 
@@ -93,13 +93,13 @@ export function createRateLimitGuard(options: {
       if (!result || typeof result.rateLimited !== 'boolean' || result.error) throw new RateLimitRejection(503);
       if (result.rateLimited) throw new RateLimitRejection(429);
     }
-    await consume(API_RATE_LIMITS.id, bucket(settings.namespace, 'ip', ip));
+    await consume(API_RATE_LIMITS.id, rateLimitBucket(settings.namespace, 'ip', ip));
     if (resolveVerifiedUser) {
       const user = await withRequestDeadline(settings.timeoutMs, () => resolveVerifiedUser(req));
       if (user !== null) {
         if (typeof user !== 'string' || !user || user.length > 512) throw new RateLimitRejection(503);
         // This is independent of IP: changing networks cannot reset an account quota.
-        await consume(API_RATE_LIMITS.id, bucket(settings.namespace, 'user', user));
+        await consume(API_RATE_LIMITS.id, rateLimitBucket(settings.namespace, 'user', user));
       }
     }
   }

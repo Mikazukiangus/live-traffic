@@ -15,6 +15,7 @@ import roadConditions from './_roadconditions.ts';
 import carParks from './_carparks.ts';
 import weatherAlerts from './_weatheralerts.ts';
 import floods from './_floods.ts';
+import { isAuthTransport } from '../server/auth/request.ts';
 
 const FEEDS: Record<string, (req: any, res?: any) => Promise<any>> = {
   roadconditions: roadConditions,
@@ -31,8 +32,11 @@ const handler = withRequestSchema(requestSchemas.live, async (req, res, input) =
     return sendJson(res, providerFailureStatus(error), reportFailure('gateway', error), providerFailureHeaders(error));
   }
 });
-export default handler;
+export default async function liveEntry(req: any, res?: any) {
+  if (isAuthTransport(req)) return (await import('../server/auth/handler.ts')).authHandler(req, res);
+  return handler(req, res);
+}
 
 export async function GET(request: Request) {
-  return handler(request);
+  return liveEntry(request);
 }

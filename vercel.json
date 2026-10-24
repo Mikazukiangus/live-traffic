@@ -1,6 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "bun install --frozen-lockfile",
+  "proxy": { "entrypoint": "proxy.ts", "matcher": ["/api/:path*"] },
+  "rewrites": [{ "source": "/api/auth/:authPath*", "destination": "/api/live?feed=auth&authPath=:authPath*" }],
   "headers": [
     {
       "source": "/(.*)",

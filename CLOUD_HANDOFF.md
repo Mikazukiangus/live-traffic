@@ -39,45 +39,45 @@ accept zero; defaults need no new credentials. Read `docs/weather-caching.md` an
 for invalidation, source-age/health behavior and release verification. No hosted cache is added.
 Separate PR #23 still requires explicit approval.
 
-Application login, account creation and brute-force lockout are **on hold at the
-user's explicit request**. Do not resume them unless requested; see
-`AUTHENTICATION_PLAN.md`.
+**Login was explicitly resumed** for per-user rate limits on 24 October 2026.
+Continue draft [PR #28](https://github.com/Mikazukiangus/live-traffic/pull/28), branch
+`codex/public-api-rate-limits`; production login remains disabled. Do not restore
+the superseded login hold. See `docs/authentication.md`, `AUTHENTICATION_PLAN.md`
+and Turns 155–156. Starting defaults: operator-created accounts, optional sign-in,
+public traffic unchanged; no public signup/email delivery/account sync.
 
-**Public API rate limits are prepared in draft [PR #28](https://github.com/Mikazukiangus/live-traffic/pull/28)
-on `codex/public-api-rate-limits`, pending review
-and activation.** Read `docs/api-rate-limiting.md` and Turn 152. The user confirmed
-Hobby, so the proposal uses one 300-per-60-second rule with OR groups for `/api/`
-and SDK ID `trafficpulse-public-api-v1`; default application mode is off until setup.
-Turn 153 resolved inspection through official Vercel CLI 65.2.0 after verifying
-the exact existing project/team. There is no active custom Firewall configuration;
-draft version 1 exists. The original rule matched only exact /api/ and had plain
-Log with no rate limit. Corrected existing rule
-rule_traffic_pulse_public_api_rate_limit_3e38zR through a targeted CLI draft update:
-Path starts /api/ OR SDK ID, Fixed Window 300/60s, IP, Log on excess. Remote readback
-confirms valid/no errors, one rule, only insert/update changes for the same rule,
-unrelated settings unchanged and active still null at the end of Turn 153.
-**Turn 154: the user published version 1 and CLI readback confirms it is active,
-enabled and Log-only.** The rule-filtered hour returned no traffic events, so no
-actual threshold/blocking behavior has been demonstrated. Staged the next targeted
-update as draft version 2: Environment equals Preview ANDed into both OR groups,
-excess `rate_limit` (Default 429), same 300/60s IP policy. Readback confirms valid,
-one update for that rule only, active version 1 unchanged and unrelated settings
-preserved. The user must review traffic/draft and publish version 2 for preview
-testing; the agent has not published it. On Hobby, this preview-only single rule
-temporarily excludes production from custom-rule logging; production is not throttled.
-Automatic approval rejected replacing the entire unknown Firewall configuration;
-do not retry that overwrite or work around the rejection. Continue from the existing
-preview-only draft and user review/publication, then verify preview before approved
-production blocking. Native WAF IP enforcement needs no app
-redeploy or SDK mode change; SDK admission must remain off until its separate setup
-works. Log-only publication is confirmed; blocking publication and production
-enforcement are not confirmed. PR #28 remains unmerged.
-Future verified-user bucket support is tested but has no identity provider while
-login is on hold. A browser ID/header/provider key is not an authenticated user.
-Implementation 8d1ac9e passed both CI runs with 287 tests, zero failures/skips,
-type check/audit/build. Its Vercel preview is READY; selected homepage/invalid-input
-checks passed, not active limit verification. Default off and setup blockers remain.
-The separate pending PR #23 remains unmerged.
+The dedicated free Neon resource `trafficpulse-auth-preview` (Singapore,
+`store_MPzLJypjannI261q`) is connected only to preview/development. Five auth tables
+are migrated. Real synthetic PostgreSQL login/session/logout passed and test rows
+were removed. Better Auth 1.7.12 uses Argon2id, shared revocable sessions and atomic
+IP attempt budgets. The account UI, bounded CSRF-safe facade and pre-CDN verified
+account admission are implemented. All 299 local Node tests, type check, audit and
+build passed. Preview deployment verification remains a separate gate.
+
+Branch-only preview settings enable server/UI login and SDK **observe** mode.
+No production DB/secret/auth setting was enabled. Do not export environments or
+print credentials. The user approved only database-only in-memory access using
+`scripts/auth-with-database.ts`; operator commands are in the authentication doc.
+CLI `env run` unexpectedly deployed a separate auth-migrate project. It was paused,
+then deleted with explicit user approval and confirmed absent. Never retry that
+bootstrap path; use the narrow helper. No real account has been created.
+
+The Hobby Firewall uses one 300-per-60-second rule with OR groups for `/api/` and
+SDK ID `trafficpulse-public-api-v1`. Active version 1 is **Log on excess**. Draft
+version 2 adds Preview to both OR groups and Default 429; user review/publication
+is still required by the Firewall skill. Production blocking is not active.
+Publishing this preview-only rule temporarily excludes production custom-rule
+logging. Do not replace the entire Firewall config (previous automatic-review
+rejection); preserve the single targeted draft. Read `docs/api-rate-limiting.md`.
+SDK self-call/protection compatibility, preview 429/recovery and browser UI remain
+separate verification gates. Observe permits requests and does not enforce quotas.
+Verified account admission is before CDN hits; signing out remains anonymous and
+subject to IP protection. Regional counters are not a global quota. No client
+user ID, provider key or arbitrary cookie proves identity.
+
+Main/production and separate draft PR #23 remain unchanged. PR #28 requires explicit
+merge approval after preview verification. Existing browser verification remains
+unperformed after the earlier automatic approval usage-limit block; do not bypass it.
 
 This note prepares a cloud development workspace. Production hosting is Vercel.
 No new cloud workspace, hosting migration or secret transfer was performed when

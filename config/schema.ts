@@ -85,6 +85,26 @@ export const ENV_SCHEMA = {
     return v as 'off' | 'observe' | 'enforce';
   }),
   API_RATE_LIMIT_TIMEOUT_MS: integer('server', 'Deadline for each Vercel Firewall admission check; checks are never retried.', 1000, 100, 5000),
+  AUTH_ENABLED: boolean('server', 'Enable the application login backend after database migration and secret provisioning.', false),
+  DATABASE_URL: field('server', 'Private PostgreSQL connection string for application accounts; never use VITE_.', '', (v) => {
+    if (!v) return null;
+    try {
+      const u = new URL(v);
+      if (!['postgres:', 'postgresql:'].includes(u.protocol) || !u.username || !u.password || u.hash || /[\r\n]/.test(v)) throw new Error();
+      if (!u.hostname.endsWith('.neon.tech') && !['localhost', '127.0.0.1', '[::1]'].includes(u.hostname)) throw new Error();
+      return v;
+    } catch { throw new Error('must be a private Neon PostgreSQL connection URL (loopback allowed for isolated local tests)'); }
+  }),
+  DATABASE_URL_UNPOOLED: field('server', 'Private direct Neon PostgreSQL connection for operator-run migrations. Never expose to the browser.', '', (v) => {
+    if (!v) return null;
+    try { const u = new URL(v); if (!['postgres:', 'postgresql:'].includes(u.protocol) || !u.username || !u.password || u.hash || /[\r\n]/.test(v) || !u.hostname.endsWith('.neon.tech')) throw new Error(); return v; }
+    catch { throw new Error('must be a private direct Neon PostgreSQL connection URL'); }
+  }),
+  BETTER_AUTH_SECRET: field('server', 'Private random authentication secret, at least 32 characters. Use different preview/production secrets.', '', (v) => {
+    if (v && (v.length < 32 || v.length > 512 || /[\s]/.test(v) || /^(YOUR_|REPLACE_|CHANGE_ME)/i.test(v))) throw new Error('must be at least 32 random characters or empty while login is disabled');
+    return v || null;
+  }),
+  BETTER_AUTH_URL: field('server', 'Exact login origin. Empty derives from platform VERCEL_URL on preview, canonical site in production, or configured local dev port.', '', (v) => v ? siteOrigin(v) : ''),
   API_CORS_ORIGINS: field('server', 'Comma-separated extra trusted frontend origins. Canonical site and exact Vercel deployment origins are included automatically. No wildcards.', '', (v) => {
     if (!v) return [];
     const origins = v.split(',');
@@ -118,6 +138,7 @@ export const ENV_SCHEMA = {
   VITE_SPEED_SNAPSHOT_MAX_AGE_MS: integer('public', 'Maximum age of locally retained fallback speeds.', 86400000, 1000, 604800000),
   VITE_WALL_CYCLE_MS: poll('Wall display checkpoint/tab cycling interval.', 30000),
   VITE_VEHICLE_COUNTING_ENABLED: boolean('public', 'Enable the existing browser-side vehicle counting; disabling avoids loading its model/runtime.', true),
+  VITE_AUTH_ENABLED: boolean('public', 'Show optional sign-in/account controls. Enable only after the login backend is configured.', false),
   VITE_VEHICLE_CACHE_TTL_MS: integer('public', 'Page-memory exact-photo vehicle count lifetime; zero disables completed-result caching.', 300000, 0, 900000),
   VITE_VEHICLE_CACHE_MAX_ENTRIES: integer('public', 'Maximum exact-photo counts retained in page memory; no images or results are persisted.', 32, 1, 128),
   VITE_BACKGROUND_MAX_PENDING: integer('public', 'Maximum waiting device-local background jobs; running jobs have one slot per lane.', 32, 4, 256),
@@ -207,6 +228,7 @@ function publicConfig(v: Values) {
     timeouts: { request: v.VITE_REQUEST_TIMEOUT_MS, speeds: v.VITE_SPEED_REQUEST_TIMEOUT_MS, assets: v.VITE_ASSET_TIMEOUT_MS },
     wallCycleMs: v.VITE_WALL_CYCLE_MS,
     vehicleCountingEnabled: v.VITE_VEHICLE_COUNTING_ENABLED,
+    authEnabled: v.VITE_AUTH_ENABLED,
     vehicleCache: { ttlMs: v.VITE_VEHICLE_CACHE_TTL_MS, maxEntries: v.VITE_VEHICLE_CACHE_MAX_ENTRIES },
     background: { maxPending: v.VITE_BACKGROUND_MAX_PENDING, idleTimeoutMs: v.VITE_BACKGROUND_IDLE_TIMEOUT_MS,
       maxAgeMs: v.VITE_BACKGROUND_JOB_MAX_AGE_MS },
@@ -251,6 +273,14 @@ export function createConfig(env: Environment = {}) {
     }
   }
   if (v.SPEED_MAX_PAGES < v.SPEED_PAGE_CONCURRENCY) throw new Error('Invalid configuration: SPEED_MAX_PAGES must be at least SPEED_PAGE_CONCURRENCY');
+  if (v.AUTH_ENABLED && (!v.DATABASE_URL || !v.BETTER_AUTH_SECRET)) throw new Error('Invalid configuration: AUTH_ENABLED requires DATABASE_URL and BETTER_AUTH_SECRET');
+  if (v.VITE_AUTH_ENABLED && !v.AUTH_ENABLED) throw new Error('Invalid configuration: VITE_AUTH_ENABLED requires AUTH_ENABLED');
+  if (httpsOnly && v.DATABASE_URL && !new URL(v.DATABASE_URL).hostname.endsWith('.neon.tech')) throw new Error('Invalid configuration: DATABASE_URL must use the trusted hosted database on deployments');
+  if (httpsOnly && v.BETTER_AUTH_URL && new URL(v.BETTER_AUTH_URL).protocol !== 'https:') throw new Error('Invalid configuration: BETTER_AUTH_URL must use HTTPS on deployments');
+  const localAuthOrigin = new URL(`https://localhost:${v.DEV_PORT}`);
+  localAuthOrigin.protocol = 'http:';
+  const authOrigin = v.BETTER_AUTH_URL || (env.VERCEL === '1' && env.VERCEL_ENV !== 'production' && typeof env.VERCEL_URL === 'string'
+    ? `https://${env.VERCEL_URL}` : httpsOnly ? v.VITE_SITE_URL : localAuthOrigin.origin);
   if (v.VITE_HEALTH_TIMEOUT_MS <= v.HEALTH_PROBE_TIMEOUT_MS + 6 * v.DATA_GOV_MIN_INTERVAL_MS) throw new Error('Invalid configuration: VITE_HEALTH_TIMEOUT_MS must exceed HEALTH_PROBE_TIMEOUT_MS plus six paced weather intervals');
   if (v.HEALTHCHECK_RETRY_DELAY_MS + 2 * v.HEALTHCHECK_TIMEOUT_MS > 240000)
     throw new Error('Invalid configuration: HEALTHCHECK_RETRY_DELAY_MS and HEALTHCHECK_TIMEOUT_MS must leave setup time in the five-minute workflow');
@@ -266,6 +296,10 @@ export function createConfig(env: Environment = {}) {
       rateLimit: { mode: v.API_RATE_LIMIT_MODE, timeoutMs: v.API_RATE_LIMIT_TIMEOUT_MS,
         platform: env.VERCEL === '1', namespace: env.VERCEL_ENV === 'production' ? 'production' : 'preview',
         host: env.VERCEL === '1' && typeof env.VERCEL_URL === 'string' ? env.VERCEL_URL : '' },
+      auth: { enabled: v.AUTH_ENABLED, databaseUrl: v.DATABASE_URL, directDatabaseUrl: v.DATABASE_URL_UNPOOLED, secret: v.BETTER_AUTH_SECRET, origin: authOrigin,
+        origins: [...new Set([authOrigin, ...[env.VERCEL_URL, env.VERCEL_BRANCH_URL, env.VERCEL_PROJECT_PRODUCTION_URL]
+          .filter((host): host is string => env.VERCEL === '1' && typeof host === 'string' && !!host).map((host) => siteOrigin(`https://${host}`))])],
+        secureCookies: httpsOnly, requestTimeoutMs: 15000, databaseTimeoutMs: 5000 },
       requestTimeoutMs: v.REQUEST_TIMEOUT_MS, weatherTimeoutMs: v.DATA_GOV_TIMEOUT_MS, probeTimeoutMs: v.HEALTH_PROBE_TIMEOUT_MS,
       circuit: { failureThreshold: v.PROVIDER_CIRCUIT_FAILURE_THRESHOLD, windowMs: v.PROVIDER_CIRCUIT_WINDOW_MS, cooldownMs: v.PROVIDER_CIRCUIT_COOLDOWN_MS },
       retryMaxWaitMs: v.PROVIDER_RETRY_MAX_WAIT_MS,

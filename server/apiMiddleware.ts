@@ -22,7 +22,7 @@ export function createApiMiddleware(handlers: Record<string, Loader>) {
       res.status = (code: number) => { res.statusCode = code; return res; };
     }
     try {
-      const load = handlers[pathname];
+      const load = pathname.startsWith('/api/auth/') ? handlers['/api/live'] : handlers[pathname];
       if (!load) return next();
       const { default: handler } = await load();
       await handler(req, res);

@@ -17,7 +17,8 @@ has Environment equals Preview ANDed into both OR groups and the excess action i
 `rate_limit` (Default 429). The threshold remains 300 requests/60s, key IP. Readback
 confirmed `valid: true`, one targeted update, the published version 1 unchanged,
 and unchanged unrelated rules/settings. The draft is not published. The application
-SDK mode remains off, PR #28 is unmerged and no production blocking was activated.
+SDK preview mode is now observe after the user resumed login (Turns 155–156).
+PR #28 is unmerged and no production blocking was activated.
 
 The next step is user traffic/draft review and publication for preview testing,
 as required by the Vercel Firewall skill. Hobby's one-rule allowance means publishing
@@ -68,13 +69,15 @@ redeploy, the PR merge, or `API_RATE_LIMIT_MODE=enforce`**. That environment set
 controls the additional application SDK admission only. Leave it off until the
 SDK/protection-bypass setup and preview checks below are complete. No application
 code or login change is needed just to enable the native IP rule. Per-account
-enforcement remains future work while login is on hold.
+admission is implemented before CDN lookup in `proxy.ts`; deployment and enforcement
+verification remain pending. See `authentication.md`.
 
 `API_RATE_LIMIT_MODE=off` is the safe setup default. Deploying this branch alone
 does **not** activate limiting. Complete the rollout below before claiming protection.
-Application login remains on hold. There are no signed-in users to limit today;
-the verified-user integration is prepared and tested, but is not connected to an
-authentication provider. No new browser identifier/cookie has been added.
+The user explicitly resumed login. Better Auth with dedicated preview PostgreSQL
+now verifies sessions for the pre-cache account limiter. Optional sign-in and
+operator-created accounts are implemented; no real account is created automatically.
+Preview SDK observe mode records outcomes and does not block. Production auth is disabled.
 
 ## One rule for Hobby
 
@@ -195,21 +198,23 @@ replace a received 429 with an old offline success. The current browser JSON fee
 client honors numeric Retry-After; native WAF responses must also be checked during
 rollout because their shape and headers are platform-controlled.
 
-## Future verified-user integration
+## Verified-user integration
 
-`createRateLimitGuard({ settings, resolveVerifiedUser })` accepts a server-side
-session verifier which returns a bounded stable account ID or null. It hashes the
-ID and checks a second, independent user bucket **after** the IP check. A user moving
-between IPs keeps the same quota; several users behind a shared IP retain separate
-user buckets and still share IP protection. The default guard intentionally has no
-verifier while login is on hold. A client `userId`, cookie, arbitrary auth header,
-or the provider AccountKey is not a verified application identity.
+`proxy.ts` invokes `server/auth/userAdmission.ts` before the CDN. When enabled,
+it verifies the shared authoritative database session, hashes its bounded account ID
+and checks an independent account bucket. IP changes keep the same account quota;
+accounts behind NAT have independent account counters and still share IP protection.
+The existing origin guard remains IP-only so it does not charge the account twice.
+Its resolver factory seam remains available for tests/other deployments.
 
-When adding authentication, wire the verifier centrally and revisit CDN delivery:
-authenticated user checks must run before shared-cache hits (e.g. verified routing
-middleware), or authenticated responses must bypass shared caches. The future
-origin verifier hook alone cannot enforce a per-account quota on CDN hits. Do not
-announce per-user protection until that full authenticated flow is implemented.
+A cookie only selects whether verification is needed. Client user IDs, arbitrary
+headers, provider keys, invalid or revoked cookies cannot supply authenticated
+identity. Auth storage/check failures return safe no-store 503 in enforce mode;
+excess account usage returns 429 with Retry-After. Observe permits requests while
+logging fixed outcomes. Auth endpoints have separate shared atomic IP attempt budgets.
+Public feed bodies/cache contracts remain unchanged after admission. Optional login
+cannot identify a signed-out person across networks. See `authentication.md` for
+sessions, cookie/worker privacy, operator enrollment and current preview status.
 
 ## Verification
 
@@ -237,3 +242,14 @@ checks, not active throttling/traffic, live provider health or browser verificat
 Official references: [Rate Limiting SDK](https://vercel.com/docs/vercel-firewall/vercel-waf/rate-limiting-sdk),
 [WAF limits and rollout](https://vercel.com/docs/vercel-firewall/vercel-waf/rate-limiting),
 [trusted platform headers](https://vercel.com/docs/headers/request-headers).
+
+
+### Resumed authentication verification (Turns 155–156)
+
+The current preview source adds twelve authentication groups, bringing the local
+suite to 299 passing tests with zero failures/skips; type checking, audit and build
+also pass. A separate real preview PostgreSQL migration and synthetic login/session/
+logout check passed and cleaned its account rows. The older deployment above is
+evidence for the previous IP-only foundation, not the new authentication source.
+Deployment verification and published preview quota rejection/recovery remain
+separate gates. Main and production are unchanged.
