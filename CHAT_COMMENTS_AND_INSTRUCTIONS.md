@@ -173,6 +173,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 166. [Turn 166: Merge and Verify Centralized Error Tracking in Production](#166-turn-166-merge-and-verify-centralized-error-tracking-in-production)
 167. [Turn 167: Reverify Existing Centralized Error Tracking](#167-turn-167-reverify-existing-centralized-error-tracking)
 168. [Turn 168: Structured JSON Logging with Automatic Request and Verified-User Context](#168-turn-168-structured-json-logging-with-automatic-request-and-verified-user-context)
+169. [Turn 169: Merge and Verify Structured Logging in Production](#169-turn-169-merge-and-verify-structured-logging-in-production)
 
 ---
 
@@ -2968,6 +2969,20 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Preview dpl_FQ3MkLgE6mGdskELGqyPRonaDwRG reached READY at https://live-traffic-m90bnq02x-carbon-bc04.vercel.app for exact implementation/source, intended project/team and codex/structured-request-logging branch. Read-only scoped CLI project inspection confirmed carbon-bc04/live-traffic. Bounded authenticated CLI POST probes used generated JSON through subprocess stdin without credential/response-header output or environment exports: valid report returned 202/matching ID; extra client-supplied user object returned 400 INVALID_ERROR_REPORT. No real account, provider/database/image request or production load was used.
 - Deployment-scoped Vercel MCP log readback for synthetic ID 8c600823-e7cf-4cab-bf2d-b496666566d0 returned the matching schemaVersion=1/level=error/client_exception event, fixed code and timestamp, separate generated requestId, errors/POST route, exact Preview release/environment, numeric coordinates and user.status=anonymous. This verifies deployed structured telemetry receipt. Real verified-user HMAC attribution is established by the isolated signed/revoked-session tests, not by enabling live auth or creating an account. No claim of an interactive browser pass, every catch site, framework-log redaction or unlimited retention/delivery is made.
 - Recorded publication evidence in docs and this log for documentation-only follow-up commit/push. Runtime release to main/production still requires explicit approval after concrete Preview review. Unrelated .agents/, .claude/ and skills-lock.json remain untouched/untracked; PRs #23/#29 remain separate.
+
+---
+
+## 169. Turn 169: Merge and Verify Structured Logging in Production
+
+**User Approval:**
+> "Merge to main"
+
+### Completed approved release (28 October 2026, SGT):
+- Verified current PR #32 is open/draft, targets main, is mergeable and has the exact approved head d3c013c95583bd46ecb9715347f4f1203213b6dd. Both GitHub Checks runs 40699693928 and 40699683773 and Vercel checks passed; required job diagnostics 122855817365 confirm 322 passing tests, zero failures/skips, transport audit and build. No repeat broad local suite was needed for the already tested approved implementation. PRs #23 and #29 are outside this approval.
+- Marked ready and merged PR #32 with expected_head_sha as 4a2f056ef25257c24e8af7487ff94ada6a0d7ea8, then refreshed/fast-forwarded local main. Production deployment dpl_F9wKMRcXNouKq1TYJBgCGi9BEkp7 reached READY for the correct live-traffic project/Carbon team, exact main SHA and production target; canonical live-traffic-carbon-bc04.vercel.app alias is assigned. Build metadata reports approximately 73 seconds. Protected homepage and actual module entry /assets/index-BKqOf9Lt.js returned HTTP 200.
+- Read-only scoped CLI project inspection confirmed carbon-bc04/live-traffic before two bounded Vercel-authenticated production POST probes. Used generated JSON in subprocess stdin and filtered outputs only; no tokens, cookies or response headers were printed, and no environment export was used. Valid report returned 202 with generated matching ID; extra client-supplied user object returned 400 INVALID_ERROR_REPORT. No real user exception, account, database/provider/camera request, authentication activation or Firewall change was needed.
+- Production/deployment-scoped Vercel MCP log readback for synthetic ID 2c22ac22-7f57-4429-bad1-d94b1fd7c091 returned the matching schemaVersion=1/level=error/client_exception event in nodejs24.x/sin1, safe code/timestamp/coordinates, generated requestId, errors/POST route, exact production release/environment and user.status=anonymous. Anonymous receipt is intentional for credential-free browser telemetry; probe clientRelease is generated input, not evidence of real-browser metadata. Verified-user HMAC attribution remains covered by the isolated actual-session tests, without provisioning/reading a live account. These establish selected deployed paths/log receipt, not every log site, interactive UI, unlimited delivery or retention.
+- Updated docs/structured-logging.md and error-tracking cross-reference from pending activation to the approved production release, and recorded evidence/limits. Updated this log/TOC for a documentation-only follow-up commit/push on authorized main; the follow-up may trigger a normal Git deployment with unchanged runtime. Existing authentication flags/Neon secrets, logging environment values, Firewall scope and unrelated untracked files remain preserved; PRs #23/#29 remain separate and unmerged.
 
 ---
 

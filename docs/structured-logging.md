@@ -1,8 +1,8 @@
 # Structured application logging
 
-Prepared on `codex/structured-request-logging` for Preview review. Main/production
-activation requires explicit merge approval. This extends the centralized exception
-tracking already released in PR #31; it does not add another telemetry destination.
+Approved and merged through PR #32. This extends the centralized exception
+tracking already released in PR #31 and uses the same Vercel log destination.
+Production release verification is recorded below.
 
 ## Usage and shape
 
@@ -150,3 +150,34 @@ or enabling login on this branch. These checks establish selected deployed log
 receipt, not every catch site, framework output or unlimited delivery/retention.
 No production or Firewall/auth setting was changed. The publication follow-up is
 documentation only; main merge still requires explicit approval.
+
+## Production release — 28 October 2026
+
+The user explicitly approved the merge. Verified PR #32's final head
+`d3c013c95583bd46ecb9715347f4f1203213b6dd`, main target, mergeability and successful
+checks. GitHub Checks runs `40699693928` and `40699683773` passed; required job
+`122855817365` diagnostics confirm all 322 tests, zero failures/skips, transport
+audit and build. Marked ready and merged with that expected head as
+`4a2f056ef25257c24e8af7487ff94ada6a0d7ea8`.
+
+Production deployment `dpl_F9wKMRcXNouKq1TYJBgCGi9BEkp7` is READY for the exact
+main SHA, production target and intended project/team, with the canonical alias
+[TrafficPulse](https://live-traffic-carbon-bc04.vercel.app). Protected homepage and
+actual module entry returned HTTP 200. Scoped CLI inspection confirmed
+`carbon-bc04/live-traffic` before two bounded authenticated POST checks using
+synthetic JSON in subprocess stdin:
+
+- Valid report: HTTP 202 with the matching generated error ID.
+- Extra client-supplied user object: HTTP 400 `INVALID_ERROR_REPORT`.
+- Production/deployment-scoped Vercel log readback found the matching
+  schemaVersion 1, level error, event/code/timestamp, generated request ID,
+  errors/POST route, production release/environment and anonymous user state.
+
+The anonymous state is intentional for credential-free telemetry. The synthetic
+clientRelease field is probe data; verified-user context is established by the
+isolated real-session tests. No account, live database/provider/camera, credential
+export, authentication activation or Firewall expansion was part of this release.
+These verify selected deployed paths and centralized JSON receipt; they do not
+claim every log site, an interactive browser pass or guaranteed retention/delivery.
+The release-record follow-up changes documentation only and can trigger a normal
+Git deployment of the same runtime. PRs #23 and #29 remain unmerged/separate.

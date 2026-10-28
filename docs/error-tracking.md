@@ -1,8 +1,8 @@
 # Centralized exception tracking in Vercel logs
 
-The [structured-logging extension](structured-logging.md), prepared for Preview
-review, unifies non-error diagnostics and adds automatic pseudonymous verified-user
-context. Its production activation is separate from the PR #31 release below.
+The [structured-logging extension](structured-logging.md), approved and released
+through PR #32, unifies non-error diagnostics and adds automatic pseudonymous
+verified-user context. Its release evidence is recorded separately from PR #31 below.
 
 The user selected existing Vercel logs rather than a new external service. This
 implementation adds no account, secret, paid integration, database table or extra
