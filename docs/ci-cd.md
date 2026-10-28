@@ -18,11 +18,11 @@ The workflow runs once per PR revision and on pushes to `main`, avoiding competi
 
 The existing project/team IDs were verified through authenticated Vercel tools. The dashboard was then used because the connected MCP tools do not expose Deployment Check configuration. Added the existing `checks` job from default-branch commit `99b77ee`; the saved UI shows GitHub, Production and **Blocking**, with the notice that it takes effect on the next production deployment.
 
-Production environment readback confirms branch tracking is `main` and **Auto-assign Custom Production Domains** remains enabled. The gate is active independently of the workflow cleanup in the review branch. The previously tested 344-test suite/coverage additions and workflow cleanup still await the normal explicit merge approval in PR #33.
+Production environment readback confirms branch tracking is `main` and **Auto-assign Custom Production Domains** remains enabled. PR #33 was explicitly approved and merged on 29 October 2026 as `93078e80bd490cf30583504e3068c26c7f18565c`, activating the tested workflow and coverage suite on `main`.
 
 The updated workflow ran successfully on implementation commit `844f47c808b2ecf55d16c1f8b214c51ec2cddc7a`: [Actions run 40787978659](https://github.com/Mikazukiangus/live-traffic/actions/runs/40787978659), one required `checks` job, 344 passing tests with zero failures, type check, transport audit, coverage upload and build. [Preview](https://live-traffic-qnp6a4741-carbon-bc04.vercel.app) deployment `dpl_2EjUYDj3Qwsxve52Erc6ruXD1x9C` is READY for the same SHA. The [coverage artifact](https://github.com/Mikazukiangus/live-traffic/actions/runs/40787978659/artifacts/12860037735) has the configured seven-day retention.
 
-This verifies the saved configuration, not a deliberately failed production deployment or an observed new main release. The first complete hold/pass/automatic-assignment cycle can be checked after the next approved merge; no unrelated production code was released to manufacture a test.
+The production merge passed [Checks run 40789246625](https://github.com/Mikazukiangus/live-traffic/actions/runs/40789246625): all 344 tests, type check, transport audit, artifact upload and build. Production deployment `dpl_DPWzhLGczuH7oFgZQkMVLfuwfzRn` reached READY and canonical-domain readback resolves to the exact merge SHA. Homepage and its actual module entry returned HTTP 200 through authenticated access. No manual/force promotion was used. This verifies the automatic main release path; the intermediate waiting state and a deliberately failing production check were not exercised. Test/build/tooling changed, while application runtime remained unchanged.
 
 ## Maintenance and troubleshooting
 
