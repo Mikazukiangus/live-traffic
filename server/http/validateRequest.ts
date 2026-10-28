@@ -6,12 +6,13 @@ import { reportApplicationFailure } from '../../shared/applicationDiagnostics.ts
 import { providerFailureHeaders } from './providerFailure.ts';
 import { publicRateLimitGuard, RateLimitRejection } from './rateLimit.ts';
 import { withErrorContext } from '../observability/context.ts';
+import { resolveRequestLogUser } from '../observability/userContext.ts';
 
 /** The business handler runs only after the entire public request contract succeeds. */
 export function withRequestSchema<T>(
   schema: QuerySchema<T>,
   handler: (req: any, res: any, input: { query: T; accountKey: string | null }) => any,
-  options: { rateLimit?: typeof publicRateLimitGuard } = {},
+  options: { rateLimit?: typeof publicRateLimitGuard; logUser?: typeof resolveRequestLogUser } = {},
 ) {
   const boundary = async (req: any, res?: any) => {
     let headers: Record<string, string> = { Vary: 'Origin' };
@@ -31,8 +32,10 @@ export function withRequestSchema<T>(
       }
       setNodeCors(res, headers);
       if (input.preflight) return setWebCors(handlePreflight(req, res), headers);
-      return setWebCors(await (options.rateLimit ?? publicRateLimitGuard).run(req, async () =>
-        handler(req, res, { query: input.query, accountKey: input.accountKey })), headers);
+      return setWebCors(await (options.rateLimit ?? publicRateLimitGuard).run(req, async () => {
+        await (options.logUser ?? resolveRequestLogUser)(req);
+        return handler(req, res, { query: input.query, accountKey: input.accountKey });
+      }), headers);
     } catch (error) {
       if (error instanceof RateLimitRejection) {
         setNodeCors(res, headers);

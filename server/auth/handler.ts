@@ -4,7 +4,8 @@ import { withRequestDeadline } from '../../shared/requestDeadline.ts';
 import { getAuthService, authHeaders, type createAuthService } from './service.ts';
 import { authBody, authRoute, AuthRequestError, authClientIp, validateAuthOrigin } from './request.ts';
 import { authResponse, sendAuthResponse } from './respond.ts';
-import { withErrorContext } from '../observability/context.ts';
+import { withErrorContext, setVerifiedLogUser } from '../observability/context.ts';
+import { createLogUserResolver } from '../observability/userContext.ts';
 import { captureException } from '../../shared/errorTracking.ts';
 
 export function publicUser(user: any) {
@@ -13,7 +14,12 @@ export function publicUser(user: any) {
 }
 
 export function createAuthHandler(options: { service: () => ReturnType<typeof createAuthService> | null;
-  origin: string; origins: readonly string[]; clientIp?: (req: any) => string }) {
+  origin: string; origins: readonly string[]; clientIp?: (req: any) => string; logIdentitySecret?: string }) {
+  const resolveLogUser = createLogUserResolver({ enabled: true, secret: options.logIdentitySecret ?? config.server.auth.secret,
+    timeoutMs: config.server.logging.userContextTimeoutMs, verify: async headers => {
+      const service = options.service(); if (!service) throw new Error('User context unavailable');
+      return service.api.getSession({ headers, query: { disableCookieCache: true } });
+    } });
   const handler = async (req: any, res?: any) => {
     let response: Response;
     try {
@@ -23,6 +29,7 @@ export function createAuthHandler(options: { service: () => ReturnType<typeof cr
       const body = await authBody(req, route, headers);
       const service = options.service();
       if (!service) return sendAuthResponse(authResponse(503, { success: false, code: 'AUTH_NOT_CONFIGURED', error: 'Sign-in is not available yet.' }), res);
+      await resolveLogUser(req);
       const safe = authHeaders(headers);
       safe.set('x-real-ip', (options.clientIp ?? authClientIp)(req));
       const path = { session: 'get-session', ok: 'ok', 'sign-in': 'sign-in/email', 'sign-out': 'sign-out', 'change-password': 'change-password' }[route];
@@ -40,9 +47,11 @@ export function createAuthHandler(options: { service: () => ReturnType<typeof cr
           status === 429 && retry && /^\d{1,5}$/.test(retry) ? { 'Retry-After': retry } : {});
       } else if (route === 'session') {
         const data = await result.json();
+        if (data?.user) setVerifiedLogUser(publicUser(data.user).id, options.logIdentitySecret);
         response = authResponse(200, data?.user ? { authenticated: true, user: publicUser(data.user) } : { authenticated: false }, cookies);
       } else if (route === 'sign-in') {
         const data = await result.json();
+        setVerifiedLogUser(publicUser(data.user).id, options.logIdentitySecret);
         response = authResponse(200, { success: true, user: publicUser(data.user) }, cookies);
       } else response = authResponse(200, { success: true }, cookies);
     } catch (error) {

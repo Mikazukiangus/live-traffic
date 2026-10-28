@@ -3,6 +3,7 @@ import { Writable } from 'node:stream';
 import { config } from '../config/server.ts';
 import { createAuthPool } from '../server/auth/database.ts';
 import { createAuthService } from '../server/auth/service.ts';
+import { logger } from '../server/observability/context.ts';
 
 /** Human operator only: never accept a password in a command argument, source or chat. */
 export async function createAccount() {
@@ -22,6 +23,6 @@ export async function createAccount() {
     pool = createAuthPool(config.server.auth.databaseUrl);
     const auth = createAuthService({ database: pool, secret: config.server.auth.secret, origin: config.server.auth.origin, secureCookies: config.server.auth.secureCookies, allowEnrollment: true });
     await auth.api.signUpEmail({ body: { name, email, password } });
-    console.log('Account created. Arrange credential delivery through your approved secure channel.');
+    logger.info({ event: 'auth_operator', operation: 'account_created', status: 'success' });
   } finally { muted = false; prompt.close(); await pool?.end(); }
 }

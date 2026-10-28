@@ -16,6 +16,13 @@ const cookiePath =
 // host-only scope, HttpOnly, SameSite=Lax, Path=/ and production Secure at runtime.
 // Any changed/new cookie operation continues to require review; no general bypass.
 const reviewedCookieLines: Record<string, ReadonlySet<string>> = {
+  // Read-only logging enrichment passes only the cookie to the local session verifier.
+  // It never writes a browser cookie, logs its value or forwards it to a log sink.
+  'server/observability/userContext.ts': new Set([
+    "const cookies = headerValues(req, 'cookie');",
+    "for (let i = 0; i < req.rawHeaders.length; i += 2) if (String(req.rawHeaders[i]).toLowerCase() === 'cookie') raw.push(req.rawHeaders[i + 1]);",
+    "headers.set('cookie', cookie);",
+  ]),
   'server/auth/service.ts': new Set([
     "const value = headers.get('cookie') ?? '';",
     "for (const key of ['cookie', 'origin', 'content-type', 'sec-fetch-site', 'x-real-ip']) {",

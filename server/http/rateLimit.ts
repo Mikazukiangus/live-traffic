@@ -5,6 +5,7 @@ import ipaddr from 'ipaddr.js';
 import { checkRateLimit } from '@vercel/firewall';
 import { config } from '../../config/server.ts';
 import { API_RATE_LIMITS } from '../../config/rateLimitPolicy.ts';
+import { logger } from '../observability/context.ts';
 import { withRequestDeadline } from '../../shared/requestDeadline.ts';
 
 type Settings = typeof config.server.rateLimit;
@@ -65,7 +66,7 @@ function createObserver(): Observer {
     const now = Date.now();
     if (now < next[outcome]) return;
     next[outcome] = now + 60_000;
-    console.warn(JSON.stringify({ event: 'api_rate_limit', outcome }));
+    logger.warn({ event: 'api_rate_limit', outcome });
   };
 }
 

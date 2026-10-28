@@ -1,3 +1,4 @@
+import { logger } from '../server/observability/context.ts';
 import assert from 'node:assert/strict';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
@@ -57,9 +58,9 @@ export async function smokePreview(deployment: string) {
     const admission = call('/api/rainforecast?limit=0', {}, cookie); assert.equal(admission.status, 405);
     const logout = call('/api/auth/sign-out', {}, cookie); assert.equal(logout.status, 200);
     const revoked = call('/api/auth/session', {}, cookie); assert.equal(revoked.status, 200); assert.equal(revoked.body.authenticated, false);
-    console.log(JSON.stringify({ operation: 'auth_preview_smoke', status: 'success', signIn: true,
+    logger.info({ event: 'auth_operator', operation: 'auth_preview_smoke', status: 'success', signIn: true,
       secureCookie: true, sessionRead: true, logoutRevoked: true, accountAdmissionTraversed: true,
-      quotaEnforced: false }));
+      quotaEnforced: false });
   } finally {
     try { if (id) {
       await pool.query('DELETE FROM tp_auth_session WHERE "userId"=$1', [id]);

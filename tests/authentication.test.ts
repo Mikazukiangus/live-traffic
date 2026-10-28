@@ -201,9 +201,15 @@ test('user admission fails closed on verifier/storage/rule failures, and skips a
   const log = console.info, events: string[] = [];
   console.info = (value: string) => { events.push(value); };
   try {
-    const observed = createUserAdmission({ ...opts, mode: 'observe', verify: async () => ({ user: { id: 'private-account-marker' } }), check: async () => ({ rateLimited: false }) });
+    const observed = createUserAdmission({ ...opts, mode: 'observe', logIdentitySecret: secret, verify: async () => ({ user: { id: 'private-account-marker' } }), check: async () => ({ rateLimited: false }) });
     for (let i = 0; i < 2; i++) await observed(new Request(`${origin}/api/traffic`, { headers: { cookie: 'trafficpulse.session_token=private-cookie-marker', 'x-real-ip': '203.0.113.8' } }));
-    assert.deepEqual(events.map(value => JSON.parse(value)), [{ event: 'user_rate_limit', code: 'RATE_LIMIT_ALLOWED' }]);
+    assert.equal(events.length, 1);
+    const event = JSON.parse(events[0]);
+    assert.equal(event.event, 'user_rate_limit'); assert.equal(event.code, 'RATE_LIMIT_ALLOWED');
+    assert.equal(event.schemaVersion, 1); assert.equal(event.level, 'info');
+    assert.equal(event.context.route, 'traffic'); assert.match(event.context.requestId, /^[a-f0-9-]{36}$/);
+    assert.equal(event.context.user.status, 'authenticated'); assert.match(event.context.user.id, /^[a-f0-9]{64}$/);
+    assert.ok(!events[0].includes('private-account-marker')); assert.ok(!events[0].includes('private-cookie-marker'));
   } finally { console.info = log; }
 });
 

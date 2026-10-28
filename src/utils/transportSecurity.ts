@@ -1,3 +1,4 @@
+import { logger } from '../../shared/logging';
 const DIRECTIVES = new Set([
   'default-src',
   'script-src',
@@ -30,7 +31,7 @@ export function transportNotice(event: Violation) {
 /** App-lifetime listener; suppress repeats and report only closed, non-sensitive metadata. */
 export function installTransportDiagnostics(
   target: EventTarget,
-  warn = (notice: NonNullable<ReturnType<typeof transportNotice>>) => console.warn(JSON.stringify(notice)),
+  warn: (notice: NonNullable<ReturnType<typeof transportNotice>>) => void = notice => { logger.warn(notice); },
 ) {
   const seen = new Set<string>();
   const onViolation = (event: Event) => {

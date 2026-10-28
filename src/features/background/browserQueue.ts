@@ -1,5 +1,6 @@
 import { config } from '../../../config/client';
 import { createBackgroundQueue, type BackgroundQueue } from './taskQueue';
+import { logger } from '../../../shared/logging';
 
 let queue: BackgroundQueue | undefined;
 let owners = 0;
@@ -17,6 +18,6 @@ export function getBackgroundQueue() {
       const timer = setTimeout(run, 0);
       return () => clearTimeout(timer);
     },
-    failed: (lane, state) => console.warn(JSON.stringify({ event: 'background_job_failure', lane, code: state === 'full' ? 'QUEUE_FULL' : state === 'expired' ? 'JOB_EXPIRED' : 'JOB_FAILED' })),
+    failed: (lane, state) => logger.warn({ event: 'background_job_failure', lane, code: state === 'full' ? 'QUEUE_FULL' : state === 'expired' ? 'JOB_EXPIRED' : 'JOB_FAILED' }),
   });
 }

@@ -6,7 +6,7 @@ import { corsHeaders, setNodeCors, setWebCors } from '../http/cors.ts';
 import { headerValues, queryValues, RequestValidationError } from '../http/requestSchemas.ts';
 import { publicRateLimitGuard, RateLimitRejection } from '../http/rateLimit.ts';
 import { sendJson } from '../http/responses.ts';
-import { currentErrorContext, withErrorContext } from './context.ts';
+import { currentErrorContext, setAnonymousLogUser, withErrorContext } from './context.ts';
 
 const NO_STORE = { 'Cache-Control': 'no-store', 'CDN-Cache-Control': 'no-store', 'Vercel-CDN-Cache-Control': 'no-store' };
 class RejectedReport extends Error { constructor(readonly status: number) { super('Invalid error report'); } }
@@ -97,6 +97,8 @@ export function createBrowserErrorHandler(options: {
       const length = oneHeader(req, 'content-length');
       if (length !== undefined && (!/^(0|[1-9]\d{0,6})$/.test(length) || Number(length) > ERROR_TRACKING.bodyBytes)) throw new RejectedReport(413);
       const report = await readReport(req);
+      // Telemetry is deliberately credential-free; never associate a client-submitted identity.
+      setAnonymousLogUser();
       return await (options.admit ?? publicRateLimitGuard).run(req, async () => {
         const now = (options.now ?? Date.now)();
         if (now - windowStart >= ERROR_TRACKING.windowMs) { windowStart = now; accepted = 0; }
