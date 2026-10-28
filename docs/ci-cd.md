@@ -20,6 +20,8 @@ The existing project/team IDs were verified through authenticated Vercel tools. 
 
 Production environment readback confirms branch tracking is `main` and **Auto-assign Custom Production Domains** remains enabled. The gate is active independently of the workflow cleanup in the review branch. The previously tested 344-test suite/coverage additions and workflow cleanup still await the normal explicit merge approval in PR #33.
 
+The updated workflow ran successfully on implementation commit `844f47c808b2ecf55d16c1f8b214c51ec2cddc7a`: [Actions run 40787978659](https://github.com/Mikazukiangus/live-traffic/actions/runs/40787978659), one required `checks` job, 344 passing tests with zero failures, type check, transport audit, coverage upload and build. [Preview](https://live-traffic-qnp6a4741-carbon-bc04.vercel.app) deployment `dpl_2EjUYDj3Qwsxve52Erc6ruXD1x9C` is READY for the same SHA. The [coverage artifact](https://github.com/Mikazukiangus/live-traffic/actions/runs/40787978659/artifacts/12860037735) has the configured seven-day retention.
+
 This verifies the saved configuration, not a deliberately failed production deployment or an observed new main release. The first complete hold/pass/automatic-assignment cycle can be checked after the next approved merge; no unrelated production code was released to manufacture a test.
 
 ## Maintenance and troubleshooting
