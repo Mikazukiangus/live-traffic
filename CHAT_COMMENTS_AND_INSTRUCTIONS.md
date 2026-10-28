@@ -170,6 +170,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 163. [Turn 163: Reverify Pagination Coverage and Offset Choice](#163-turn-163-reverify-pagination-coverage-and-offset-choice)
 164. [Turn 164: Commit and Deploy Pagination Verification](#164-turn-164-commit-and-deploy-pagination-verification)
 165. [Turn 165: Centralized Safe Exception Tracking on Preview](#165-turn-165-centralized-safe-exception-tracking-on-preview)
+166. [Turn 166: Merge and Verify Centralized Error Tracking in Production](#166-turn-166-merge-and-verify-centralized-error-tracking-in-production)
 
 ---
 
@@ -2916,6 +2917,20 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Preview dpl_H6re5N2495CpaiExtJ9FHMmyvfoA reached READY at https://live-traffic-rbxr3irtg-carbon-bc04.vercel.app for the correct project/team, exact source SHA and codex/centralized-error-tracking branch. CLI non-interactive project inspection confirmed carbon-bc04/live-traffic. The exposed HTTP connector is GET-only, so used supported pinned Vercel CLI/authenticated curl for two protected POST probes with synthetic JSON supplied in subprocess stdin; printed only status/ID/classification, never tokens or response headers. Valid report returned 202/matching ID; extra free-text message field returned 400 INVALID_ERROR_REPORT. No provider, account, image or production load was involved.
 - Deployment-scoped Vercel MCP runtime-log search for generated synthetic ID a84476c0-1832-4f0f-af74-10e0a6a7bbb6 returned the exact client_exception event in nodejs24.x/sin1, scope page, type TypeError, numeric 12:34 coordinates, separate server-generated requestId, errors/POST route, preview environment and matching server/client release SHA. This verifies deployed ingestion through central log receipt, separately from local browser UI evidence; it does not claim a real crash, all catch sites, final-build visual pass, or guaranteed delivery/retention.
 - Recorded publication evidence in docs and this log for documentation-only follow-up commit/push. Main/production activation still requires explicit merge approval. Pending PRs #23/#29 and unrelated untracked .agents/, .claude/ and skills-lock.json remain separate.
+
+---
+
+## 166. Turn 166: Merge and Verify Centralized Error Tracking in Production
+
+**User Approval:**
+> "Approve merge"
+
+### Completed approved release (28 October 2026, SGT):
+- Treated the approval as authorization to merge/deploy the current error-tracking PR #31 only. Verified open/draft/main target, exact head bb633528bc5a0ae9bb82c6f828125a1ea6ca39c5 and mergeable state. All final-head GitHub and Vercel checks passed; CI runs 40694651881 and 40694643971 and required job diagnostics 122838079614 confirm 311 passing tests, zero failures/skips, transport audit and production build. No repeat broad local suite was needed for the already tested approved implementation.
+- Marked PR #31 ready and merged with expected_head_sha as 87ab7e917e8c488b3bbafd64345e79abff355901. Refreshed/fast-forwarded local main. Production deployment dpl_ECJPLZn8wWBwDJwyeLbmKZvVukKf reached READY for the intended live-traffic project/Carbon team, exact main commit and production target; canonical live-traffic-carbon-bc04.vercel.app alias is assigned, build approximately 32 seconds. Protected homepage and actual module entry /assets/index-COs9AVD_.js returned HTTP 200. No final-build interactive-browser pass is inferred from an HTTP check.
+- Root link and read-only non-interactive CLI inspection confirmed carbon-bc04/live-traffic before bounded protected production POST verification. Used the existing pinned Vercel CLI because the HTTP-fetch connector is GET-only. Generated synthetic reports in memory and passed JSON through subprocess stdin; printed only status, synthetic ID and fixed code. Valid report returned 202 with matching ID; one extra free-text field returned 400 INVALID_ERROR_REPORT. No real crash, provider/camera request, account/database access, cookie/session read, environment export or secret/protection change was involved.
+- Production/deployment-scoped Vercel MCP runtime-log search for synthetic ID 3594dd17-9721-4859-b99d-09bc759f0d24 returned the matching client_exception event in nodejs24.x/sin1, separate server-generated requestId, route errors/method POST, production environment, numeric source coordinates and exact server release 87ab7e917e8c488b3bbafd64345e79abff355901. Client release was supplied synthetic probe data, not a claim about real-browser build metadata. This establishes deployed ingestion/log receipt while existing synthetic browser/transport tests cover safe UI behavior; no all-errors/retention/delivery guarantee is made.
+- Updated docs/error-tracking.md with approved release/verification and removed its outdated pending-activation introduction. Updated this log/TOC for documentation-only commit/push on authorized main; the follow-up can cause another normal Git deployment with unchanged runtime. Existing log retention, auth flags/Neon secrets, public Firewall/rate-limit scopes, PRs #23/#29 and unrelated untracked files were not changed.
 
 ---
 

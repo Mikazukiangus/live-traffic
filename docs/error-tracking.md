@@ -2,8 +2,8 @@
 
 The user selected existing Vercel logs rather than a new external service. This
 implementation adds no account, secret, paid integration, database table or extra
-Vercel Function. It is prepared on `codex/centralized-error-tracking`; production
-activation requires an explicit main merge.
+Vercel Function. It was explicitly approved and merged through PR #31; production
+release verification is recorded below.
 
 ## Captured events and user experience
 
@@ -156,3 +156,32 @@ induce a real user error, crash production, verify every application catch site,
 exercise real credentials/accounts/providers, or guarantee delivery/retention.
 Production activation is still pending explicit approval to merge PR #31. The
 subsequent publication note is documentation only.
+
+## Production release — 28 October 2026
+
+The user explicitly approved merging PR #31. Verified final head
+`bb633528bc5a0ae9bb82c6f828125a1ea6ca39c5`, main target, mergeability and all
+successful checks. GitHub Checks runs `40694651881` and `40694643971` passed;
+required job diagnostics `122838079614` confirm 311 passing tests, zero
+failures/skips, transport audit and build. Marked ready and merged with that
+expected head as `87ab7e917e8c488b3bbafd64345e79abff355901`.
+
+Production deployment `dpl_ECJPLZn8wWBwDJwyeLbmKZvVukKf` is READY for the
+intended project/team, main SHA and production target, with the canonical alias
+[TrafficPulse](https://live-traffic-carbon-bc04.vercel.app). Protected homepage and
+its actual module entry returned HTTP 200. Scoped CLI project inspection confirmed
+`carbon-bc04/live-traffic` before two authenticated, generated-data POST probes:
+
+- Valid synthetic report: HTTP 202 with matching error ID.
+- Extra free-text field: HTTP 400 `INVALID_ERROR_REPORT`.
+- A production/deployment-scoped log search for the generated ID returned the
+  matching `client_exception`, a separate server request UUID, allowlisted
+  errors/POST route, production environment and exact server release SHA.
+
+The submitted clientRelease was synthetic probe input, not evidence of a real
+browser's metadata. No actual exception/account/provider/camera load, secret
+export, production credential change or Firewall expansion was performed. These
+checks establish selected deployed paths and log receipt; the earlier browser
+fixture and automated transport tests cover the safe UI/reporting behavior.
+The documentation follow-up can trigger another normal Git deployment without
+changing the verified runtime. PRs #23 and #29 remain separate and unmerged.
