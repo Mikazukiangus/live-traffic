@@ -176,6 +176,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 169. [Turn 169: Merge and Verify Structured Logging in Production](#169-turn-169-merge-and-verify-structured-logging-in-production)
 170. [Turn 170: Finish Structured Logging Release Verification](#170-turn-170-finish-structured-logging-release-verification)
 171. [Turn 171: Confirm Existing Structured JSON Logging](#171-turn-171-confirm-existing-structured-json-logging)
+172. [Turn 172: Critical-Path Unit and Integration Tests with Honest Coverage](#172-turn-172-critical-path-unit-and-integration-tests-with-honest-coverage)
 
 ---
 
@@ -3010,6 +3011,23 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Confirmed the requested conversion is already implemented and released through approved PR #32. Read the shared JSON envelope/writer, AsyncLocalStorage/HMAC identity context and automatic request-boundary enrichment. Existing lines carry schemaVersion, timestamp, level, event and safe request/release/user context; only verified sessions yield a pseudonymous user ID. Public/credential-free requests stay anonymous after validation, and early/unavailable/unverified states remain explicit. Raw credentials, account IDs, email, IP, cookies and arbitrary input are excluded as documented.
 - Canonical production readback confirms dpl_2UmRMEgyTbAVaV7r6HWWGZkgDTQv READY for main 13b5822981e1369fdb412b854bd7803d9a1fe4e8 and the intended project/team/alias. The 322-test suite and production JSON receipt/rejection checks from the approved release remain applicable; no runtime changed, so no repeat suite or synthetic production traffic was needed.
 - No additional implementation or merge approval is required for this repeated request. Updated this log/TOC for documentation-only commit/push per the standing instruction. Preserved unrelated untracked files, separate pending PRs, authentication settings, secrets, logging configuration and Firewall scope; the log-only push may trigger a normal deployment with unchanged application code.
+
+---
+
+## 172. Turn 172: Critical-Path Unit and Integration Tests with Honest Coverage
+
+**User Request:**
+> "Write unit and integration tests for my critical paths and tell me where coverage is weakest."
+
+### Implementation and local verification (29 October 2026, SGT):
+- Refreshed origin/main 99b77ee and created codex/critical-path-tests. Baseline suite passed all 322 tests. Kept separate pending PRs #23/#29 and unrelated untracked .agents/, .claude/ and skills-lock.json untouched. No application runtime, auth activation, provider/database/Firewall configuration or secret was changed.
+- Added 22 meaningful unit/integration groups: actual React camera lifecycle/navigation/default page/history/image recovery; actual account menu/client sign-in/password change/sign-out, cooldown/cancellation and safe rendering; actual React exception recovery/reference; real loopback Node HTTP middleware/auth/Better Auth/SQLite session and revocation; PostgreSQL pool TLS/options/error redaction with no connection; traffic thresholds/graph tracing/unknown observations and photo matching; paged speed provider-to-service-to-endpoint/cache/pagination/recovery; Web/Node binary image proxy signature/content/privacy; and coverage inventory/parser regressions. Fixed the old test command to include .test.tsx files instead of silently skipping them.
+- Added pinned development-only jsdom 30.1.3, @types/jsdom 30.0.0 and esbuild 0.28.2 with matching bun.lock. JSDOM supplies isolated synthetic DOM without resource loading. Node tests use no dotenv/real accounts/providers/database; local HTTP stays loopback. Bun automatically loads .env.local during dependency installation, but no credential values were printed/exported or used by the synthetic fixtures. No environment file was manually read or modified.
+- Added npm run test:coverage using Node native V8 coverage, LCOV and JSON inventory. Inventories TypeScript/TSX in api/config/server/shared/src without executing source; excludes five type-only modules and declarations, explicitly lists loaded=false/measured=null modules, preserves failing test exit status and removes stale report files. Root proxy.ts, tooling and public JavaScript are outside the percentage scope as documented. CI runs coverage once instead of duplicating tests and uploads available reports for seven days; upload-artifact v4 SHA ea165f8d65b6e75b540449e92b4886f43607fa02 was verified against the official GitHub tag.
+- Final local run: 344 tests passed, zero failures/skips; type check, HTTPS/cookie transport audit, production build and whitespace checks passed. An initial DOM fixture assumed a JSDOM image property rather than its attribute; corrected the assertion. Coverage inventory regression then caught emitted empty statements from a type-only fixture; corrected inventory classification and re-ran the entire final suite successfully. No application code was weakened or changed to satisfy tests.
+- Coverage comparison on the same 212-file runtime inventory: loaded files 141 to 151, never-loaded 71 to 61 (44 remaining TSX). Loaded-only lines 92.98% to 93.36%, branches 91.31% to 90.75%, functions 88.32% to 87.86%. More imported UI exposes extra uncovered branches/functions; these are not whole-app percentages or an assertion-quality guarantee. No arbitrary global percentage gate masks absent modules.
+- Added docs/testing-and-coverage.md and development guide link with commands, exact results/scope, weakest files and priority follow-ups. Main risks remain actual ONNX/WASM inference (engine 51.16% lines, only 1/7 functions), unloaded App/views/real-browser flows, live PostgreSQL migrations/multi-instance concurrency, low hook/selector coverage and upstream availability. JSDOM/SQLite/fixtures do not prove real browser layout, model accuracy or production database behavior.
+- Implementation is prepared for review on its isolated branch; publication/check evidence will be appended after push. Main merge still requires explicit user approval.
 
 ---
 

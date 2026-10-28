@@ -1,4 +1,4 @@
-# Type check, parser tests and a production build on every push and pull request,
+# Type check, unit/integration coverage and a production build on every push and pull request,
 # so a broken change (or a change in LTA/NEA/PUB data formats the tests cover) shows before merging.
 name: Checks
 
@@ -25,7 +25,17 @@ jobs:
         run: npm run lint
       - name: HTTPS and cookie policy
         run: npm run security:audit
-      - name: Parser tests
-        run: npm test
+      - name: Unit and integration tests with coverage
+        run: npm run test:coverage
+      - name: Coverage reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4, verified official tag
+        with:
+          name: critical-path-coverage
+          path: |
+            coverage/lcov.info
+            coverage/summary.json
+          if-no-files-found: warn
+          retention-days: 7
       - name: Build
         run: npm run build
