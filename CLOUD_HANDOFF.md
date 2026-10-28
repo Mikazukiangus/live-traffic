@@ -66,6 +66,19 @@ forecast endpoint also returned 200. No interactive UI pass or threshold rejecti
 is implied. The new proxy shares Hobby’s twelve slots by consolidating forecast24h
 into the existing live gateway, preserving its public URL.
 
+**28 October credential-storage investigation (Turn 159):** eight generated Neon
+credential URL/password aliases are readable Config despite carrying secrets. The
+resource is available; no outage or compromise was established. Vercel requires
+disconnect → rotate at source → reconnect Preview-only with Sensitive enabled →
+redeploy for managed integration Secrets. Keeping Development linked prevents that
+Sensitive option, though generic Development Secrets are supported. No mutation was
+performed; explicit approval is needed for immediate password revocation/preview
+interruption and removal of Development automatic credential delivery. The current
+DB-only operator helper depends on Development-readable settings and needs a
+separate authorized local/operator workflow if this change is approved. Do not
+blindly edit managed variables or provision a duplicate database. Read the concrete
+plan in `docs/authentication.md`; LTA/signing secret already use Secret correctly.
+
 Branch-only preview settings enable server/UI login and SDK **observe** mode.
 No production DB/secret/auth setting was enabled. Do not export environments or
 print credentials. The user approved only database-only in-memory access using

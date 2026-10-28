@@ -221,3 +221,49 @@ mode defaults off. Native Firewall v2 still enforces Preview only. Production
 feature activation/SDK enforce/native-rule expansion need their own rollout; the
 merge alone does not turn them on. No real account or production DB was provisioned.
 Separate draft PR #23 remains outside this merge.
+
+
+## Config warnings on integration credentials, 28 October 2026
+
+Status: diagnosed; credential rotation/reconnection awaits explicit approval.
+Inspection used non-decrypting metadata only. Existing resource
+`trafficpulse-auth-preview` is available and linked only to live-traffic for
+Preview/development. The warning concerns readable Config storage; it does not
+establish an outage or compromise. No connection or exposure audit was performed.
+
+| Keys | Observed type | Remediation |
+| --- | --- | --- |
+| DATABASE_URL, DATABASE_URL_UNPOOLED | Config (`encrypted`) | Rotate at Neon, reconnect as integration Secrets |
+| PGPASSWORD, POSTGRES_PASSWORD | Config (`encrypted`) | Same rotation/reconnection |
+| POSTGRES_URL, POSTGRES_PRISMA_URL, POSTGRES_URL_NON_POOLING, POSTGRES_URL_NO_SSL | Config (`encrypted`) | Refresh all aliases from the same integration |
+| Host/user/database/project-ID aliases; feature flags | Config | Not password-bearing; do not blindly rotate/delete |
+| BETTER_AUTH_SECRET, LTA_ACCOUNT_KEY | Secret (`sensitive`) | Already classified correctly; leave untouched |
+
+[Vercel's integration-specific procedure](https://vercel.com/docs/environment-variables/sensitive-environment-variables#sensitive-environment-variables-for-integrations)
+requires disconnecting the resource from its projects, rotating its secrets,
+reconnecting without Development and enabling Sensitive, then redeploying. Generic
+Development Secrets are supported, but this integration connection has its own
+restriction. Do not attempt a type-only edit of managed aliases or assume rotation
+alone with the same Preview/development connection clears the warning.
+
+For this one-project resource, the proposed repair preserves the existing database
+and data; it changes only credentials and the integration connection. Reconnect
+Preview only with Sensitive enabled, redeploy the branch that enables auth, and
+verify non-decrypting metadata plus synthetic sign-in/session/logout. Keep LTA,
+signing secret, Firewall, production settings and unrelated projects unchanged.
+Credential aliases must remain coherent, including pooled vs direct roles.
+
+[Neon-specific password reset](https://vercel.com/kb/guide/how-to-reset-a-secret-for-a-neon-integration)
+invalidates the old credential immediately. Preview auth can be interrupted until
+reconnection/redeployment completes, and old immutable deployments retain their
+old settings. A deployment rollback cannot restore a revoked password.
+
+Removing Development linkage also removes automatic local DB env delivery. The
+current auth-with-database bootstrap deliberately reads only Development-target
+variables and cannot retrieve write-only Preview Secrets after this change. Before
+applying the repair, arrange the local/operator path explicitly (separate development
+credentials through an authorized provider workflow, or leave local auth disabled).
+Do not export the environment, reveal Secret values or overwrite the existing local
+LTA setup. CLI 65.2.0 connect help has no Sensitive toggle; use the supported
+integration advanced settings/API and verify actual output types. These steps are
+a plan, not completed mutations. See Turn 159 for inspected IDs and scope.
