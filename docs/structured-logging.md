@@ -123,3 +123,30 @@ The existing account-admission test now verifies the envelope and pseudonym.
 Cookie audit exceptions remain exact reviewed read/forward-to-verifier lines.
 No live account/database/provider, credential export, browser permission or real
 notification was used for these tests.
+
+## Preview publication — 28 October 2026
+
+Implementation `c06f7a38486a72a154c5f4e6eb044e1380d58609` is published in draft
+[PR #32](https://github.com/Mikazukiangus/live-traffic/pull/32). GitHub Checks runs
+`40699218814` and `40699148520` and Vercel checks passed; required CI job
+`122853905088` diagnostics confirm all 322 tests, zero failures/skips, transport
+audit and build.
+
+[Preview](https://live-traffic-m90bnq02x-carbon-bc04.vercel.app) deployment
+`dpl_FQ3MkLgE6mGdskELGqyPRonaDwRG` is READY for the exact implementation,
+correct project/team and Preview branch. Read-only CLI inspection confirmed
+`carbon-bc04/live-traffic` before bounded authenticated POST probes with generated
+JSON in stdin. No environment settings or credentials were downloaded/exported.
+
+- A valid synthetic report returned HTTP 202 with its matching error ID.
+- An extra client-supplied `user` object returned HTTP 400 `INVALID_ERROR_REPORT`.
+- A deployment-scoped Vercel log search returned the matching event with
+  schemaVersion 1, level error, fixed event/code, timestamp, generated request ID,
+  errors/POST route, Preview release/environment and `user.status=anonymous`.
+
+Telemetry receipt is intentionally anonymous. Verified-user HMAC context is proven
+by the isolated real signed/revoked session tests, not by creating a live account
+or enabling login on this branch. These checks establish selected deployed log
+receipt, not every catch site, framework output or unlimited delivery/retention.
+No production or Firewall/auth setting was changed. The publication follow-up is
+documentation only; main merge still requires explicit approval.
