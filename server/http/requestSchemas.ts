@@ -100,7 +100,7 @@ export const internalFeedSchema = (name: FeedName): QuerySchema<Record<string, n
   return {};
 };
 
-function headerValues(req: Record<string, unknown>, name: string): string[] {
+export function headerValues(req: Record<string, unknown>, name: string): string[] {
   if (req.headers instanceof Headers) {
     const value = req.headers.get(name);
     return value === null ? [] : [value];
@@ -130,7 +130,7 @@ export function readRequestAccountKey(req: unknown): string | null {
   return values[0] ?? null;
 }
 
-function queryValues(req: Record<string, unknown>): Map<string, string> {
+export function queryValues(req: Record<string, unknown>): Map<string, string> {
   const raw = req.url;
   if (typeof raw !== 'string' || raw.length > 16384 || /[\x00-\x20\x7f\\#]/.test(raw) || /%(?![a-f\d]{2})/i.test(raw)) invalid('url');
   let url: URL;

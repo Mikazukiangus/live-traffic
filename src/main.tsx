@@ -4,8 +4,10 @@ import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 import { installTransportDiagnostics } from './utils/transportSecurity';
+import { installBrowserErrorTracking, showSafeErrorNotice } from './features/app/browserErrorTracking';
 
 if (import.meta.env.PROD) installTransportDiagnostics(document);
+if (import.meta.env.PROD) installBrowserErrorTracking(window, { notice: showSafeErrorNotice });
 
 // After a new deploy, an open tab can ask for a page chunk the server no longer has.
 // Reload once to pick up the new build instead of showing a broken page.

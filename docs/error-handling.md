@@ -45,6 +45,13 @@ calls receive an error message/stack, props, component stack, URL or browser eve
 The boundary does not claim to catch async/event-handler failures; notification
 promises are handled explicitly below.
 
+The later [centralized error-tracking implementation](error-tracking.md) now
+projects original exceptions into fixed types/numeric locations, adds correlation
+IDs and release/request context, and forwards production browser exceptions to
+Vercel logs. It also installs global window/promise listeners and safe notices.
+The original release description above is historical; raw errors, component
+stacks, props, URLs and credentials remain excluded from log/user output.
+
 ## Commute notification outcomes
 
 `src/features/commutes/notificationDelivery.ts` separates browser APIs from delivery
@@ -119,6 +126,10 @@ values become labels. Public error bodies do not gain source details.
 It never receives the original exception, notification title/body, commute name,
 location, props, stack, headers or signed camera URL. Existing provider diagnostics
 remain under `shared/diagnostics.ts`. No telemetry service was provisioned.
+
+Both reporters now share the sanitized tracker described in
+[error-tracking.md](error-tracking.md). Existing Vercel logs are the selected
+central destination; no third-party telemetry account or secret is needed.
 
 ## Verification
 

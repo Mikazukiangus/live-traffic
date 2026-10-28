@@ -5,6 +5,7 @@ import { InvalidPayloadError, reportFailure, UpstreamHttpError } from '../../sha
 import { reportApplicationFailure } from '../../shared/applicationDiagnostics.ts';
 import { providerFailureHeaders } from './providerFailure.ts';
 import { publicRateLimitGuard, RateLimitRejection } from './rateLimit.ts';
+import { withErrorContext } from '../observability/context.ts';
 
 /** The business handler runs only after the entire public request contract succeeds. */
 export function withRequestSchema<T>(
@@ -12,7 +13,7 @@ export function withRequestSchema<T>(
   handler: (req: any, res: any, input: { query: T; accountKey: string | null }) => any,
   options: { rateLimit?: typeof publicRateLimitGuard } = {},
 ) {
-  return async (req: any, res?: any) => {
+  const boundary = async (req: any, res?: any) => {
     let headers: Record<string, string> = { Vary: 'Origin' };
     try {
       headers = { Vary: corsVary(req) };
@@ -43,7 +44,7 @@ export function withRequestSchema<T>(
           'Retry-After': String(error.retryAfter) }), headers);
       }
       const provider = error instanceof InvalidPayloadError || error instanceof UpstreamHttpError;
-      const body = provider ? reportFailure('gateway', error) : reportApplicationFailure('api');
+      const body = provider ? reportFailure('gateway', error) : reportApplicationFailure('api', error);
       // Never attempt a second response or disclose the original exception on the socket.
       if (res?.headersSent || res?.writableEnded) {
         if (!res.writableEnded && !res.destroyed) res.destroy?.();
@@ -57,4 +58,5 @@ export function withRequestSchema<T>(
       return setWebCors(sendJson(res, status, body, cache), headers);
     }
   };
+  return (req: any, res?: any) => withErrorContext(req, () => boundary(req, res));
 }

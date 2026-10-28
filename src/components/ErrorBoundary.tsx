@@ -2,13 +2,16 @@ import React, { Component, type ReactNode } from 'react';
 import { reportApplicationFailure } from '../../shared/applicationDiagnostics';
 
 interface Props { scope: 'page' | 'app'; children: ReactNode }
-interface State { failed: boolean; retried: boolean }
+interface State { failed: boolean; retried: boolean; errorId?: string }
 
 /** One local retry per mounted page. Navigation remounts it; reload is always explicit. */
 export class ErrorBoundary extends Component<Props, State> {
   state: State = { failed: false, retried: false };
   static getDerivedStateFromError(): Partial<State> { return { failed: true }; }
-  componentDidCatch() { reportApplicationFailure(this.props.scope); }
+  componentDidCatch(error: unknown) {
+    const result = reportApplicationFailure(this.props.scope, error, 'react_boundary');
+    this.setState({ errorId: result.errorId });
+  }
   render() {
     if (!this.state.failed) return this.props.children;
     const page = this.props.scope === 'page';
@@ -18,9 +21,10 @@ export class ErrorBoundary extends Component<Props, State> {
         <p className="mt-2 text-sm text-slate-600">
           {page ? 'You can switch tabs or reload the page to try again.' : 'Reload the page or open the cameras view to try again.'}
         </p>
+        {this.state.errorId && <p className="mt-3 break-all text-xs text-slate-500">Reference: {this.state.errorId}</p>}
         <div className="mt-5 flex flex-wrap gap-3">
           {page && !this.state.retried && (
-            <button type="button" onClick={() => this.setState({ failed: false, retried: true })}
+            <button type="button" onClick={() => this.setState({ failed: false, retried: true, errorId: undefined })}
               className="min-h-11 rounded-full bg-sky-600 px-5 text-sm font-semibold text-white hover:bg-sky-700 cursor-pointer">Try again</button>
           )}
           <button type="button" onClick={() => window.location.reload()}

@@ -234,11 +234,18 @@ function publicConfig(v: Values) {
       maxAgeMs: v.VITE_BACKGROUND_JOB_MAX_AGE_MS },
   };
 }
+/** Platform metadata is advisory context, never credentials or arbitrary public labels. */
+function errorTrackingContext(env: Environment, browser = false) {
+  const sha = env[browser ? 'VITE_VERCEL_GIT_COMMIT_SHA' : 'VERCEL_GIT_COMMIT_SHA'];
+  const target = env[browser ? 'VITE_VERCEL_ENV' : 'VERCEL_ENV'];
+  return { release: typeof sha === 'string' && /^[a-f0-9]{40}$/.test(sha) ? sha : 'unknown',
+    environment: target === 'production' || target === 'preview' ? target : env.NODE_ENV === 'test' ? 'test' : 'development' };
+}
 /** Browser-safe projection: server settings are neither parsed nor returned here. */
 export function createPublicConfig(env: Environment = {}) {
   const deployed = env.PROD === true || env.NODE_ENV === 'production' ||
     env.VITE_VERCEL_ENV === 'production' || env.VITE_VERCEL_ENV === 'preview';
-  return freeze(publicConfig(read(env, ['public'], deployed)));
+  return freeze({ ...publicConfig(read(env, ['public'], deployed)), errorTracking: errorTrackingContext(env, true) });
 }
 
 /** The single complete application config, evaluated once per server/build process. */
@@ -287,7 +294,7 @@ export function createConfig(env: Environment = {}) {
   const lta = (path: string) => `${v.LTA_BASE_URL}/${path}`;
   const gov = (path: string) => `${v.DATA_GOV_BASE_URL}/${path}`;
   const cache = (seconds: number, stale: number) => [Math.round(seconds * v.CDN_CACHE_MULTIPLIER), Math.round(stale * v.CDN_CACHE_MULTIPLIER)] as const;
-  return freeze({ ...publicConfig(v),
+  return freeze({ ...publicConfig(v), errorTracking: errorTrackingContext(env),
     server: {
       environment,
       allowLoopbackHttp: !httpsOnly,

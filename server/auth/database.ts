@@ -1,6 +1,7 @@
 import { Pool } from 'pg';
 import { attachDatabasePool } from '@vercel/functions';
 import { config } from '../../config/server.ts';
+import { captureException } from '../../shared/errorTracking.ts';
 
 let pool: Pool | undefined;
 export function createAuthPool(connection: string) {
@@ -12,7 +13,7 @@ export function createAuthPool(connection: string) {
   const created = new Pool({ connectionString: url.toString(), ssl: local ? false : { rejectUnauthorized: true },
     max: 3, connectionTimeoutMillis: timeout, idleTimeoutMillis: 10000, maxLifetimeSeconds: 300,
     query_timeout: timeout, statement_timeout: timeout });
-  created.on('error', () => console.error(JSON.stringify({ event: 'auth_storage_failure', code: 'AUTH_UNAVAILABLE' })));
+  created.on('error', error => captureException({ event: 'auth_storage_failure', scope: 'auth', code: 'AUTH_UNAVAILABLE' }, error));
   return created;
 }
 export function authDatabase() {
