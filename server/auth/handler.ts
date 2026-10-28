@@ -4,6 +4,8 @@ import { withRequestDeadline } from '../../shared/requestDeadline.ts';
 import { getAuthService, authHeaders, type createAuthService } from './service.ts';
 import { authBody, authRoute, AuthRequestError, authClientIp, validateAuthOrigin } from './request.ts';
 import { authResponse, sendAuthResponse } from './respond.ts';
+import { withErrorContext } from '../observability/context.ts';
+import { captureException } from '../../shared/errorTracking.ts';
 
 export function publicUser(user: any) {
   if (!user || typeof user.id !== 'string' || typeof user.name !== 'string' || typeof user.email !== 'string') throw new Error('Invalid authentication response');
@@ -12,7 +14,7 @@ export function publicUser(user: any) {
 
 export function createAuthHandler(options: { service: () => ReturnType<typeof createAuthService> | null;
   origin: string; origins: readonly string[]; clientIp?: (req: any) => string }) {
-  return async (req: any, res?: any) => {
+  const handler = async (req: any, res?: any) => {
     let response: Response;
     try {
       const route = authRoute(req);
@@ -31,9 +33,10 @@ export function createAuthHandler(options: { service: () => ReturnType<typeof cr
       const cookies = result.headers.getSetCookie();
       if (!result.ok) {
         const status = [400, 401, 403, 429].includes(result.status) ? result.status : 503;
+        const event = status === 503 ? captureException({ event: 'authentication_unavailable', scope: 'auth', code: 'AUTH_UNAVAILABLE' }, undefined, true) : null;
         const retry = result.headers.get('retry-after') ?? result.headers.get('x-retry-after');
         response = authResponse(status, { success: false, code: status === 429 ? 'AUTH_RATE_LIMITED' : status === 503 ? 'AUTH_UNAVAILABLE' : 'AUTH_REJECTED',
-          error: status === 429 ? 'Too many attempts. Please try again later.' : status === 503 ? 'Sign-in is temporarily unavailable.' : 'Unable to complete sign-in. Check your details and try again.' }, cookies,
+          error: status === 429 ? 'Too many attempts. Please try again later.' : status === 503 ? 'Sign-in is temporarily unavailable.' : 'Unable to complete sign-in. Check your details and try again.', ...(event ? { errorId: event.errorId } : {}) }, cookies,
           status === 429 && retry && /^\d{1,5}$/.test(retry) ? { 'Retry-After': retry } : {});
       } else if (route === 'session') {
         const data = await result.json();
@@ -44,12 +47,13 @@ export function createAuthHandler(options: { service: () => ReturnType<typeof cr
       } else response = authResponse(200, { success: true }, cookies);
     } catch (error) {
       const status = error instanceof AuthRequestError ? error.status : 503;
-      if (status === 503) console.warn(JSON.stringify({ event: 'authentication_unavailable', code: 'AUTH_UNAVAILABLE' }));
+      const event = status === 503 ? captureException({ event: 'authentication_unavailable', scope: 'auth', code: 'AUTH_UNAVAILABLE' }, error, true) : null;
       response = authResponse(status, { success: false, code: status === 503 ? 'AUTH_UNAVAILABLE' : 'INVALID_AUTH_REQUEST',
-        error: status === 503 ? 'Sign-in is temporarily unavailable.' : 'Invalid authentication request.' });
+        error: status === 503 ? 'Sign-in is temporarily unavailable.' : 'Invalid authentication request.', ...(event ? { errorId: event.errorId } : {}) });
     }
     return sendAuthResponse(response, res);
   };
+  return (req: any, res?: any) => withErrorContext(req, () => handler(req, res));
 }
 
 export const authHandler = createAuthHandler({ service: getAuthService, origin: config.server.auth.origin, origins: config.server.auth.origins });

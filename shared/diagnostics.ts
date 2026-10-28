@@ -1,3 +1,4 @@
+import { captureException } from './errorTracking.ts';
 // This module has no environment access and is safe for server, browser and CI use.
 const FAILURE_SOURCES = new Set(['psi', 'pm25', 'lightning', 'wbgt', 'roadworks', 'faulty_lights']);
 export type FailureSource = 'psi' | 'pm25' | 'lightning' | 'wbgt' | 'roadworks' | 'faulty_lights';
@@ -65,8 +66,8 @@ export function safeFailure(service: string, error: unknown, status?: number) {
 /** No raw exception, stack, cause, headers, config, URL or response body enters the log. */
 export function reportFailure(service: string, error: unknown, status?: number, source?: FailureSource) {
   const { log, body } = safeFailure(service, error, status);
-  console.error(JSON.stringify({ ...log, ...(source && FAILURE_SOURCES.has(source) ? { source } : {}) }));
-  return body;
+  const event = captureException({ ...log, ...(source && FAILURE_SOURCES.has(source) ? { source } : {}) }, error);
+  return { ...body, errorId: event.errorId };
 }
 
 /** Labels are fixed at the call site, never derived from a request, URL or provider body. */

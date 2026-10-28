@@ -3,6 +3,7 @@ import { hash, verify } from '@node-rs/argon2';
 import type { Pool } from 'pg';
 import { config } from '../../config/server.ts';
 import { authDatabase } from './database.ts';
+import { captureException } from '../../shared/errorTracking.ts';
 
 export const AUTH_COOKIE_PREFIX = 'trafficpulse';
 export const PASSWORD_POLICY = Object.freeze({ minimum: 12, maximum: 128,
@@ -29,7 +30,7 @@ export function createAuthService(options: { database: BetterAuthOptions['databa
     // v1.7 uses atomic conditional increments/unique keys in database mode, shared by all instances.
     rateLimit: { enabled: true, storage: 'database', modelName: 'tp_auth_rate_limit', window: 60, max: 30,
       customRules: { '/sign-in/email': { window: 900, max: 5 }, '/change-password': { window: 900, max: 5 } } },
-    logger: { level: 'warn', log: () => console.warn(JSON.stringify({ event: 'authentication_event', code: 'AUTH_EVENT' })) },
+    logger: { level: 'warn', log: () => captureException({ event: 'authentication_event', scope: 'auth', code: 'AUTH_EVENT' }, undefined, true) },
   });
 }
 

@@ -17,6 +17,7 @@ import weatherAlerts from './_weatheralerts.ts';
 import floods from './_floods.ts';
 import forecast24h from './_forecast24h.ts';
 import { isAuthTransport } from '../server/auth/request.ts';
+import { browserErrorHandler, isErrorTransport } from '../server/observability/browserErrors.ts';
 
 const FEEDS: Record<string, (req: any, res?: any) => Promise<any>> = {
   roadconditions: roadConditions,
@@ -36,6 +37,7 @@ const handler = withRequestSchema(requestSchemas.live, async (req, res, input) =
 });
 export default async function liveEntry(req: any, res?: any) {
   if (isAuthTransport(req)) return (await import('../server/auth/handler.ts')).authHandler(req, res);
+  if (isErrorTransport(req)) return browserErrorHandler(req, res);
   return handler(req, res);
 }
 
