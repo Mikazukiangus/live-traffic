@@ -4,7 +4,7 @@ Developed from main `1dfe769` on `codex/list-pagination` and released through ex
 
 ## Choice: offset with live-snapshot checking
 
-This app serves bounded provider snapshots and derived arrays. It has no database, immutable event sequence or indexed `(created_at, id)` ordering to seek through. LTA publishes offset windows through `$skip`, capped at 500 records per request: see its official [API User Guide, page 9](https://datamall.lta.gov.sg/content/dam/datamall/datasets/LTA_DataMall_API_User_Guide.pdf).
+These list endpoints serve bounded provider snapshots and derived arrays, rather than rows from the authentication database. They have no persisted event sequence or indexed `(created_at, id)` ordering to seek through. LTA publishes offset windows through `$skip`, capped at 500 records per request: see its official [API User Guide, page 9](https://datamall.lta.gov.sg/content/dam/datamall/datasets/LTA_DataMall_API_User_Guide.pdf).
 
 | Use case | Choice and reason |
 | --- | --- |
@@ -13,6 +13,16 @@ This app serves bounded provider snapshots and derived arrays. It has no databas
 | Future stored history/event timeline | An indexed keyset cursor could be appropriate after defining durable unique ordering and persistence. Encoding today's array index in base64 would not supply that guarantee. |
 
 Pagination is opt-in to preserve existing app contracts. Adding any supported paging parameter activates it. Without paging parameters, dashboard/map polling still receives its complete normalized snapshot or existing native LTA window. In particular, a truncated list must not become a falsely low incident count, incomplete nearest-car-park search or incomplete map geometry. No frontend pagination controls were added by this API change.
+
+## Current verification — 28 October 2026
+
+Rechecked the implementation on main `c0922b3` after authentication was added. All public list endpoints below already support pagination through the shared normalized-list or native-LTA handler. Authentication session/action routes, the health report and image bytes are not list endpoints. No additional pagination implementation or database migration is necessary.
+
+Use `GET /api/traffic?limit=50&offset=0` for incidents, then follow `pagination.nextOffset` until it is null. For a normalized list, start with `GET /api/rainforecast?limit=10&offset=0`, then send both the returned `nextOffset` and `snapshot` on the next request. Restart on HTTP 409 rather than mixing revisions. Endpoints with multiple collections also need `collection` (see the table below).
+
+Offset remains the choice for these APIs. The existence of a separate account/session database does not make provider feeds suitable for keyset cursors. Reconsider cursor pagination if a future endpoint exposes persistent incident history or another large database list with stable, unique ordering; define that order and matching index for that endpoint at that time.
+
+Verification command: `node --import tsx --test tests/pagination.test.ts tests/pagination-endpoints.test.ts`. All 18 test groups passed, with zero failures/skips, using synthetic data and no provider calls or credential reads. This follow-up changes documentation only; it does not establish current production/provider health or measured performance.
 
 ## Normalized lists
 

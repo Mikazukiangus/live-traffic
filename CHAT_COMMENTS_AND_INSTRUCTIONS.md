@@ -167,6 +167,8 @@ This document records all user instructions, feedback, technical inquiries, inve
 157. [Turn 157: Publish Preview Firewall Rate Limiting by CLI](#157-turn-157-publish-preview-firewall-rate-limiting-by-cli)
 158. [Turn 158: Merge Authentication and Rate Limit Foundation to Main](#158-turn-158-merge-authentication-and-rate-limit-foundation-to-main)
 159. [Turn 159: Diagnose Neon Config Variable Security Warnings](#159-turn-159-diagnose-neon-config-variable-security-warnings)
+163. [Turn 163: Reverify Pagination Coverage and Offset Choice](#163-turn-163-reverify-pagination-coverage-and-offset-choice)
+164. [Turn 164: Commit and Deploy Pagination Verification](#164-turn-164-commit-and-deploy-pagination-verification)
 
 ---
 
@@ -2860,6 +2862,34 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Vercel's Neon-specific rotation guide states reset invalidates the old password immediately, requiring connected deployments to be refreshed. Recommended concrete scope: disconnect/reconnect only this resource for live-traffic, rotate existing Neon role credentials without deleting the resource/data, reconnect Preview only using the integration Sensitive option, and redeploy/test the auth-enabled Preview. Confirm all credential aliases are Secret via non-decrypting metadata. Retain branch-only flags/signing secret, LTA settings, production feature gates and the Firewall unchanged. Existing immutable previews with old credentials will need replacement; rollback cannot revive a revoked password.
 - Local impact is part of the review: removing Development linkage stops automatic database credential downloads. scripts/auth-with-database.ts currently relies on development-target readable credentials and will no longer work after Secret-only reconnection. A subsequent approved repair must arrange an explicit separate local/Development credential workflow and update the operator handoff, not try to read back write-only Preview Secrets, export environments or overwrite .env.local. CLI connect help has environment targeting but no documented Sensitive toggle; use the supported integration advanced settings/API when applying the plan rather than assume a plain reconnect is secure.
 - No credential rotation, resource disconnection/reconnection, variable mutation, deployment or runtime source change was performed during this inspection. Asking explicit approval for the concrete remediation because password revocation and removal of Development linkage change the working preview/operator setup; this is an operational impact, not a skill-imposed approval rule. Production is not connected to this DB and login remains disabled in the known configuration. Updated docs/authentication.md and CLOUD_HANDOFF.md with the exact plan/limitations. Synced main and updated this log/TOC for documentation-only commit/push; no broad test rerun is needed for metadata investigation/docs. PR #23 and unrelated untracked .agents/, .claude/ and skills-lock.json remain untouched.
+
+---
+
+## 163. Turn 163: Reverify Pagination Coverage and Offset Choice
+
+**User Request:**
+> "Add pagination to my list endpoints and pick cursor versus offset for my use case."
+
+### Findings and outcome (28 October 2026, SGT):
+- Read the standing instructions and relevant history, refreshed origin/main and inspected the existing pagination implementation, strict request schemas, native LTA provider handler, all API list entry points, service-worker behavior and endpoint tests. Pagination was already implemented and explicitly merged through PR #26 (Turns 148–149); no missing public list boundary was found. Avoided introducing a duplicate contract or replacing the existing complete-list dashboard behavior.
+- Retained bounded opt-in offset pagination: limit defaults to 100 and accepts 1–500; offset accepts 0–1,000,000. Normalized arrays return totals/navigation and a collection/route/content revision required after offset 0; changed rows/order return safe HTTP 409. Raw incidents, speed bands, VMS and travel times use the provider's $skip windows, explicitly unknown totals/live consistency and no invented snapshot guarantee. Multi-list routes require collection selection. Paged replies remain no-store/network-only; malformed controls fail before provider work.
+- Chose offset because traffic/weather lists are live provider windows and bounded derived snapshots. The new authentication database stores accounts/sessions, not these lists. A future persisted history endpoint could use a keyset cursor once it has a durable unique order and matching index. Pagination limits response size; normalized cold aggregation and full-array revision hashing still occur. No database index, migration, dependency, environment variable or frontend pagination change is needed for the present request.
+- Corrected docs/pagination.md's outdated claim that the app has no database, added current coverage/decision, concrete incident/rain continuation instructions and the verification command. Historical release evidence remains dated separately. Confirmed source pagination files/tests are identical between the pending operator branch and refreshed main, then created codex/pagination-verification from main c0922b3 so unrelated PR #29 operator changes stay separate. Turns 160–162 remain recorded on that pending repair branch; no history was deleted there.
+- Ran node --import tsx --test tests/pagination.test.ts tests/pagination-endpoints.test.ts: all 18 groups passed, zero failures/skips. Tests exercise Node/Web real handler entry points, paging/navigation, complete-list compatibility, strict input, source changes/unavailability, native offsets, CORS/cache behavior and service-worker network-only pages using synthetic data. No live provider/camera/database, secret/environment export or production request was needed. This is current local contract verification, not a new production-health/performance claim.
+- Updated this log and TOC for commit/push with the documentation clarification. No runtime changes, production deployment, Firewall change or main merge was performed; pending PRs #23 and #29 and unrelated untracked files remain separate.
+
+---
+
+## 164. Turn 164: Commit and Deploy Pagination Verification
+
+**User Request:**
+> "commit and deploy"
+
+### Authorized release (28 October 2026, SGT):
+- Interpreted this as approval to release the current pagination verification/documentation PR #30 to main and production. Prior implementation is already deployed; this release clarifies the offset choice and records coverage, with no runtime contract change. Separate PRs #23 and #29 are outside this release.
+- Verified root Vercel link identifies live-traffic, project prj_OaQqagITm0LQjotv9EgoPZOWwjzT and Carbon team team_ZEUyUqyAE43B7bGMi6Rdux14. Using the deployment skill and authenticated connectors; no credential retrieval or environment/protection/Firewall change is needed.
+- Existing head 58b4c7c787cf3e6f5fead2d8bc496aa6af377f20 has successful GitHub Checks runs 40658251734 and 40658220211 and Vercel checks. Required CI job diagnostics 122714499535 confirm all 299 main-branch tests passed, zero failures/skips, type checking, HTTPS/cookie audit and production build. The pending operator branch's additional five tests are separate. Previous local pagination run passed all 18 groups. No repeat local broad suite is needed for documentation-only changes.
+- Updated this log/TOC before committing the release record. Final-head checks, expected-head merge and production readback will be verified next; no deployment success is claimed before those operations finish.
 
 ---
 
