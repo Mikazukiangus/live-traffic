@@ -67,7 +67,10 @@ is implied. The new proxy shares Hobby’s twelve slots by consolidating forecas
 into the existing live gateway, preserving its public URL.
 
 **Turn 160 repair approval:** user approved the rotation/reconnection scope. Preparation
-is on `codex/neon-secret-repair`; external credentials and connection are unchanged.
+is on `codex/neon-secret-repair` in draft PR #29; external credentials and connection
+are unchanged. Head 8e344e6 passes CI with 304 tests and a READY build Preview.
+Vercel MCP authentication works; customer resource rotation is not exposed in its
+current tools, while Secret reconnection is supported through API/CLI.
 Chrome repair tab awaits Vercel sign-in, and the browser tool requires a human to
 complete the credential reset. No customer rotation API is exposed by connected tools;
 do not substitute partner-auth endpoints or guess mutations. The supported connection

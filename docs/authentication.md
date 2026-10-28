@@ -306,3 +306,12 @@ The operator-input replacement above is prepared on the repair branch. Five new
 regression groups plus the existing suite pass: 304 tests, no failures/skips; type
 checking, transport audit and build pass. No real DB credentials were used for those
 tests. No production setting, LTA key, signing secret or Firewall change is required.
+
+
+The prepared operator change is in [draft PR #29](https://github.com/Mikazukiangus/live-traffic/pull/29),
+head 8e344e69a99cde9f0a71ac8f5b130fa4316e5793. Both CI runs pass all 304 tests,
+type check, audit and build; its exact Preview is READY. This new branch does not
+have the old branch's auth-enabling overrides and does not itself repair credentials.
+Vercel MCP access is working; the exposed tools lack only the needed customer-side
+rotation operation. Reconnection can use the documented API/CLI. Browser sign-in
+and human credential reset remain pending, so the old connection/values are intact.

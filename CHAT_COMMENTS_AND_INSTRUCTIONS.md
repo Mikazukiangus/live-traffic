@@ -168,6 +168,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 158. [Turn 158: Merge Authentication and Rate Limit Foundation to Main](#158-turn-158-merge-authentication-and-rate-limit-foundation-to-main)
 159. [Turn 159: Diagnose Neon Config Variable Security Warnings](#159-turn-159-diagnose-neon-config-variable-security-warnings)
 160. [Turn 160: Approved Neon Secret Repair and Operator Preparation](#160-turn-160-approved-neon-secret-repair-and-operator-preparation)
+161. [Turn 161: Clarify Vercel MCP Rotation Capability](#161-turn-161-clarify-vercel-mcp-rotation-capability)
 
 ---
 
@@ -2877,6 +2878,19 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Completed independent local/operator preparation rather than leaving the old readable-env helper in place: scripts/auth-with-database.ts now accepts credentials only through an authorized process environment or hidden human TTY prompts. Removed Vercel env API reads and variable-ID arguments; it never reads/writes .env files or retrieves Preview Secrets. Retains root project/team validation and isolated ephemeral testing secret. Added a pure argument/credential boundary for bounded tasks, exact selected Preview URLs, matching pooled/direct Neon account/database, TLS inputs and rejection of production environment scope. No URLs/passwords in argv or error output; no account or credential is automatically persisted.
 - Added five meaningful regression groups for legacy/API-read rejection, credential redaction, unsafe/mismatched endpoints, production scope and argument injection. All 304 Node tests passed, zero failures/skips; type check, transport audit and build passed. Used synthetic credentials only and a local loopback fixture with permission; no real DB query, provider load, camera or user browser storage was involved.
 - Updated docs/authentication.md with usable hidden-prompt/process commands, the supported Sensitive connection payload and explicit outstanding operations. Rotation, disconnection/reconnection, new auth-enabled preview and deployed login/session/logout verification remain pending the dashboard sign-in/human reset step. Do not present prepared code or clean tests as evidence that the Vercel warnings are fixed. Updated this log/TOC and cloud handoff for commit/push to a draft repair PR; runtime deployment/main merge are not approved by the repair alone.
+
+---
+
+## 161. Turn 161: Clarify Vercel MCP Rotation Capability
+
+**User Question:**
+> "Why can't you use the vercel mcp?"
+
+### Clarification and continued authorized work (28 October 2026, SGT):
+- Answered during the ongoing approved repair. The Vercel MCP connection works and was used for non-decrypting env metadata, resource/connection/status inspection and deployment readback. The missing capability is specifically customer-side Neon credential rotation in the exposed tool set, not a revoked connection, team-access error or missing user approval. Rechecked both available Vercel namespaces by tool name; they expose store inspection, Blob creation and integration/product/configuration listing, but no customer resource-secret rotation action. Do not invoke provider-partner rotation endpoints with a customer Vercel token or invent tool names.
+- The supported reconnection API can set makeEnvVarsSensitive=true through the authenticated CLI; it is not the blocker. Browser fallback currently reaches Vercel's login page, and password changes through that UI require a human handoff under the computer-use credential-change rule. Approval remains valid; do not ask the user to reapprove the same repair. The existing async sign-in request remains pending. No resource was disconnected and no password/env/protection was changed while waiting.
+- Completed/pushed the independent operator repair as 8e344e69a99cde9f0a71ac8f5b130fa4316e5793 and opened/attached draft PR #29 (https://github.com/Mikazukiangus/live-traffic/pull/29). Both CI runs 40648323571 and 40648244791 passed; required CI diagnostics confirm all 304 tests, zero failures/skips, type check, audit and build. Preview dpl_EaDjPzR7b7ckhkLVoKcStwUoRcSL is READY for the exact repair SHA/branch at https://live-traffic-1nj0p4mzl-carbon-bc04.vercel.app. This verifies the operator-code build, not credential rotation or an auth-enabled preview. New branch has no auth-enabling branch overrides; no false login/Secret-repair claim is made.
+- The prepared helper uses only human hidden prompts or authorized process credentials, not Vercel Secret readback. External repair remains incomplete at the dashboard authentication/human rotation step; then the approved disconnect/rotate/Secret reconnect/redeploy/real auth checks can continue. Main/production, LTA/signing secret, Firewall, existing DB connection and separate PR #23 remain unchanged. Updated the log/TOC and handoff status for documentation commit/push to PR #29. No repeat tests were needed for this explanatory update.
 
 ---
 
