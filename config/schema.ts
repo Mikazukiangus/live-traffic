@@ -1,3 +1,4 @@
+import { LOG_LEVELS, type LogLevel } from '../shared/logging.ts';
 /** Canonical environment schema. This module never reads process.env or prints values. */
 export type Environment = Record<string, string | boolean | undefined>;
 type Scope = 'public' | 'server' | 'development' | 'tools' | 'ci';
@@ -44,6 +45,11 @@ const secret = (description: string) => field('server', description, '', (value)
 const poll = (description: string, fallback: number) => integer('public', description, fallback, 1000);
 
 export const ENV_SCHEMA = {
+  LOG_LEVEL: field('server', 'Application JSON log threshold: debug, info, warn, error or silent. No credentials/request payloads are logged.', 'info', v => {
+    if (!LOG_LEVELS.includes(v as LogLevel)) throw new Error('must be debug, info, warn, error or silent');
+    return v as LogLevel;
+  }),
+  LOG_USER_CONTEXT_TIMEOUT_MS: integer('server', 'Deadline for optional verified-session log context; failure never blocks public traffic.', 1000, 100, 5000),
   LTA_ACCOUNT_KEY: secret('Private LTA DataMall AccountKey. Empty keeps keyless camera/weather mode. Never prefix secrets with VITE_.'),
   LTA_API_KEY: secret('Legacy alias. LTA_ACCOUNT_KEY takes precedence; leave empty for new setups.'),
   LTA_BASE_URL: url('server', 'LTA provider base; credentials are sent here. Configure only a trusted provider.', 'https://datamall2.mytransport.sg/ltaodataservice'),
@@ -296,6 +302,7 @@ export function createConfig(env: Environment = {}) {
   const cache = (seconds: number, stale: number) => [Math.round(seconds * v.CDN_CACHE_MULTIPLIER), Math.round(stale * v.CDN_CACHE_MULTIPLIER)] as const;
   return freeze({ ...publicConfig(v), errorTracking: errorTrackingContext(env),
     server: {
+      logging: { level: v.LOG_LEVEL, userContextTimeoutMs: v.LOG_USER_CONTEXT_TIMEOUT_MS },
       environment,
       allowLoopbackHttp: !httpsOnly,
       accountKey: v.LTA_ACCOUNT_KEY || v.LTA_API_KEY,

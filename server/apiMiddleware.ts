@@ -21,16 +21,21 @@ export function createApiMiddleware(handlers: Record<string, Loader>) {
     if (typeof res.status !== 'function') {
       res.status = (code: number) => { res.statusCode = code; return res; };
     }
-    try {
-      const load = pathname.startsWith('/api/auth/') ? handlers['/api/live'] : handlers[pathname];
-      if (!load) return next();
-      const { default: handler } = await load();
-      await handler(req, res);
-    } catch (error) {
-      const body = reportFailure('gateway', error);
-      res.statusCode = 500;
-      res.setHeader('Cache-Control', 'no-store');
-      res.json({ ...body, error: 'Internal Server Error' });
-    }
+    const dispatch = async () => {
+      try {
+        const load = pathname.startsWith('/api/auth/') ? handlers['/api/live'] : handlers[pathname];
+        if (!load) return next();
+        const { default: handler } = await load();
+        await handler(req, res);
+      } catch (error) {
+        const body = reportFailure('gateway', error);
+        res.statusCode = 500;
+        res.setHeader('Cache-Control', 'no-store');
+        res.json({ ...body, error: 'Internal Server Error' });
+      }
+    };
+    // Vite imports this adapter before loading its environment. Install server context only per invocation.
+    const { withErrorContext } = await import('./observability/context.ts');
+    return withErrorContext(req, dispatch);
   };
 }

@@ -1,6 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
+import { logger } from '../shared/logging.ts';
 
 /** Narrow operator bootstrap: only two explicitly selected development DB settings enter memory. */
 async function run() {
@@ -29,7 +30,6 @@ async function run() {
   else if (task === 'preview-smoke') await (await import('./auth-preview-smoke.ts')).smokePreview(deployment);
   else await (await import('./auth-create-user.ts')).createAccount();
 }
-void run().catch((error) => {
-  const code = typeof error?.code === 'string' && /^[A-Z0-9_]{2,40}$/.test(error.code) ? error.code : 'AUTH_BOOTSTRAP_FAILED';
-  console.error(JSON.stringify({ operation: 'auth_database_task', status: 'failed', code })); process.exitCode = 1;
+void run().catch(() => {
+  logger.error({ event: 'auth_operator', operation: 'auth_database_task', status: 'failed', code: 'AUTH_BOOTSTRAP_FAILED' }); process.exitCode = 1;
 });

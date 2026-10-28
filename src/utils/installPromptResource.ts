@@ -1,4 +1,5 @@
 import { createSingleFlight } from '../../shared/singleFlight';
+import { logger } from '../../shared/logging';
 export interface InstallPrompt {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
@@ -22,7 +23,7 @@ export function createInstallPromptResource() {
         try { await event.prompt(); await event.userChoice; }
         catch {
           // Never log the browser event, choice or raw exception.
-          console.warn(JSON.stringify({ event: 'install_prompt_failure', code: 'INSTALL_PROMPT_FAILED' }));
+          logger.warn({ event: 'install_prompt_failure', code: 'INSTALL_PROMPT_FAILED' });
         }
       });
     },

@@ -1,5 +1,9 @@
 # Centralized exception tracking in Vercel logs
 
+The [structured-logging extension](structured-logging.md), prepared for Preview
+review, unifies non-error diagnostics and adds automatic pseudonymous verified-user
+context. Its production activation is separate from the PR #31 release below.
+
 The user selected existing Vercel logs rather than a new external service. This
 implementation adds no account, secret, paid integration, database table or extra
 Vercel Function. It was explicitly approved and merged through PR #31; production
@@ -45,7 +49,7 @@ The reporter never serializes an Error or reads its message/cause. It projects a
 fixed standard error type and numeric coordinates, dropping stack filenames,
 functions, paths, full URLs and query strings. Hostile getters cannot break error
 recovery. Arbitrary properties, request/response bodies, headers, cookies, passwords,
-LTA keys, signed camera URLs, email/IP/user IDs, precise locations, component props,
+LTA keys, signed camera URLs, email/IP/raw user IDs, precise locations, component props,
 component stacks and session replay are excluded. This is an allowlist, not a regex
 that attempts to scrub arbitrary free text after collecting it.
 

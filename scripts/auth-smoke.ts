@@ -1,3 +1,4 @@
+import { logger } from '../server/observability/context.ts';
 import assert from 'node:assert/strict';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { config } from '../config/server.ts';
@@ -36,7 +37,7 @@ export async function smokeAuth() {
     assert.equal((await session.json()).authenticated, true);
     assert.equal((await handler(request('sign-out', {}, cookie)) as Response).status, 200);
     assert.equal(await independent.api.getSession({ headers: new Headers({ cookie }) }), null);
-    console.log(JSON.stringify({ operation: 'auth_postgres_smoke', status: 'success', passwordVerified: true, secureCookie: true, sharedSession: true, logoutRevoked: true }));
+    logger.info({ event: 'auth_operator', operation: 'auth_postgres_smoke', status: 'success', passwordVerified: true, secureCookie: true, sharedSession: true, logoutRevoked: true });
   } finally {
     try {
       if (id) {
