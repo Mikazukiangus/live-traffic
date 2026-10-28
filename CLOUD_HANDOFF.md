@@ -66,6 +66,18 @@ forecast endpoint also returned 200. No interactive UI pass or threshold rejecti
 is implied. The new proxy shares Hobby’s twelve slots by consolidating forecast24h
 into the existing live gateway, preserving its public URL.
 
+**Turn 160 repair approval:** user approved the rotation/reconnection scope. Preparation
+is on `codex/neon-secret-repair`; external credentials and connection are unchanged.
+Chrome repair tab awaits Vercel sign-in, and the browser tool requires a human to
+complete the credential reset. No customer rotation API is exposed by connected tools;
+do not substitute partner-auth endpoints or guess mutations. The supported connection
+API does accept makeEnvVarsSensitive=true after reset. Keep resource connected until
+rotation/reconnection can be completed promptly. The repaired operator bootstrap no
+longer reads Vercel env values: use hidden URL prompts or authorized process injection;
+it rejects old variable IDs and production scope. All 304 local tests/type check/audit/
+build pass with synthetic inputs. See docs/authentication.md for commands and pending
+steps; the warnings are not fixed yet. Main merge remains a separate review step.
+
 **28 October credential-storage investigation (Turn 159):** eight generated Neon
 credential URL/password aliases are readable Config despite carrying secrets. The
 resource is available; no outage or compromise was established. Vercel requires

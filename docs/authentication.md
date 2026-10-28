@@ -113,19 +113,32 @@ Production AUTH/UI defaults stay false. Do not enable production using preview d
 
 ## Operator commands
 
-The bootstrap helper reads exactly the two approved development DB settings through
-the existing Vercel connection, holds them only in its subprocess and prints neither
-value. It validates the root project link and development targets. It never exports
-the environment or touches LTA settings. The variable IDs below are metadata, not
-credentials. Run from the repository root:
+The repaired bootstrap on `codex/neon-secret-repair` no longer retrieves Vercel
+variable values. Preview Secrets are write-only and Development linkage is being
+removed as part of the approved repair. Obtain the matching pooled/direct credentials
+through authorized access to the existing Neon resource; supply them through a
+trusted process environment or hidden terminal prompts. Never put connection URLs
+in command arguments, shell history, chat, source or logs. Existing local LTA settings
+are not read or overwritten. The root Vercel project link is still validated.
 
 ```sh
-node --import tsx scripts/auth-with-database.ts migrate 8OK2dA8WCgZIw97z ww88OakVcj2Czo7w
-node --import tsx scripts/auth-with-database.ts smoke 8OK2dA8WCgZIw97z ww88OakVcj2Czo7w
-node --import tsx scripts/auth-with-database.ts create-user 8OK2dA8WCgZIw97z ww88OakVcj2Czo7w
-# Selected READY preview deployment; uses only a temporary synthetic account:
-node --import tsx scripts/auth-with-database.ts preview-smoke 8OK2dA8WCgZIw97z ww88OakVcj2Czo7w https://live-traffic-2qdjsodg1-carbon-bc04.vercel.app
+# Human operator: URL prompts are hidden and held only in this process.
+node --import tsx scripts/auth-with-database.ts smoke --prompt
+node --import tsx scripts/auth-with-database.ts create-user --prompt
+node --import tsx scripts/auth-with-database.ts preview-smoke --prompt https://live-traffic-et2v7hq8q-carbon-bc04.vercel.app
+# Migration only when a reviewed schema change actually requires it:
+node --import tsx scripts/auth-with-database.ts migrate --prompt
 ```
+
+With DATABASE_URL and DATABASE_URL_UNPOOLED already injected by an authorized secret
+manager/provider process, omit `--prompt`. The helper neither loads an env file nor
+exports one, never calls Vercel env APIs and does not read back Preview Secrets.
+It rejects the old variable-ID syntax, mismatched pooled/direct credentials, unsafe
+URLs, production environment scope and credential-bearing command arguments. The
+above preview URL is a historical example; choose the current READY auth-enabled
+Preview after the credential rotation, because old deployments retain old values.
+Default local development can keep login disabled; no new local database/service
+is automatically provisioned. Run enrollment in a human TTY as described below.
 
 `create-user` requires a human TTY. It prompts for name/email and a twice-entered
 hidden password. No password is accepted as a command argument or printed; public
@@ -225,7 +238,8 @@ Separate draft PR #23 remains outside this merge.
 
 ## Config warnings on integration credentials, 28 October 2026
 
-Status: diagnosed; credential rotation/reconnection awaits explicit approval.
+Status: repair approved in Turn 160; rotation/reconnection awaits dashboard sign-in
+and the required human credential-reset step. No external mutation has occurred yet.
 Inspection used non-decrypting metadata only. Existing resource
 `trafficpulse-auth-preview` is available and linked only to live-traffic for
 Preview/development. The warning concerns readable Config storage; it does not
@@ -267,3 +281,28 @@ Do not export the environment, reveal Secret values or overwrite the existing lo
 LTA setup. CLI 65.2.0 connect help has no Sensitive toggle; use the supported
 integration advanced settings/API and verify actual output types. These steps are
 a plan, not completed mutations. See Turn 159 for inspected IDs and scope.
+
+
+### Approved repair preparation (Turn 160)
+
+The explicit “approve repair” authorizes rotating the existing resource, removing
+Development linkage and reconnecting Preview with Secret storage. The official
+connection API supports `makeEnvVarsSensitive: true`; CLI 65.2.0 connect does not
+expose that flag, so a plain CLI reconnect is insufficient. The published API
+operation is POST /v1/integrations/installations/{installationId}/resources/{resourceId}/connections
+with projectId, envVarEnvironments=[preview] and makeEnvVarsSensitive=true. Use the
+verified store/provider IDs and read back types/targets after execution; never print
+responses that might contain credentials.
+
+The connected tools expose resource inspection and connection APIs, but no customer
+rotation operation. The Vercel dashboard in the new Chrome repair tab is currently
+signed out. The computer-use credential-change policy requires the human to complete
+the password reset even after task approval. The resource remains connected until
+that step can be performed and promptly followed by Secret reconnection/redeployment.
+Do not claim the warning is repaired yet. Rotation, connection change, new preview
+and real auth verification remain outstanding.
+
+The operator-input replacement above is prepared on the repair branch. Five new
+regression groups plus the existing suite pass: 304 tests, no failures/skips; type
+checking, transport audit and build pass. No real DB credentials were used for those
+tests. No production setting, LTA key, signing secret or Firewall change is required.
