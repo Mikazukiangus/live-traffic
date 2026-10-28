@@ -168,6 +168,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 158. [Turn 158: Merge Authentication and Rate Limit Foundation to Main](#158-turn-158-merge-authentication-and-rate-limit-foundation-to-main)
 159. [Turn 159: Diagnose Neon Config Variable Security Warnings](#159-turn-159-diagnose-neon-config-variable-security-warnings)
 163. [Turn 163: Reverify Pagination Coverage and Offset Choice](#163-turn-163-reverify-pagination-coverage-and-offset-choice)
+164. [Turn 164: Commit and Deploy Pagination Verification](#164-turn-164-commit-and-deploy-pagination-verification)
 
 ---
 
@@ -2876,6 +2877,19 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Corrected docs/pagination.md's outdated claim that the app has no database, added current coverage/decision, concrete incident/rain continuation instructions and the verification command. Historical release evidence remains dated separately. Confirmed source pagination files/tests are identical between the pending operator branch and refreshed main, then created codex/pagination-verification from main c0922b3 so unrelated PR #29 operator changes stay separate. Turns 160–162 remain recorded on that pending repair branch; no history was deleted there.
 - Ran node --import tsx --test tests/pagination.test.ts tests/pagination-endpoints.test.ts: all 18 groups passed, zero failures/skips. Tests exercise Node/Web real handler entry points, paging/navigation, complete-list compatibility, strict input, source changes/unavailability, native offsets, CORS/cache behavior and service-worker network-only pages using synthetic data. No live provider/camera/database, secret/environment export or production request was needed. This is current local contract verification, not a new production-health/performance claim.
 - Updated this log and TOC for commit/push with the documentation clarification. No runtime changes, production deployment, Firewall change or main merge was performed; pending PRs #23 and #29 and unrelated untracked files remain separate.
+
+---
+
+## 164. Turn 164: Commit and Deploy Pagination Verification
+
+**User Request:**
+> "commit and deploy"
+
+### Authorized release (28 October 2026, SGT):
+- Interpreted this as approval to release the current pagination verification/documentation PR #30 to main and production. Prior implementation is already deployed; this release clarifies the offset choice and records coverage, with no runtime contract change. Separate PRs #23 and #29 are outside this release.
+- Verified root Vercel link identifies live-traffic, project prj_OaQqagITm0LQjotv9EgoPZOWwjzT and Carbon team team_ZEUyUqyAE43B7bGMi6Rdux14. Using the deployment skill and authenticated connectors; no credential retrieval or environment/protection/Firewall change is needed.
+- Existing head 58b4c7c787cf3e6f5fead2d8bc496aa6af377f20 has successful GitHub Checks runs 40658251734 and 40658220211 and Vercel checks. Required CI job diagnostics 122714499535 confirm all 299 main-branch tests passed, zero failures/skips, type checking, HTTPS/cookie audit and production build. The pending operator branch's additional five tests are separate. Previous local pagination run passed all 18 groups. No repeat local broad suite is needed for documentation-only changes.
+- Updated this log/TOC before committing the release record. Final-head checks, expected-head merge and production readback will be verified next; no deployment success is claimed before those operations finish.
 
 ---
 
