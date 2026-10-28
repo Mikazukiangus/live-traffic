@@ -46,3 +46,9 @@ Previously unloaded camera-feed hooks now measure 100% lines/branches/functions.
 5. **Live upstream contracts:** fixtures validate known shapes, not current LTA/NEA/PUB availability, signed-photo expiration or deployment access. Keep bounded deployment smoke checks separate from deterministic unit/integration tests.
 
 Use `coverage/summary.json` for the complete measured and never-loaded file lists. Prioritize behavior and risk; avoid raising a global percentage by importing files without exercising them.
+
+## Review and CI evidence
+
+Implementation commit `104a203659f70c2301f69937b8354250c88bf95f` is in [draft PR #33](https://github.com/Mikazukiangus/live-traffic/pull/33). Both Checks runs [40785323376](https://github.com/Mikazukiangus/live-traffic/actions/runs/40785323376) and [40785347574](https://github.com/Mikazukiangus/live-traffic/actions/runs/40785347574) passed. The [coverage artifact](https://github.com/Mikazukiangus/live-traffic/actions/runs/40785323376/artifacts/12857709464) contains both reports and expires after seven days. CI branch coverage was 90.73%/90.68%, slightly different from the local run because asynchronous execution can change instrumented branches; line coverage, file inventory and function percentage agree. Read each artifact as evidence for its own run.
+
+The [Preview](https://live-traffic-itzr6bd8o-carbon-bc04.vercel.app) is READY for that implementation commit. This establishes build readiness, not live provider/database/browser correctness. Application runtime is unchanged; main merge awaits explicit approval.
