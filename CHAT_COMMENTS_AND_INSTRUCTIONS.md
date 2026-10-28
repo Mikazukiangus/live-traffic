@@ -171,6 +171,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 164. [Turn 164: Commit and Deploy Pagination Verification](#164-turn-164-commit-and-deploy-pagination-verification)
 165. [Turn 165: Centralized Safe Exception Tracking on Preview](#165-turn-165-centralized-safe-exception-tracking-on-preview)
 166. [Turn 166: Merge and Verify Centralized Error Tracking in Production](#166-turn-166-merge-and-verify-centralized-error-tracking-in-production)
+167. [Turn 167: Reverify Existing Centralized Error Tracking](#167-turn-167-reverify-existing-centralized-error-tracking)
 
 ---
 
@@ -2931,6 +2932,20 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Root link and read-only non-interactive CLI inspection confirmed carbon-bc04/live-traffic before bounded protected production POST verification. Used the existing pinned Vercel CLI because the HTTP-fetch connector is GET-only. Generated synthetic reports in memory and passed JSON through subprocess stdin; printed only status, synthetic ID and fixed code. Valid report returned 202 with matching ID; one extra free-text field returned 400 INVALID_ERROR_REPORT. No real crash, provider/camera request, account/database access, cookie/session read, environment export or secret/protection change was involved.
 - Production/deployment-scoped Vercel MCP runtime-log search for synthetic ID 3594dd17-9721-4859-b99d-09bc759f0d24 returned the matching client_exception event in nodejs24.x/sin1, separate server-generated requestId, route errors/method POST, production environment, numeric source coordinates and exact server release 87ab7e917e8c488b3bbafd64345e79abff355901. Client release was supplied synthetic probe data, not a claim about real-browser build metadata. This establishes deployed ingestion/log receipt while existing synthetic browser/transport tests cover safe UI behavior; no all-errors/retention/delivery guarantee is made.
 - Updated docs/error-tracking.md with approved release/verification and removed its outdated pending-activation introduction. Updated this log/TOC for documentation-only commit/push on authorized main; the follow-up can cause another normal Git deployment with unchanged runtime. Existing log retention, auth flags/Neon secrets, public Firewall/rate-limit scopes, PRs #23/#29 and unrelated untracked files were not changed.
+
+---
+
+## 167. Turn 167: Reverify Existing Centralized Error Tracking
+
+**Repeated User Request:**
+> "Set up centralized error tracking that captures exceptions with context but shows users a safe message"
+
+### Current-state verification (28 October 2026, SGT):
+- Confirmed this request was already implemented and explicitly merged/deployed through PR #31 in Turns 165–166. Read the current reporter, application diagnostics, browser/root/boundary wiring, ingestion dispatch and request exception boundary rather than adding a duplicate service or contract. Local main ec7ee30 contains the approved release; runtime/config/source/tests are unchanged from merge 87ab7e917e8c488b3bbafd64345e79abff355901. Unrelated untracked files and pending PRs remain separate.
+- Vercel canonical-domain readback confirms production deployment dpl_4e6ybquvaUjXHMwpLJGVrziWrd3h READY, main SHA ec7ee30d006b41cd7a11cce7bcc098346363162a and intended canonical alias/project/team. A bounded authenticated GET to /api/live?feed=errors returns 405 METHOD_NOT_ALLOWED with Allow: POST, confirming the installed dedicated reporting operation still enforces its method contract. No additional synthetic production POST or real user exception was needed.
+- Re-ran the twelve focused synthetic error-tracking regression groups: all passed, zero failures/skips. These verify privacy, hostile errors, concurrency/correlation, safe recovery, Node/Web input/admission/body/deadline limits, browser deduplication/budgets and reporting failures. No real provider/database/account, camera URL, browser storage, environment export or secret was accessed.
+- Re-read the previous bounded production probe using its exact deployment and generated error ID. An initial since=1h log query was rejected with the Hobby retention-window error; corrected the request to since=15m through the same supported connector. The matching client_exception remains visible with numeric locations, allowlisted page/route, separate server request UUID and production release context. This is readback of the earlier synthetic probe, not a new browser error or a guarantee of unlimited retention.
+- Existing Vercel logs are the selected central destination. Users retain fixed safe recovery text plus a reference ID; raw exception text/stacks, headers, credentials, account/IP/location data and URLs stay excluded from application reports. No remaining implementation gap was found in this verification. Updated this log/TOC for documentation-only commit/push under the standing instruction; no runtime/protection/Firewall/provider configuration changes were made.
 
 ---
 
