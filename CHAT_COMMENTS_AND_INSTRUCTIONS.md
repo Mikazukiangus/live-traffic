@@ -174,6 +174,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 167. [Turn 167: Reverify Existing Centralized Error Tracking](#167-turn-167-reverify-existing-centralized-error-tracking)
 168. [Turn 168: Structured JSON Logging with Automatic Request and Verified-User Context](#168-turn-168-structured-json-logging-with-automatic-request-and-verified-user-context)
 169. [Turn 169: Merge and Verify Structured Logging in Production](#169-turn-169-merge-and-verify-structured-logging-in-production)
+170. [Turn 170: Finish Structured Logging Release Verification](#170-turn-170-finish-structured-logging-release-verification)
 
 ---
 
@@ -2983,6 +2984,19 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Read-only scoped CLI project inspection confirmed carbon-bc04/live-traffic before two bounded Vercel-authenticated production POST probes. Used generated JSON in subprocess stdin and filtered outputs only; no tokens, cookies or response headers were printed, and no environment export was used. Valid report returned 202 with generated matching ID; extra client-supplied user object returned 400 INVALID_ERROR_REPORT. No real user exception, account, database/provider/camera request, authentication activation or Firewall change was needed.
 - Production/deployment-scoped Vercel MCP log readback for synthetic ID 2c22ac22-7f57-4429-bad1-d94b1fd7c091 returned the matching schemaVersion=1/level=error/client_exception event in nodejs24.x/sin1, safe code/timestamp/coordinates, generated requestId, errors/POST route, exact production release/environment and user.status=anonymous. Anonymous receipt is intentional for credential-free browser telemetry; probe clientRelease is generated input, not evidence of real-browser metadata. Verified-user HMAC attribution remains covered by the isolated actual-session tests, without provisioning/reading a live account. These establish selected deployed paths/log receipt, not every log site, interactive UI, unlimited delivery or retention.
 - Updated docs/structured-logging.md and error-tracking cross-reference from pending activation to the approved production release, and recorded evidence/limits. Updated this log/TOC for a documentation-only follow-up commit/push on authorized main; the follow-up may trigger a normal Git deployment with unchanged runtime. Existing authentication flags/Neon secrets, logging environment values, Firewall scope and unrelated untracked files remain preserved; PRs #23/#29 remain separate and unmerged.
+
+---
+
+## 170. Turn 170: Finish Structured Logging Release Verification
+
+**User Request:**
+> "Continue"
+
+### Continuation outcome (29 October 2026, SGT):
+- Resumed the final deployment/readback step for the already approved PR #32 release. The runtime merge, 322 passing tests/type check/audit/build and production structured-event receipt/user-spoof rejection were completed in Turn 169; no duplicate implementation, account provisioning or repeated synthetic production load was needed.
+- Verified release-record commit fe336b417af46db12739a203a6699c2bcc533090 has production deployment dpl_Htkw1ohLT8U6yrHXsFmaVNV6ozcj READY for the intended live-traffic project/Carbon team and main target. Canonical-domain deployment readback resolves to that exact commit/deployment with live-traffic-carbon-bc04.vercel.app assigned; protected homepage returned HTTP 200. This completes the previously outstanding final documentation-deployment check.
+- Runtime/config/source/tests are unchanged from approved merge 4a2f056ef25257c24e8af7487ff94ada6a0d7ea8. No broad test repeat was necessary for this status/documentation-only continuation. Kept prior verified-user attribution and delivery/retention limits as documented; did not infer a new real-user flow, interactive browser pass or guarantee from homepage availability.
+- Updated this log/TOC for documentation-only commit/push under the standing instruction. No auth/database/logging environment, secrets, protection, Firewall or application runtime was changed; no separate pending PR was merged. Unrelated untracked .agents/, .claude/ and skills-lock.json remain preserved. The log-only follow-up may cause another automatic Git deployment of the same runtime.
 
 ---
 
