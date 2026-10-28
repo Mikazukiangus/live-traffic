@@ -175,6 +175,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 168. [Turn 168: Structured JSON Logging with Automatic Request and Verified-User Context](#168-turn-168-structured-json-logging-with-automatic-request-and-verified-user-context)
 169. [Turn 169: Merge and Verify Structured Logging in Production](#169-turn-169-merge-and-verify-structured-logging-in-production)
 170. [Turn 170: Finish Structured Logging Release Verification](#170-turn-170-finish-structured-logging-release-verification)
+171. [Turn 171: Confirm Existing Structured JSON Logging](#171-turn-171-confirm-existing-structured-json-logging)
 
 ---
 
@@ -2997,6 +2998,18 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Verified release-record commit fe336b417af46db12739a203a6699c2bcc533090 has production deployment dpl_Htkw1ohLT8U6yrHXsFmaVNV6ozcj READY for the intended live-traffic project/Carbon team and main target. Canonical-domain deployment readback resolves to that exact commit/deployment with live-traffic-carbon-bc04.vercel.app assigned; protected homepage returned HTTP 200. This completes the previously outstanding final documentation-deployment check.
 - Runtime/config/source/tests are unchanged from approved merge 4a2f056ef25257c24e8af7487ff94ada6a0d7ea8. No broad test repeat was necessary for this status/documentation-only continuation. Kept prior verified-user attribution and delivery/retention limits as documented; did not infer a new real-user flow, interactive browser pass or guarantee from homepage availability.
 - Updated this log/TOC for documentation-only commit/push under the standing instruction. No auth/database/logging environment, secrets, protection, Firewall or application runtime was changed; no separate pending PR was merged. Unrelated untracked .agents/, .claude/ and skills-lock.json remain preserved. The log-only follow-up may cause another automatic Git deployment of the same runtime.
+
+---
+
+## 171. Turn 171: Confirm Existing Structured JSON Logging
+
+**Repeated User Request:**
+> "Convert my logging to structured JSON that carries request and user context automatically."
+
+### Confirmation (29 October 2026, SGT):
+- Confirmed the requested conversion is already implemented and released through approved PR #32. Read the shared JSON envelope/writer, AsyncLocalStorage/HMAC identity context and automatic request-boundary enrichment. Existing lines carry schemaVersion, timestamp, level, event and safe request/release/user context; only verified sessions yield a pseudonymous user ID. Public/credential-free requests stay anonymous after validation, and early/unavailable/unverified states remain explicit. Raw credentials, account IDs, email, IP, cookies and arbitrary input are excluded as documented.
+- Canonical production readback confirms dpl_2UmRMEgyTbAVaV7r6HWWGZkgDTQv READY for main 13b5822981e1369fdb412b854bd7803d9a1fe4e8 and the intended project/team/alias. The 322-test suite and production JSON receipt/rejection checks from the approved release remain applicable; no runtime changed, so no repeat suite or synthetic production traffic was needed.
+- No additional implementation or merge approval is required for this repeated request. Updated this log/TOC for documentation-only commit/push per the standing instruction. Preserved unrelated untracked files, separate pending PRs, authentication settings, secrets, logging configuration and Firewall scope; the log-only push may trigger a normal deployment with unchanged application code.
 
 ---
 
