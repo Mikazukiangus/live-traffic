@@ -179,6 +179,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 172. [Turn 172: Critical-Path Unit and Integration Tests with Honest Coverage](#172-turn-172-critical-path-unit-and-integration-tests-with-honest-coverage)
 173. [Turn 173: Green-Build CI/CD Gate for Automatic Vercel Production Releases](#173-turn-173-green-build-cicd-gate-for-automatic-vercel-production-releases)
 174. [Turn 174: Merge Critical-Path Tests and CI/CD Gate to Main](#174-turn-174-merge-critical-path-tests-and-cicd-gate-to-main)
+175. [Turn 175: Custom Domain and DNS Setup Walkthrough](#175-turn-175-custom-domain-and-dns-setup-walkthrough)
 
 ---
 
@@ -3061,6 +3062,20 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Authenticated canonical homepage and actual module entry /assets/index-Dgvm1Ry2.js returned HTTP 200 without printing access URLs/tokens/cookies or response headers. Kept Deployment Protection, auth activation, environment secrets, database and Firewall unchanged. These are bounded availability/build checks, not an interactive browser/model/database/provider pass.
 - Post-release observability: project-level grouped errors still show the existing DEP0169 url.parse deprecation. Deployment-scoped 15-minute error/fatal count query returned 28 stderr records at that point; the latest ten detailed records were the same framework/dependency deprecation warning on imageproxy, rather than application exceptions. Did not label these counts as a clean error scan or infer that all requests/providers are healthy. Existing centralized logs/daily-health workflow remain in place; no new drain or monitoring service was configured by this merge.
 - Updated docs/ci-cd.md and docs/testing-and-coverage.md from awaiting approval to the approved release and recorded its exact evidence/limits. Updated this log/TOC for documentation-only commit/push on authorized main. That push triggers the normal gated CI/deployment flow again with unchanged runtime; final canonical readback will be checked after it completes. No other pending work is included.
+
+---
+
+## 175. Turn 175: Custom Domain and DNS Setup Walkthrough
+
+**User Request:**
+> "Walk me through pointing my domain at my host, including the DNS records I need and why."
+
+### Read-only findings and guidance (29 October 2026, SGT):
+- Applied the Vercel Domains skill and current official domain setup/DNS/SSL guidance. Authenticated project readback confirms the existing live-traffic project in Carbon; listed attached project domains (one verified default live-traffic-kappa.vercel.app) and existing deployment aliases, all Vercel-provided. No custom user domain was attached. Asked for the intended domain and DNS provider; those remain needed for exact recommended targets and ownership verification. Did not guess a domain, universal A address, CNAME target or TXT token.
+- Explained external authoritative DNS versus registration/project attachment, adding apex/www in the existing project's Production domain settings, selecting a canonical hostname and configuring its HTTP redirect in Vercel. Provided a clearly labelled A/CNAME/conditional-TXT template and why each exists, TTL/cache implications, conflicting website record review, mail-record preservation and HTTPS/certificate checks. Recommended keeping the current DNS provider rather than changing nameservers without a complete zone migration.
+- Inspected config/schema.ts and the non-secret .env.example, not local environment files. The eventual primary HTTPS origin must align with VITE_SITE_URL and a rebuild; API_CORS_ORIGINS should contain only deliberate extra frontend origins, with no wildcard. BETTER_AUTH_URL applies if login is enabled; DNS setup does not activate auth. GitHub health-job variables are separate from Vercel settings; change its credential-bearing target only to a verified owned host. Existing Deployment Protection and the green-build pipeline remain applicable.
+- Added docs/domain-setup.md and a development-guide link with steps, record purposes, application settings and official sources. Documentation/whitespace checks passed; no app runtime/test/config change required a repeated broad suite. Updated this log/TOC for documentation-only commit/push per the standing instruction. Actual DNS resolution/ownership/certificate tests await the user's domain; no connection, propagation or TLS success is claimed.
+- No DNS/domain/nameserver/email/CORS/auth/environment/protection or production runtime setting was changed. No domain was purchased/transferred and no secrets read/exported. Unrelated untracked files and pending PRs remain separate. The normal Git integration may run gated CI/deployment for the documentation-only push; it does not configure a custom domain.
 
 ---
 

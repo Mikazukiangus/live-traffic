@@ -26,6 +26,9 @@ For unit/integration test commands, CI artifacts and remaining gaps, see
 For automatic GitHub/Vercel releases and the required production check, see
 [CI/CD](docs/ci-cd.md).
 
+For connecting a domain and aligning site/API settings, see
+[Custom domain setup](docs/domain-setup.md).
+
 ## Activate the Python environment
 
 The local `.venv/` environment was created with Python 3.12.14 for helper scripts.
