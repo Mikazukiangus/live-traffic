@@ -10,7 +10,7 @@ administrator-created accounts and optional sign-in. Traffic stays public. Publi
 signup, email delivery, social login and cloud commute sync are not enabled.
 
 The free Neon resource `trafficpulse-auth-preview` (`store_MPzLJypjannI261q`) is in
-Singapore and connected only to preview/development. The five authentication tables
+Singapore and connected only to Preview after the 28 October Secret repair. The five authentication tables
 have been migrated. A real PostgreSQL synthetic user passed password verification,
 secure-cookie issuance, session reads through an independent auth instance and
 logout revocation, then its account/session/user rows were removed. No real account
@@ -114,8 +114,8 @@ Production AUTH/UI defaults stay false. Do not enable production using preview d
 ## Operator commands
 
 The repaired bootstrap on `codex/neon-secret-repair` no longer retrieves Vercel
-variable values. Preview Secrets are write-only and Development linkage is being
-removed as part of the approved repair. Obtain the matching pooled/direct credentials
+variable values. Preview Secrets are write-only and Development linkage was
+removed by the approved 28 October repair. Obtain the matching pooled/direct credentials
 through authorized access to the existing Neon resource; supply them through a
 trusted process environment or hidden terminal prompts. Never put connection URLs
 in command arguments, shell history, chat, source or logs. Existing local LTA settings
@@ -125,7 +125,7 @@ are not read or overwritten. The root Vercel project link is still validated.
 # Human operator: URL prompts are hidden and held only in this process.
 node --import tsx scripts/auth-with-database.ts smoke --prompt
 node --import tsx scripts/auth-with-database.ts create-user --prompt
-node --import tsx scripts/auth-with-database.ts preview-smoke --prompt https://live-traffic-et2v7hq8q-carbon-bc04.vercel.app
+node --import tsx scripts/auth-with-database.ts preview-smoke --prompt https://live-traffic-jn540di4y-carbon-bc04.vercel.app
 # Migration only when a reviewed schema change actually requires it:
 node --import tsx scripts/auth-with-database.ts migrate --prompt
 ```
@@ -236,82 +236,57 @@ merge alone does not turn them on. No real account or production DB was provisio
 Separate draft PR #23 remains outside this merge.
 
 
-## Config warnings on integration credentials, 28 October 2026
+## Config warnings repaired, 28 October 2026
 
-Status: repair approved in Turn 160; rotation/reconnection awaits dashboard sign-in
-and the required human credential-reset step. No external mutation has occurred yet.
-Inspection used non-decrypting metadata only. Existing resource
-`trafficpulse-auth-preview` is available and linked only to live-traffic for
-Preview/development. The warning concerns readable Config storage; it does not
-establish an outage or compromise. No connection or exposure audit was performed.
+**Completed:** the human confirmed rotation, the resource was reconnected to
+live-traffic Preview with Secret storage, and the project’s Needs Attention filter
+now has no matching variables. All sixteen provider-generated variables are Secret
+(`sensitive`) and Preview-only. Resource/database/data were preserved. No Production
+or Development DB connection remains; LTA, signing secret and branch feature gates
+retain their existing IDs/scopes.
 
-| Keys | Observed type | Remediation |
-| --- | --- | --- |
-| DATABASE_URL, DATABASE_URL_UNPOOLED | Config (`encrypted`) | Rotate at Neon, reconnect as integration Secrets |
-| PGPASSWORD, POSTGRES_PASSWORD | Config (`encrypted`) | Same rotation/reconnection |
-| POSTGRES_URL, POSTGRES_PRISMA_URL, POSTGRES_URL_NON_POOLING, POSTGRES_URL_NO_SSL | Config (`encrypted`) | Refresh all aliases from the same integration |
-| Host/user/database/project-ID aliases; feature flags | Config | Not password-bearing; do not blindly rotate/delete |
-| BETTER_AUTH_SECRET, LTA_ACCOUNT_KEY | Secret (`sensitive`) | Already classified correctly; leave untouched |
+The repaired connection is spc_Jk6p9HDGGBWtTXAv on the existing store_MPzLJypjannI261q.
+The connector applies Sensitive to all its aliases, including host/user/database/ID
+metadata; this is harmless and avoids a split source of truth. The original warning
+concerned eight credential URL/password aliases saved as readable Config. It did not
+establish compromise or an outage.
 
-[Vercel's integration-specific procedure](https://vercel.com/docs/environment-variables/sensitive-environment-variables#sensitive-environment-variables-for-integrations)
-requires disconnecting the resource from its projects, rotating its secrets,
-reconnecting without Development and enabling Sensitive, then redeploying. Generic
-Development Secrets are supported, but this integration connection has its own
-restriction. Do not attempt a type-only edit of managed aliases or assume rotation
-alone with the same Preview/development connection clears the warning.
+The [documented integration procedure](https://vercel.com/docs/environment-variables/sensitive-environment-variables#sensitive-environment-variables-for-integrations)
+was followed: disconnect, human resource-secret rotation, reconnect Preview only
+with makeEnvVarsSensitive=true, then redeploy. Generic Development Secrets are
+supported, but integration connections containing Development cannot enable Sensitive.
+CLI connect has no Sensitive flag; the supported connection API does.
 
-For this one-project resource, the proposed repair preserves the existing database
-and data; it changes only credentials and the integration connection. Reconnect
-Preview only with Sensitive enabled, redeploy the branch that enables auth, and
-verify non-decrypting metadata plus synthetic sign-in/session/logout. Keep LTA,
-signing secret, Firewall, production settings and unrelated projects unchanged.
-Credential aliases must remain coherent, including pooled vs direct roles.
+The auth-enabled Preview was rebuilt through Vercel MCP from the existing
+codex/public-api-rate-limits source ef04a8a38b284639f78ead4cac0b0f188e8cfa56 using
+current settings. Replacement deployment dpl_3oKi2DbnL8jE9WX86zuyjugYDMj2 is READY:
+https://live-traffic-jn540di4y-carbon-bc04.vercel.app. Vercel’s API target staging
+represents Preview; no production feature was enabled.
 
-[Neon-specific password reset](https://vercel.com/kb/guide/how-to-reset-a-secret-for-a-neon-integration)
-invalidates the old credential immediately. Preview auth can be interrupted until
-reconnection/redeployment completes, and old immutable deployments retain their
-old settings. A deployment rollback cannot restore a revoked password.
+Protected auth checks passed: anonymous session 200, synthetic unknown-account
+sign-in 401/AUTH_REJECTED after the database lookup, anonymous sign-out 200, all
+private/no-store. This checks the new connection credentials and expected error
+behavior; it is not a repeated successful account sign-in/revocation test or an
+explicit old-password rejection test. No real account or credential readback was
+needed. Previous full auth-flow evidence remains in earlier dated sections.
 
-Removing Development linkage also removes automatic local DB env delivery. The
-current auth-with-database bootstrap deliberately reads only Development-target
-variables and cannot retrieve write-only Preview Secrets after this change. Before
-applying the repair, arrange the local/operator path explicitly (separate development
-credentials through an authorized provider workflow, or leave local auth disabled).
-Do not export the environment, reveal Secret values or overwrite the existing local
-LTA setup. CLI 65.2.0 connect help has no Sensitive toggle; use the supported
-integration advanced settings/API and verify actual output types. These steps are
-a plan, not completed mutations. See Turn 159 for inspected IDs and scope.
+[Rotation invalidates old credentials](https://vercel.com/kb/guide/how-to-reset-a-secret-for-a-neon-integration).
+Old immutable Preview deployments retain old environment values; use the replacement
+Preview above. Redeploy other historical branches if their auth is needed. Rollback
+cannot revive a revoked password. No local env file was read or overwritten.
 
+### Local/operator access and PR #29
 
-### Approved repair preparation (Turn 160)
+The prepared operator replacement is in [draft PR #29](https://github.com/Mikazukiangus/live-traffic/pull/29),
+not yet merged to main. On the repair branch it uses authorized provider/process
+credentials or hidden TTY prompts, as shown above. It never reads Vercel env values
+or exports an environment. Supply matching pooled/direct credentials through your
+approved provider workflow; do not attempt to retrieve write-only Preview Secrets.
+Local traffic development may leave auth disabled. No new local DB was provisioned.
 
-The explicit “approve repair” authorizes rotating the existing resource, removing
-Development linkage and reconnecting Preview with Secret storage. The official
-connection API supports `makeEnvVarsSensitive: true`; CLI 65.2.0 connect does not
-expose that flag, so a plain CLI reconnect is insufficient. The published API
-operation is POST /v1/integrations/installations/{installationId}/resources/{resourceId}/connections
-with projectId, envVarEnvironments=[preview] and makeEnvVarsSensitive=true. Use the
-verified store/provider IDs and read back types/targets after execution; never print
-responses that might contain credentials.
-
-The connected tools expose resource inspection and connection APIs, but no customer
-rotation operation. The Vercel dashboard in the new Chrome repair tab is currently
-signed out. The computer-use credential-change policy requires the human to complete
-the password reset even after task approval. The resource remains connected until
-that step can be performed and promptly followed by Secret reconnection/redeployment.
-Do not claim the warning is repaired yet. Rotation, connection change, new preview
-and real auth verification remain outstanding.
-
-The operator-input replacement above is prepared on the repair branch. Five new
-regression groups plus the existing suite pass: 304 tests, no failures/skips; type
-checking, transport audit and build pass. No real DB credentials were used for those
-tests. No production setting, LTA key, signing secret or Firewall change is required.
-
-
-The prepared operator change is in [draft PR #29](https://github.com/Mikazukiangus/live-traffic/pull/29),
-head 8e344e69a99cde9f0a71ac8f5b130fa4316e5793. Both CI runs pass all 304 tests,
-type check, audit and build; its exact Preview is READY. This new branch does not
-have the old branch's auth-enabling overrides and does not itself repair credentials.
-Vercel MCP access is working; the exposed tools lack only the needed customer-side
-rotation operation. Reconnection can use the documented API/CLI. Browser sign-in
-and human credential reset remain pending, so the old connection/values are intact.
+Five new credential-boundary regression groups plus the full suite pass: 304 tests,
+no failures/skips, type checking, transport audit and build, both locally and in CI
+at operator source 8e344e69a99cde9f0a71ac8f5b130fa4316e5793. That branch’s separate
+build Preview has auth disabled by default; the replacement auth-enabled deployment
+above is the connectivity evidence. Source merge remains a separate approval.
+The external Secret repair is complete and does not depend on that merge.
