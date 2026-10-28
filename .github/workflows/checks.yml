@@ -4,20 +4,33 @@ name: Checks
 
 on:
   push:
+    branches: [main]
   pull_request:
+    branches: [main]
+
+# Vercel requires this workflow's `checks` job for production promotion.
+# One run per PR revision avoids competing push/PR checks on the same commit.
+permissions:
+  contents: read
+
+concurrency:
+  group: checks-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   checks:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, verified official tag
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4, verified official tag
         with:
           node-version: 24
       # Install exactly what bun.lock pins, the same way Vercel does (see vercel.json).
       # A package.json change without an updated bun.lock fails here instead of drifting.
-      - uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2, verified official tag
         with:
           bun-version: 1.4.1
       - run: bun install --frozen-lockfile

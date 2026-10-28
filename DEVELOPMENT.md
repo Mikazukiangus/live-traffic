@@ -23,6 +23,9 @@ app packages.
 For unit/integration test commands, CI artifacts and remaining gaps, see
 [Testing and coverage](docs/testing-and-coverage.md). The tests use Node; no Python environment is required.
 
+For automatic GitHub/Vercel releases and the required production check, see
+[CI/CD](docs/ci-cd.md).
+
 ## Activate the Python environment
 
 The local `.venv/` environment was created with Python 3.12.14 for helper scripts.
