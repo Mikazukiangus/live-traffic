@@ -127,3 +127,32 @@ the browser rejected that generated data URL. No alternate browser/protocol was
 used to bypass the restriction. Final reference deduplication is covered by the
 passing synthetic browser transport test; no final-build interactive pass is
 claimed from the earlier screenshot.
+
+## Preview publication — 28 October 2026
+
+Implementation `07c9a68645ed128b171986ebe7b12d0c18f69edf` is available in draft
+[PR #31](https://github.com/Mikazukiangus/live-traffic/pull/31). Both GitHub Checks
+runs `40694181892` and `40694097892` and Vercel checks passed. Required CI job
+`122836146071` diagnostics confirm 311 passing tests, no failures/skips, audit and
+production build.
+
+[Preview](https://live-traffic-rbxr3irtg-carbon-bc04.vercel.app) deployment
+`dpl_H6re5N2495CpaiExtJ9FHMmyvfoA` is READY for the exact implementation SHA,
+correct project/team and preview branch. Scoped CLI project inspection verified
+`carbon-bc04/live-traffic` before the protected POST probes; no environment values
+were downloaded/exported or protection changed. The fetch connector exposes GET,
+so the two POST checks used authenticated `vercel curl` with generated JSON in
+subprocess stdin, bounded deadlines and filtered output.
+
+- A synthetic valid report returned HTTP 202 and its matching error ID.
+- A synthetic payload with an extra free-text `message` field returned HTTP 400
+  `INVALID_ERROR_REPORT`.
+- A deployment-scoped Vercel runtime-log search for the valid synthetic ID returned
+  the exact `client_exception` event, separate server request UUID, allowlisted
+  route `errors`, release SHA, environment `preview`, page and numeric coordinates.
+
+This establishes deployed ingestion and centralized log receipt. It does not
+induce a real user error, crash production, verify every application catch site,
+exercise real credentials/accounts/providers, or guarantee delivery/retention.
+Production activation is still pending explicit approval to merge PR #31. The
+subsequent publication note is documentation only.
