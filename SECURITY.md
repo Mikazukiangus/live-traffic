@@ -18,6 +18,8 @@ Report suspected vulnerabilities privately to the repository owner through GitHu
 
 Keep private settings in the existing server configuration, a password manager and appropriately scoped Vercel Secrets. Never put private values in `VITE_*`, Git, command arguments, URLs, screenshots or logs. Local private env files must be owner-only (`0600`) and remain ignored; `.env.example` contains empty credentials/placeholders.
 
+`npm run security:env-permissions` checks root private env file metadata on macOS/Linux without reading values; the pre-commit hook and CI run it too. It rejects group/other permissions and symlinks. Use `chmod 600 .env.local` for the normal local file. Windows ACLs require a manual check. No `.env.local` value is copied or committed by this check.
+
 Record a responsible owner, environment, scope and rotation/review date for each credential in your private operational inventory. This repository does not establish provider expiry, IAM permissions or successful rotation.
 
 If a real secret is exposed, treat it as **COMPROMISED**: revoke/rotate it at the provider first, update its consumers, verify recovery and invalidate old deployments/sessions as applicable. Removing the Git line or rewriting history is insufficient. Coordinate any history rewrite separately; it affects forks and clones and does not revoke secrets.

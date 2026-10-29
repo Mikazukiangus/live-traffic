@@ -45,6 +45,8 @@ jobs:
         run: bun audit --audit-level=high
       - name: Type check
         run: npm run lint
+      - name: Private environment file permissions
+        run: npm run security:env-permissions
       - name: HTTPS and cookie policy
         run: npm run security:audit
       - name: Unit and integration tests with coverage
