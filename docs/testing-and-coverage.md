@@ -25,7 +25,7 @@ npm run build
 
 Tests use synthetic keys, accounts, signed links, provider responses and isolated DOM/storage. They do not need real environment files, provider calls or a live database. Loopback HTTP fixtures require permission to bind a local port. Bun's installer may automatically load `.env.local`; the Node test commands do not load it.
 
-## Measured baseline and result — 29 October 2026
+## First expansion: PR #33 baseline and result — 29 October 2026
 
 Before this change, **322 tests passed**. This change adds **22 test groups**, giving **344 passing tests**, with zero failures/skips. Type check, transport audit and production build also pass locally.
 
@@ -37,12 +37,32 @@ For **loaded modules only**, line coverage changed from **92.98% to 93.36%**, br
 
 Previously unloaded camera-feed hooks now measure 100% lines/branches/functions. Camera navigation measures 88.17% lines and 57.50% branches; account UI measures 100% lines and 80.65% branches. These numbers describe this run and do not establish browser-layout or end-to-end production correctness.
 
+## Second expansion: weather, offline storage and browser scheduling — 29 October 2026
+
+Seven additional tests bring the suite from **344 to 351 passing tests**, zero failures/skips. This change adds tests only; application runtime and dependencies are unchanged. Type check, transport audit and whitespace checks pass locally. CI runs the full suite and production build on the review branch.
+
+New unit tests exercise rain classification/severity/nearest areas, partial corridor coverage and non-mutating descriptions; offline speed snapshot precision, exact expiry boundary, malformed storage and blocked/quota-failing storage. New JSDOM integration tests mount the real shared rain and weather-alert hooks through the actual fetch/validation/resource layers, covering request coalescing, partial observations, outage/offline retention without age renewal, recovery and subscription/timer cleanup. A browser-adapter integration test verifies idle deferral, urgent notification scheduling, cancellation of the idle callback, timer fallback, safe failure logs and disposal through the real queue.
+
+Implementation `81bde8901afff1762081535316a7bed021dc5856` is published in [draft PR #34](https://github.com/Mikazukiangus/live-traffic/pull/34). [CI run 40815158352](https://github.com/Mikazukiangus/live-traffic/actions/runs/40815158352) passed all 351 tests, type check, transport audit and build. Its coverage agrees with the local figures below; the [coverage artifact](https://github.com/Mikazukiangus/live-traffic/actions/runs/40815158352/artifacts/12871619456) has seven-day retention. [Preview](https://live-traffic-5lyyo7fti-carbon-bc04.vercel.app) is READY for that SHA. Main merge awaits explicit approval.
+
+The measured runtime inventory stays **151/212 loaded**, with **61 files unmeasured**. These tests exercise previously loaded but largely uncalled modules; they do not remove the unmeasured UI gap. Loaded-module line coverage rises **93.36% → 94.22%**, branches **90.75% → 90.80%**, functions **87.86% → 89.51%**, in the local run. Per-run V8/transpiler and asynchronous-branch caveats above still apply.
+
+| Module | Previous line coverage | Current line coverage | Current branch coverage |
+| --- | ---: | ---: | ---: |
+| Browser background adapter | 47.83% | 100% | 86.67% |
+| Rain decisions/compatibility hook | 63.44% | 100% | 96.97% |
+| Shared rain-feed hook | 65.22% | 100% | 100% |
+| Offline speed snapshot | 67.57% | 100% | 90% |
+| Weather-alert hook/helpers | 68.63% | 96.08% | 100% |
+
+Tests use synthetic responses and isolated DOM/storage/timers. No real provider, account, database, model inference, location/notification permission or environment file is used. Browser-adapter scheduling tests are not proof of real-browser rendering performance or OS notification delivery.
+
 ## Weakest coverage and next work
 
 1. **Actual vehicle inference:** `src/features/vehicle-counting/engine.ts` measures 51.16% lines but only 1/7 functions. Its 100% reported branches cover just two module-level branches, not the inference algorithm. Add fixed-image tests with expected boxes/counts through the actual ONNX/WASM runtime, plus decoder/NMS assertions and browser memory/cancellation checks. Queue/cache tests cannot establish model accuracy.
 2. **Full application/browser flows:** `src/App.tsx`, the four page views and many components are never loaded. Add real-browser tests for initial cameras, checkpoint/tab selection, refresh during failure/recovery, back/forward, account dialogs, mobile keyboard/focus and service-worker install/update/offline behavior. JSDOM verifies semantic DOM/hooks, not responsive layout, image decoding, OS notifications, permissions or wake locks.
 3. **Live PostgreSQL behavior:** auth service tests use SQLite; pool configuration tests open no connection. Use a disposable test database to cover PostgreSQL migrations, session revocation, atomic per-user counters under concurrency, connection failure/recovery and multi-instance behavior. Keep credentials outside logs/reports and separate from production.
-4. **Hook and selector branches:** the lowest measured line coverage is `src/features/background/browserQueue.ts` (47.83%), followed by inference above and `src/features/radar/radarSelectors.ts` (59.52%). Rain forecast helpers (63.44%), the rain-feed hook (65.22%) and vehicle-count hook (65.79%) also leave lifecycle/failure branches unproven. Add focused mount/unmount, stale-source, cancellation, permission and missing-data scenarios before choosing per-module coverage gates.
+4. **Remaining hook, selector and UI branches:** `src/features/radar/radarSelectors.ts` measures 59.52% lines, `src/features/vehicle-counting/useVehicleCounts.ts` 65.79% and `src/components/WeatherOutlook24h.tsx` 69.11%. Add selection/missing-source branches, visible-camera lifecycle/cancellation and actual 24-hour weather rendering scenarios. The second expansion improved rain hooks, offline snapshots and the browser queue adapter; their high line coverage still does not cover every branch or prove browser performance. Choose scoped coverage gates only after agreeing on meaningful behavior scenarios.
 5. **Live upstream contracts:** fixtures validate known shapes, not current LTA/NEA/PUB availability, signed-photo expiration or deployment access. Keep bounded deployment smoke checks separate from deterministic unit/integration tests.
 
 Use `coverage/summary.json` for the complete measured and never-loaded file lists. Prioritize behavior and risk; avoid raising a global percentage by importing files without exercising them.

@@ -182,6 +182,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 175. [Turn 175: Custom Domain and DNS Setup Walkthrough](#175-turn-175-custom-domain-and-dns-setup-walkthrough)
 176. [Turn 176: Verify Existing Centralised Error Tracking and Safe Messages](#176-turn-176-verify-existing-centralised-error-tracking-and-safe-messages)
 177. [Turn 177: Confirm Structured JSON Logging with Automatic Context](#177-turn-177-confirm-structured-json-logging-with-automatic-context)
+178. [Turn 178: Extend Critical-Path Tests for Weather, Offline Data and Background Work](#178-turn-178-extend-critical-path-tests-for-weather-offline-data-and-background-work)
 
 ---
 
@@ -3108,6 +3109,22 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Canonical deployment readback identifies dpl_BJa2ZiFtVuY5cw7p9hHkr2ZR6VBq READY for intended live-traffic project/Carbon team, production and main 83e5a9d90522388292c770a757cd105089746243. Prior live structured-event receipt remains documented; did not induce another production exception/POST or provision a live account. The immediately preceding 29-test focused run, including all eleven structured-logging groups, passed with zero failures/skips. Source is unchanged, so did not repeat those tests or the broader build without a new failure/concern.
 - Raw credentials, headers/cookies, request bodies, URLs, raw user IDs/email/IP and arbitrary exception details stay outside the application logger's allowlist. Framework/dependency/hosting logs are separate and are not claimed to have been converted by this reporter. Existing Vercel logs remain the destination; no new service, key, log drain or auth activation is required.
 - Updated this log/TOC for documentation-only commit/push on main under the standing instruction. Whitespace checks pass; unrelated untracked files and separate pending PRs remain preserved. No further approval is needed for an already completed conversion. The normal gated Git deployment may run for this log-only update with unchanged runtime.
+
+---
+
+## 178. Turn 178: Extend Critical-Path Tests for Weather, Offline Data and Background Work
+
+**User Request:**
+> "write unit and integration tests for my critical paths and tell me where coverage is weakest."
+
+### Additional tests and measured results (29 October 2026, SGT):
+- Refreshed main and reviewed the already merged 344-test suite/coverage inventory from PR #33. Created codex/weather-background-coverage for the remaining actionable low-coverage weather/offline/browser-adapter paths. Preserved separate PRs #23/#29 and unrelated untracked files; no auth/secret/provider/database/Firewall/runtime setting or application source/dependency changed.
+- Added seven meaningful tests in weather-decisions.unit.test.ts and weather-ui.integration.test.tsx: rain precedence/geography/corridor partial coverage; snapshot precision/non-mutation/expiry/malformed and blocked storage; real mounted shared rain consumers and compatibility hook through fetch/resource validation, outage/offline age retention/recovery/cleanup; actual weather-alert hook partial/complete/failure/offline states; and real browser queue idle/urgent/timer fallback/failure redaction/disposal wiring. Fixtures use isolated JSDOM/storage/manual timers and synthetic responses, with no environment file, real account/provider/model inference or live database.
+- All seven new tests passed. TypeScript initially inferred an empty array as never[] after an assertion; changed the fixture's empty-array assertion to a length check, without changing runtime code. Final full coverage run passes 351 tests, zero failures/skips; type check, HTTPS/cookie transport audit and whitespace checks pass. CI will run the same complete suite and production build after push; no redundant local application build was needed for test-only changes.
+- Same 212-file runtime inventory: 151 loaded and 61 unmeasured. Loaded-only lines improved 93.36% to 94.22%, branches 90.75% to 90.80%, functions 87.86% to 89.51% in the local run. Background browser adapter lines 47.83% to 100% (86.67% branches), rain helpers 63.44% to 100% (96.97% branches), rain-feed hook 65.22% to 100%, speed snapshot 67.57% to 100% (90% branches), weather alerts 68.63% to 96.08%. These exercise uncalled functions in loaded files rather than merely importing absent modules. Coverage artifacts stay ignored; reports still distinguish never-loaded modules instead of inventing whole-app coverage.
+- Updated docs/testing-and-coverage.md with the new tests/results and current weakest paths: actual inference engine 51.16% lines/1 of 7 functions; radar selectors 59.52%; vehicle-count hook 65.79%; weather outlook component 69.11%; plus the larger never-loaded App/views/browser and live PostgreSQL gaps. No real-browser/model accuracy/live DB or provider-availability proof is inferred from JSDOM/SQLite/fixtures.
+- Committed/pushed 81bde8901afff1762081535316a7bed021dc5856 and opened/attached draft PR #34 (https://github.com/Mikazukiangus/live-traffic/pull/34), targeting main and mergeable. CI run 40815158352/job 123254387670 passed all 351 tests, zero failures, type check, audit and production build. Its coverage matches local measurements and artifact 12871619456 contains both reports for the configured seven-day retention. Preview dpl_JBnL3NuEgzimLR5E5PfFQT6feBSH is READY at https://live-traffic-5lyyo7fti-carbon-bc04.vercel.app for the exact implementation SHA and intended project/team. No actual provider/database/browser/model inference test or production probe was inferred from Preview readiness.
+- Recorded publication evidence in the coverage guide and this log for documentation-only follow-up commit/push. Main merge still requires explicit user approval; no unrelated or previous pending work was merged.
 
 ---
 
