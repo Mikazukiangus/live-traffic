@@ -3170,7 +3170,9 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - All three new regression tests failed on the audited baseline and passed after the fixes. Fifteen focused auth tests and the existing TypeScript check pass. Full-suite/category verification will be recorded as implementation progresses.
 - Auth category post-commit verification: 352 of 354 full-suite tests passed inside the sandbox; the two blocked tests required loopback HTTP sockets and both passed in the subsequent 10-test local HTTP/timeout run. TypeScript and transport checks pass.
 - Image category (F03): the proxy now cancels declared or streamed bodies above 5 MiB, checks JPEG start/end markers and accepts official octet-stream JPEGs. SVG/HTML, truncated and oversized bodies fail safely without caching. The two negative regressions failed before the fix; all 14 focused image/request/pipeline tests and type checking now pass. The existing URL test fixture was strengthened from arbitrary bytes to a JPEG fixture while preserving exact byte comparisons.
-- F04/F06/F07/F09 are next within the approved scope. F08, F10 and F11 and all cloud-only checks remain deferred. Unrelated .agents/, .claude/ and skills-lock.json remain untouched; no real credentials are printed or committed.
+- Image category full-suite follow-up: the remaining CORS image fixtures were strengthened to valid JPEG bytes without removing assertions. All 358 current tests pass with local loopback fixtures, alongside type checking and the transport audit.
+- Framing category (F04): the shared Vercel/dev-preview header policy now sets frame-ancestors none and X-Frame-Options DENY. The regression failed before this change and all eight framing/transport tests now pass. Existing script, worker, TLS and broader CSP settings are preserved; embedding this app in an iframe is intentionally denied.
+- F06/F07/F09 are next within the approved scope. F08, F10 and F11 and all cloud-only checks remain deferred. Unrelated .agents/, .claude/ and skills-lock.json remain untouched; no real credentials are printed or committed.
 
 ---
 
