@@ -1,7 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-// Deliberately exercise many rejected bodies; circuit thresholds are tested independently.
-process.env.PROVIDER_CIRCUIT_FAILURE_THRESHOLD = '50';
+// Use the real circuit policy: caller-selected invalid content must not pause healthy images.
 const { default: proxy } = await import('../api/imageproxy.ts');
 
 const jpeg = Uint8Array.from([255, 216, 255, 224, 0, 1, 255, 217]);
@@ -50,4 +49,18 @@ test('image proxy preserves bounded JPEG bytes for official octet-stream images'
     assert.equal(response.status, 200); assert.equal(response.headers.get('content-type'), 'image/jpeg');
     assert.deepEqual(new Uint8Array(await response.arrayBuffer()), jpeg);
   } finally { globalThis.fetch = fetch; }
+});
+
+test('repeated caller-selected invalid images cannot open the shared provider circuit', async () => {
+  const fetch = globalThis.fetch, error = console.error;
+  console.error = () => {};
+  try {
+    const target = new Request('https://fixture.test/api/imageproxy?url=' + encodeURIComponent('https://datamall.lta.gov.sg/not-an-image'));
+    for (let i = 0; i < 8; i++) {
+      globalThis.fetch = async () => new Response('synthetic non-image page', { headers: { 'content-type': 'text/html' } });
+      assert.equal((await proxy(target.clone()) as Response).status, 502);
+    }
+    globalThis.fetch = async () => new Response(jpeg, { headers: { 'content-type': 'image/jpeg' } });
+    assert.equal((await proxy(target.clone()) as Response).status, 200);
+  } finally { globalThis.fetch = fetch; console.error = error; }
 });

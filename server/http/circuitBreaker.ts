@@ -1,5 +1,6 @@
 import { CircuitOpenError, InvalidPayloadError, UpstreamHttpError } from '../../shared/diagnostics.ts';
 import { transientReadError } from '../../shared/readRetry.ts';
+import { ImagePolicyError } from './readImage.ts';
 
 export interface CircuitPermit { recovery: boolean; check: () => void }
 export type CircuitRunner = <T>(url: string, operation: (permit: CircuitPermit) => Promise<T>, caller?: AbortSignal | null) => Promise<T>;
@@ -8,7 +9,7 @@ interface State { generation: number; failures: number[]; until: number | null; 
 
 /** Rate limits/auth/policy errors and caller cancellation are not provider outages. */
 export function circuitFailure(error: unknown): boolean {
-  if (error instanceof CircuitOpenError) return false;
+  if (error instanceof CircuitOpenError || error instanceof ImagePolicyError) return false;
   if (error instanceof UpstreamHttpError) return [408, 500, 502, 503, 504].includes(error.status);
   return error instanceof InvalidPayloadError || error instanceof SyntaxError || transientReadError(error);
 }
