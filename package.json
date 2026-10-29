@@ -13,6 +13,8 @@
     "test:coverage": "node --import tsx scripts/test-coverage.ts",
     "config:example": "node --import tsx scripts/generate-env-example.ts",
     "security:audit": "node --import tsx scripts/transport-audit.ts",
+    "security:secrets": "node --import tsx scripts/secret-scan.ts",
+    "security:hooks": "git config --local core.hooksPath .githooks",
     "auth:migrate": "node --import tsx scripts/auth-migrate.ts"
   },
   "dependencies": {
