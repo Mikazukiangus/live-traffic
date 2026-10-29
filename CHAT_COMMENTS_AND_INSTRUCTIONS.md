@@ -183,6 +183,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 176. [Turn 176: Verify Existing Centralised Error Tracking and Safe Messages](#176-turn-176-verify-existing-centralised-error-tracking-and-safe-messages)
 177. [Turn 177: Confirm Structured JSON Logging with Automatic Context](#177-turn-177-confirm-structured-json-logging-with-automatic-context)
 178. [Turn 178: Extend Critical-Path Tests for Weather, Offline Data and Background Work](#178-turn-178-extend-critical-path-tests-for-weather-offline-data-and-background-work)
+179. [Turn 179: Approved Merge of Additional Critical-Path Tests](#179-turn-179-approved-merge-of-additional-critical-path-tests)
 
 ---
 
@@ -3125,6 +3126,19 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Updated docs/testing-and-coverage.md with the new tests/results and current weakest paths: actual inference engine 51.16% lines/1 of 7 functions; radar selectors 59.52%; vehicle-count hook 65.79%; weather outlook component 69.11%; plus the larger never-loaded App/views/browser and live PostgreSQL gaps. No real-browser/model accuracy/live DB or provider-availability proof is inferred from JSDOM/SQLite/fixtures.
 - Committed/pushed 81bde8901afff1762081535316a7bed021dc5856 and opened/attached draft PR #34 (https://github.com/Mikazukiangus/live-traffic/pull/34), targeting main and mergeable. CI run 40815158352/job 123254387670 passed all 351 tests, zero failures, type check, audit and production build. Its coverage matches local measurements and artifact 12871619456 contains both reports for the configured seven-day retention. Preview dpl_JBnL3NuEgzimLR5E5PfFQT6feBSH is READY at https://live-traffic-5lyyo7fti-carbon-bc04.vercel.app for the exact implementation SHA and intended project/team. No actual provider/database/browser/model inference test or production probe was inferred from Preview readiness.
 - Recorded publication evidence in the coverage guide and this log for documentation-only follow-up commit/push. Main merge still requires explicit user approval; no unrelated or previous pending work was merged.
+
+---
+
+## 179. Turn 179: Approved Merge of Additional Critical-Path Tests
+
+**User Approval:**
+> "merged approved"
+
+### Approved merge and release verification (29 October 2026, SGT):
+- Interpreted approval as authorization to merge the just-presented PR #34. Verified it remained open/draft, mergeable and targeted main with expected head 092ef5f1426490bf04a1b62bbcd467745518d994. Required CI run 40815305527/job 123254850692 passed all 351 tests, zero failures, audit and build; exact-head Preview dpl_FLgaosF89tw91yXxwAwpHfkNrveu was READY. Marked ready and merged with expected_head_sha as 33ad5f2b7d53d037251c32b7d5dffa32311221a6. Refreshed/fast-forwarded local main without touching unrelated untracked files or separate pending PRs #23/#29.
+- Main-triggered Checks run 40815492581/job 123255446895 passed all 351 tests, zero failures, type check, HTTPS/cookie transport audit, coverage upload (artifact 12871992124) and build. Native coverage reports 151/212 runtime files loaded, lines 94.22%, branches 90.82%, functions 89.51%; slight branch variation versus local is within the documented per-run/asynchronous coverage limitation. Did not repeat the already passing local suite for an unchanged approved test implementation.
+- Production deployment dpl_31LMmVcHPMJU4SHdbcnDAGAsJhkQ reached READY for intended live-traffic project/Carbon team, production target and exact merge SHA; production aliases are assigned through the existing Git integration/check gate. Canonical-domain deployment readback matches that exact release, and the authenticated homepage returns HTTP 200. No manual or force promotion, new credential or protection change was needed. Application runtime/config/source/dependencies are unchanged; this merge adds tests and coverage documentation only.
+- Updated docs/testing-and-coverage.md from awaiting approval to the approved merge/main CI evidence. Kept remaining inference, real-browser and live PostgreSQL limitations explicit. Updated this log/TOC for a documentation-only commit/push on authorized main; that follow-up triggers the normal gated deployment with unchanged runtime. Final canonical readback is checked after the follow-up. No provider/account/database/model inference load or live exception probe was added for this release.
 
 ---
 
