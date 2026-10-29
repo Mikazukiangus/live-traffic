@@ -116,7 +116,8 @@ test('proxy input rejects malformed URLs and unsafe destinations before transpor
   const proxy = routes.find((r) => r.name === 'imageproxy')!.module.default;
   const original = globalThis.fetch;
   const calls: string[] = [];
-  globalThis.fetch = async (url) => { calls.push(String(url)); return new Response(new Uint8Array([1, 2, 3])); };
+  const jpeg = new Uint8Array([255, 216, 255, 224, 1, 2, 3, 255, 217]);
+  globalThis.fetch = async (url) => { calls.push(String(url)); return new Response(jpeg); };
   try {
     for (const url of ['', 'not-a-url', 'https://images.data.gov.sg/bad%ZZ', 'https://images.data.gov.sg/a b',
       'http://images.data.gov.sg/x', 'https://images.data.gov.sg.evil.test/x', 'https://user:pass@images.data.gov.sg/x',
@@ -131,7 +132,7 @@ test('proxy input rejects malformed URLs and unsafe destinations before transpor
     const response = await proxy(new Request('https://example.test/api/imageproxy?url=' + encodeURIComponent(signed))) as Response;
     assert.equal(response.status, 200);
     assert.deepEqual(calls, [signed]);
-    assert.equal((await response.arrayBuffer()).byteLength, 3);
+    assert.deepEqual(new Uint8Array(await response.arrayBuffer()), jpeg);
   } finally { globalThis.fetch = original; }
 });
 
