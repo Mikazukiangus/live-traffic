@@ -181,6 +181,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 174. [Turn 174: Merge Critical-Path Tests and CI/CD Gate to Main](#174-turn-174-merge-critical-path-tests-and-cicd-gate-to-main)
 175. [Turn 175: Custom Domain and DNS Setup Walkthrough](#175-turn-175-custom-domain-and-dns-setup-walkthrough)
 176. [Turn 176: Verify Existing Centralised Error Tracking and Safe Messages](#176-turn-176-verify-existing-centralised-error-tracking-and-safe-messages)
+177. [Turn 177: Confirm Structured JSON Logging with Automatic Context](#177-turn-177-confirm-structured-json-logging-with-automatic-context)
 
 ---
 
@@ -3092,6 +3093,21 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Re-ran all 29 focused synthetic groups across error-tracking.test.ts, structured-logging.test.ts and camera-ui.integration.test.tsx: 29 passed, zero failures/skips. They cover context concurrency, hostile exceptions/getters, sink/transport failures, strict ingestion/deadlines/budgets/privacy, verified/revoked session attribution and actual React safe fallback/reference/retry recovery, with isolated fixtures and no live credentials. No secret or local environment file was read/exported. Updated the error-tracking guide's current status while preserving historical 311/322-test release evidence; full suite is now 344 following PR #33.
 - Existing Vercel logs remain the chosen central destination. Delivery/retention is bounded by clients and hosting; this does not provision durable issue storage, alert rules, source-map symbolication or a new monitoring account. Framework/dependency diagnostics remain outside the app reporter's allowlist. No new setup, main implementation merge approval or service credentials are required for this repeated request.
 - Updated this log/TOC and current guide for documentation-only commit/push on main per the standing instruction. Whitespace checks pass; no runtime change calls for a repeat full build. Unrelated untracked .agents/, .claude/ and skills-lock.json and separate pending PRs remain untouched. The normal gated Git deployment may run for the documentation-only push.
+
+---
+
+## 177. Turn 177: Confirm Structured JSON Logging with Automatic Context
+
+**User Request:**
+> "convert my logging to structured JSON that carries request and user context automatically."
+
+### Current implementation confirmation (29 October 2026, SGT):
+- Confirmed the requested conversion is already approved/deployed through PR #32. Re-read shared/logging.ts, server/observability/context.ts, userContext.ts and docs/structured-logging.md. Application events share one versioned JSON envelope with ISO timestamp, severity, event, allowlisted fields and automatic safe context. AsyncLocalStorage preserves generated request IDs across awaited/nested calls and isolates concurrent requests. Outside a request, no request ID is invented.
+- Verified-user enrichment uses server-side session validation and an environment-specific HMAC pseudonym, never submitted user IDs/headers or raw account/session data. Anonymous/unverified/unavailable states remain explicit; optional bounded lookup failure does not block public requests. Existing login activation remains unchanged; public production traffic is anonymous after admission, and credential-free browser telemetry does not acquire user identity.
+- Refreshed main and confirmed application runtime source still matches approved merge 4a2f056ef25257c24e8af7487ff94ada6a0d7ea8. A fresh source scan finds the sole application console sink at shared/logging.ts, where events are JSON-serialized after field projection. No duplicate logger, raw console migration or new implementation/configuration change is necessary.
+- Canonical deployment readback identifies dpl_BJa2ZiFtVuY5cw7p9hHkr2ZR6VBq READY for intended live-traffic project/Carbon team, production and main 83e5a9d90522388292c770a757cd105089746243. Prior live structured-event receipt remains documented; did not induce another production exception/POST or provision a live account. The immediately preceding 29-test focused run, including all eleven structured-logging groups, passed with zero failures/skips. Source is unchanged, so did not repeat those tests or the broader build without a new failure/concern.
+- Raw credentials, headers/cookies, request bodies, URLs, raw user IDs/email/IP and arbitrary exception details stay outside the application logger's allowlist. Framework/dependency/hosting logs are separate and are not claimed to have been converted by this reporter. Existing Vercel logs remain the destination; no new service, key, log drain or auth activation is required.
+- Updated this log/TOC for documentation-only commit/push on main under the standing instruction. Whitespace checks pass; unrelated untracked files and separate pending PRs remain preserved. No further approval is needed for an already completed conversion. The normal gated Git deployment may run for this log-only update with unchanged runtime.
 
 ---
 
