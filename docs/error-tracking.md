@@ -4,6 +4,17 @@ The [structured-logging extension](structured-logging.md), approved and released
 through PR #32, unifies non-error diagnostics and adds automatic pseudonymous
 verified-user context. Its release evidence is recorded separately from PR #31 below.
 
+Current verification (29 October 2026): this setup is already deployed. Canonical
+production readback identifies READY deployment `dpl_AFBG1YmpswXVtSQCBQNZu2k6NPL5`
+at main `ec0637449b6116e2a74060cd312f91eb44a32c15`. Runtime source still matches
+the approved structured-logging release. All 29 focused tests in
+`error-tracking.test.ts`, `structured-logging.test.ts` and
+`camera-ui.integration.test.tsx` passed, with zero failures/skips, including the
+real React safe-message/reference/retry flow. The broader suite reached 344 tests
+in PR #33; earlier counts below describe their historical release runs. This
+confirmation did not generate another production exception or telemetry probe;
+the deployed receipt evidence remains recorded in the production-release section.
+
 The user selected existing Vercel logs rather than a new external service. This
 implementation adds no account, secret, paid integration, database table or extra
 Vercel Function. It was explicitly approved and merged through PR #31; production

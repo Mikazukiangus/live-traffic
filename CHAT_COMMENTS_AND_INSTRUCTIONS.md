@@ -180,6 +180,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 173. [Turn 173: Green-Build CI/CD Gate for Automatic Vercel Production Releases](#173-turn-173-green-build-cicd-gate-for-automatic-vercel-production-releases)
 174. [Turn 174: Merge Critical-Path Tests and CI/CD Gate to Main](#174-turn-174-merge-critical-path-tests-and-cicd-gate-to-main)
 175. [Turn 175: Custom Domain and DNS Setup Walkthrough](#175-turn-175-custom-domain-and-dns-setup-walkthrough)
+176. [Turn 176: Verify Existing Centralised Error Tracking and Safe Messages](#176-turn-176-verify-existing-centralised-error-tracking-and-safe-messages)
 
 ---
 
@@ -3076,6 +3077,21 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Inspected config/schema.ts and the non-secret .env.example, not local environment files. The eventual primary HTTPS origin must align with VITE_SITE_URL and a rebuild; API_CORS_ORIGINS should contain only deliberate extra frontend origins, with no wildcard. BETTER_AUTH_URL applies if login is enabled; DNS setup does not activate auth. GitHub health-job variables are separate from Vercel settings; change its credential-bearing target only to a verified owned host. Existing Deployment Protection and the green-build pipeline remain applicable.
 - Added docs/domain-setup.md and a development-guide link with steps, record purposes, application settings and official sources. Documentation/whitespace checks passed; no app runtime/test/config change required a repeated broad suite. Updated this log/TOC for documentation-only commit/push per the standing instruction. Actual DNS resolution/ownership/certificate tests await the user's domain; no connection, propagation or TLS success is claimed.
 - No DNS/domain/nameserver/email/CORS/auth/environment/protection or production runtime setting was changed. No domain was purchased/transferred and no secrets read/exported. Unrelated untracked files and pending PRs remain separate. The normal Git integration may run gated CI/deployment for the documentation-only push; it does not configure a custom domain.
+
+---
+
+## 176. Turn 176: Verify Existing Centralised Error Tracking and Safe Messages
+
+**User Request:**
+> "Set up centralised error tracking that captures exceptions with context, but shows users a safe message."
+
+### Verification outcome (29 October 2026, SGT):
+- Confirmed the request is already implemented and approved/deployed through PR #31, with automatic structured request/verified-user context extended in PR #32. Re-read shared exception projection/JSON writer, AsyncLocalStorage context, browser transport and ingestion, API exception boundary and React/global recovery wiring. Runtime source in api/config/server/shared/src/proxy.ts/vite.config.ts remains unchanged from approved structured-logging merge 4a2f056ef25257c24e8af7487ff94ada6a0d7ea8. Did not introduce a duplicate tracking integration or change existing privacy/contracts.
+- Server exceptions and browser errors/rejections reach existing Vercel logs as allowlisted JSON with errorId, classification, numeric coordinates, bounded grouping fingerprint and safe request/route/page/release/environment context. Verified server sessions can supply HMAC-pseudonymous user context; credential-free client telemetry remains anonymous and rejects submitted identity/free text. Raw messages/stacks/headers/bodies/keys/cookies/account identifiers and signed camera URLs are excluded by the application reporter. UI/API callers receive fixed safe messages and a support reference; page/root recovery actions remain available.
+- Canonical Vercel deployment readback confirms dpl_AFBG1YmpswXVtSQCBQNZu2k6NPL5 READY, production target, intended live-traffic project/Carbon team and main SHA ec0637449b6116e2a74060cd312f91eb44a32c15. This is current release metadata plus unchanged runtime, not a new production ingestion/interactive-browser proof. Prior deployed valid-report/log-receipt and malformed-report rejection evidence is retained in docs/error-tracking.md; no duplicate synthetic production exception/POST or account/provider/database request was needed.
+- Re-ran all 29 focused synthetic groups across error-tracking.test.ts, structured-logging.test.ts and camera-ui.integration.test.tsx: 29 passed, zero failures/skips. They cover context concurrency, hostile exceptions/getters, sink/transport failures, strict ingestion/deadlines/budgets/privacy, verified/revoked session attribution and actual React safe fallback/reference/retry recovery, with isolated fixtures and no live credentials. No secret or local environment file was read/exported. Updated the error-tracking guide's current status while preserving historical 311/322-test release evidence; full suite is now 344 following PR #33.
+- Existing Vercel logs remain the chosen central destination. Delivery/retention is bounded by clients and hosting; this does not provision durable issue storage, alert rules, source-map symbolication or a new monitoring account. Framework/dependency diagnostics remain outside the app reporter's allowlist. No new setup, main implementation merge approval or service credentials are required for this repeated request.
+- Updated this log/TOC and current guide for documentation-only commit/push on main per the standing instruction. Whitespace checks pass; no runtime change calls for a repeat full build. Unrelated untracked .agents/, .claude/ and skills-lock.json and separate pending PRs remain untouched. The normal gated Git deployment may run for the documentation-only push.
 
 ---
 
