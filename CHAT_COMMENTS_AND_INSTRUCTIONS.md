@@ -185,6 +185,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 178. [Turn 178: Extend Critical-Path Tests for Weather, Offline Data and Background Work](#178-turn-178-extend-critical-path-tests-for-weather-offline-data-and-background-work)
 179. [Turn 179: Approved Merge of Additional Critical-Path Tests](#179-turn-179-approved-merge-of-additional-critical-path-tests)
 180. [Turn 180: Confirm Active Green-Build Vercel CI/CD Pipeline](#180-turn-180-confirm-active-green-build-vercel-cicd-pipeline)
+181. [Turn 181: Approved Security Audit Remediation](#181-turn-181-approved-security-audit-remediation)
 
 ---
 
@@ -3154,6 +3155,20 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Canonical deployment readback identifies dpl_JBspWAvscQm5M93szJ1hKzEKqXpf READY, production target, intended live-traffic project/Carbon team and exact main SHA f93d9d366aa5a8e0c5905ebd97e4742a5d25dcdf. Its Checks run 40815747920/job 123256260121 is successful; every install/type/audit/test/coverage/upload/build step passed. No duplicate pipeline execution or repeated broad local suite was needed for unchanged code/configuration. No manual or force promotion was performed.
 - Added the current confirmation to docs/ci-cd.md and updated this log/TOC for documentation-only commit/push under the standing instruction. This does not reconfigure or newly enable CI/CD; the saved production gate is already active. Existing Preview behavior and explicit human main-merge approval policy remain unchanged. No new setup/approval is needed for this repeated request.
 - Unrelated untracked files and separate pending PRs remain untouched. No environment export, application/provider/database traffic or secret access was required. Whitespace checks pass; the normal gated Git deployment may run for the documentation-only update with unchanged runtime/workflow.
+
+---
+
+## 181. Turn 181: Approved Security Audit Remediation
+
+**User Request:**
+> "fixed those you recommend"
+
+### Approved scope and boundaries (29 October 2026, SGT):
+- The preceding read-only audit covered main at f13253c. The user approved the recommended F01–F07 and F09 remediation. Work is isolated on security/audit-20261029; no main merge, production mutation, third-party network access or cloud inspection is authorized. The audit's newer no-network restriction overrides the standing push instruction until a GitHub push is separately approved.
+- Auth category (F01/F02/F05): Better Auth hooks add a shared, HMAC-keyed account attempt budget (10 per fixed 15-minute window), in addition to the existing five-per-IP budget. Successful attempts also consume this budget to reserve concurrency before password hashing. Blocked attempts do not prolong the cooldown. Uses the existing unique-key table and atomic adapter increments, so no new dependency or schema migration is required.
+- Logout first performs authoritative revocation through Better Auth's adapter; failure now propagates as a sanitized 503 instead of false success. Session renewal is disabled, GET verification does not mutate storage, and an absolute 24-hour creation-age check rejects previously sliding sessions too. Expired sessions require sign-in again; login remains disabled wherever its existing flag is disabled.
+- All three new regression tests failed on the audited baseline and passed after the fixes. Fifteen focused auth tests and the existing TypeScript check pass. Full-suite/category verification will be recorded as implementation progresses.
+- F03/F04/F06/F07/F09 are next within the approved scope. F08, F10 and F11 and all cloud-only checks remain deferred. Unrelated .agents/, .claude/ and skills-lock.json remain untouched; no real credentials are printed or committed.
 
 ---
 
