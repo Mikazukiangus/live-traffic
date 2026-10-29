@@ -184,6 +184,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 177. [Turn 177: Confirm Structured JSON Logging with Automatic Context](#177-turn-177-confirm-structured-json-logging-with-automatic-context)
 178. [Turn 178: Extend Critical-Path Tests for Weather, Offline Data and Background Work](#178-turn-178-extend-critical-path-tests-for-weather-offline-data-and-background-work)
 179. [Turn 179: Approved Merge of Additional Critical-Path Tests](#179-turn-179-approved-merge-of-additional-critical-path-tests)
+180. [Turn 180: Confirm Active Green-Build Vercel CI/CD Pipeline](#180-turn-180-confirm-active-green-build-vercel-cicd-pipeline)
 
 ---
 
@@ -3139,6 +3140,20 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Main-triggered Checks run 40815492581/job 123255446895 passed all 351 tests, zero failures, type check, HTTPS/cookie transport audit, coverage upload (artifact 12871992124) and build. Native coverage reports 151/212 runtime files loaded, lines 94.22%, branches 90.82%, functions 89.51%; slight branch variation versus local is within the documented per-run/asynchronous coverage limitation. Did not repeat the already passing local suite for an unchanged approved test implementation.
 - Production deployment dpl_31LMmVcHPMJU4SHdbcnDAGAsJhkQ reached READY for intended live-traffic project/Carbon team, production target and exact merge SHA; production aliases are assigned through the existing Git integration/check gate. Canonical-domain deployment readback matches that exact release, and the authenticated homepage returns HTTP 200. No manual or force promotion, new credential or protection change was needed. Application runtime/config/source/dependencies are unchanged; this merge adds tests and coverage documentation only.
 - Updated docs/testing-and-coverage.md from awaiting approval to the approved merge/main CI evidence. Kept remaining inference, real-browser and live PostgreSQL limitations explicit. Updated this log/TOC for a documentation-only commit/push on authorized main; that follow-up triggers the normal gated deployment with unchanged runtime. Final canonical readback is checked after the follow-up. No provider/account/database/model inference load or live exception probe was added for this release.
+
+---
+
+## 180. Turn 180: Confirm Active Green-Build Vercel CI/CD Pipeline
+
+**User Request:**
+> "set up a CI/CD pipeline that auto-deploys my app on green builds to my platform."
+
+### Existing pipeline verification (29 October 2026, SGT):
+- Confirmed this request is already configured and approved/deployed through PR #33. Re-read .github/workflows/checks.yml and docs/ci-cd.md; workflow/Vercel source configuration is unchanged from approved merge 93078e80bd490cf30583504e3068c26c7f18565c. PRs targeting main get review checks/Preview; main pushes get a fresh checks job. Install is frozen/pinned, permissions are contents:read, checkout credentials are not retained, superseded runs are cancelled, and the job runs type check, transport audit, all tests/coverage, artifact upload and build. The current suite contains 351 tests following approved PR #34.
+- Reopened the existing authenticated Vercel settings tab and explicitly reloaded it to avoid stale dashboard state. Fresh visible readback confirms checks/GitHub/Production/All Checks; opening the Production behavior control shows Blocking. No setting was changed, no new credential/workflow/paid service was added, and no protection was relaxed. Existing automatic production assignment and main tracking remain the configured release path already verified during PR #33/#34 releases.
+- Canonical deployment readback identifies dpl_JBspWAvscQm5M93szJ1hKzEKqXpf READY, production target, intended live-traffic project/Carbon team and exact main SHA f93d9d366aa5a8e0c5905ebd97e4742a5d25dcdf. Its Checks run 40815747920/job 123256260121 is successful; every install/type/audit/test/coverage/upload/build step passed. No duplicate pipeline execution or repeated broad local suite was needed for unchanged code/configuration. No manual or force promotion was performed.
+- Added the current confirmation to docs/ci-cd.md and updated this log/TOC for documentation-only commit/push under the standing instruction. This does not reconfigure or newly enable CI/CD; the saved production gate is already active. Existing Preview behavior and explicit human main-merge approval policy remain unchanged. No new setup/approval is needed for this repeated request.
+- Unrelated untracked files and separate pending PRs remain untouched. No environment export, application/provider/database traffic or secret access was required. Whitespace checks pass; the normal gated Git deployment may run for the documentation-only update with unchanged runtime/workflow.
 
 ---
 

@@ -24,6 +24,12 @@ The updated workflow ran successfully on implementation commit `844f47c808b2ecf5
 
 The production merge passed [Checks run 40789246625](https://github.com/Mikazukiangus/live-traffic/actions/runs/40789246625): all 344 tests, type check, transport audit, artifact upload and build. Production deployment `dpl_DPWzhLGczuH7oFgZQkMVLfuwfzRn` reached READY and canonical-domain readback resolves to the exact merge SHA. Homepage and its actual module entry returned HTTP 200 through authenticated access. No manual/force promotion was used. This verifies the automatic main release path; the intermediate waiting state and a deliberately failing production check were not exercised. Test/build/tooling changed, while application runtime remained unchanged.
 
+## Current confirmation — 29 October 2026
+
+The pipeline is already active; no second deployment workflow is required. A fresh dashboard reload confirms the GitHub `checks` requirement still applies to Production with **Blocking** behavior. The source workflow/Vercel configuration is unchanged from approved PR #33.
+
+After PR #34 expanded the suite to 351 tests, the latest released main revision `f93d9d366aa5a8e0c5905ebd97e4742a5d25dcdf` passed [Checks run 40815747920](https://github.com/Mikazukiangus/live-traffic/actions/runs/40815747920), including install, type check, transport audit, tests/coverage, artifact upload and build. Canonical production readback identifies READY deployment `dpl_JBspWAvscQm5M93szJ1hKzEKqXpf` for that exact revision. This confirmation makes no new platform/configuration change or manual promotion.
+
 ## Maintenance and troubleshooting
 
 - Open the GitHub **Checks** run for the exact deployed commit. A PR run checks the proposed merge; production must have a successful run on its own `main` commit. Fix failures through a reviewed change or rerun a genuinely transient failure.
