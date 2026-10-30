@@ -113,7 +113,7 @@ Production AUTH/UI defaults stay false. Do not enable production using preview d
 
 ## Operator commands
 
-The repaired bootstrap on `codex/neon-secret-repair` no longer retrieves Vercel
+The repaired bootstrap integrated from PR #29 no longer retrieves Vercel
 variable values. Preview Secrets are write-only and Development linkage was
 removed by the approved 28 October repair. Obtain the matching pooled/direct credentials
 through authorized access to the existing Neon resource; supply them through a
@@ -290,3 +290,13 @@ at operator source 8e344e69a99cde9f0a71ac8f5b130fa4316e5793. That branch’s sep
 build Preview has auth disabled by default; the replacement auth-enabled deployment
 above is the connectivity evidence. Source merge remains a separate approval.
 The external Secret repair is complete and does not depend on that merge.
+
+## Approved integration — 30 October 2026
+
+The user approved #29 alongside #23 and the security audit. The combined source
+retains hidden prompts/authorized process inputs and the newer safe structured logger.
+Synthetic operator URL fixtures were constructed with URL objects so the active
+secret guard needs no new exception. No database command, credential retrieval,
+rotation or auth/Firewall enablement accompanies this source merge. Turn 184 records
+final checks and main release status. The 28 October preview evidence above remains
+historical, not a new live database verification.

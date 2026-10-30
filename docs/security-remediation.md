@@ -2,6 +2,15 @@
 
 Baseline: `main` at `f13253c633347d239df8cbe54adbafee182b91aa`. The user approved F01–F07 and F09 after the read-only audit. Changes are on `security/audit-20261029`; no main merge, production access, credential rotation or database migration is included. The initial work was offline. On 30 October the user explicitly authorized the scanner download, secret/dependency checks, hook activation and security-branch push. No main merge, production mutation or broader cloud inspection was authorized.
 
+## Main merge approved — 30 October 2026
+
+The user subsequently approved merging the audit branch and outstanding PRs #23/#29.
+Both exact PR heads are integrated with queue/logging conflicts resolved. A combined
+PR is checked before merging through the existing main/production gate. This approval
+does not enable authentication, change cloud protection, run a database migration or
+expand the deferred finding scope. Project-log Turn 184 records final release evidence;
+the original offline/network authorization statements above describe their earlier phases.
+
 ## Before / after
 
 | Finding | Before | After / evidence |

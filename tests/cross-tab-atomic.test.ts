@@ -4,6 +4,8 @@ import { createCoordinatedCommutes, COMMUTE_STATE_KEY } from '../src/features/co
 import { COMMUTE_STORAGE_KEYS as K, createCommuteRepository } from '../src/features/commutes/commuteRepository.ts';
 import { commuteRouteKey, type Commute } from '../shared/commutes/model.ts';
 import { createWakeLockResource } from '../src/utils/wakeLockResource.ts';
+import { createBackgroundQueue } from '../src/features/background/taskQueue.ts';
+import { createHistoryJobs } from '../src/features/commutes/historyJobs.ts';
 
 const codes = new Set(['PIE', 'KPE']);
 const time = Date.parse('2026-10-24T01:00:00Z');
@@ -98,6 +100,40 @@ test('history writers merge current receipts without losing another tab’s samp
   const key = commuteRouteKey(a.getSnapshot().commutes[0]);
   await Promise.all([a.recordBatch([{ id: 'home', routeKey: key, minutes: 9, receivedAt: time - 120000 }]), b.recordBatch([{ id: 'home', routeKey: key, minutes: 12, receivedAt: time }])]);
   assert.deepEqual(h.state().history.histories[0].samples, [[time - 120000, 9], [time, 12]]);
+});
+
+test('deferred history jobs await coordinated writes and reject receipts made stale by another tab', async () => {
+  const h = harness(), a = h.tab(), b = h.tab();
+  await a.save(route());
+  const key = commuteRouteKey(a.getSnapshot().commutes[0]);
+  const turns = new Set<() => void>();
+  const queue = createBackgroundQueue({ now: () => time, maxPending: 8, maxAgeMs: 1000,
+    defer: run => { turns.add(run); return () => { turns.delete(run); }; },
+    schedule: () => () => {}, failed: () => assert.fail('history job failed'),
+  });
+  const jobs = createHistoryJobs(queue, 'integration', async rows => { await a.recordBatch(rows); });
+  const flush = async () => {
+    for (const run of [...turns]) { turns.delete(run); run(); }
+    await tick();
+  };
+  try {
+    const gate = deferred<void>();
+    h.pause(gate.promise);
+    jobs.record([{ id: 'home', routeKey: key, minutes: 9, receivedAt: time }]);
+    assert.deepEqual(h.state().history.histories, [], 'render queues rather than writes');
+    await flush();
+    assert.equal(queue.stats().running.history, 1, 'job owns its slot until the shared write finishes');
+    assert.deepEqual(h.state().history.histories, []);
+    gate.resolve(); h.pause(); await tick();
+    assert.equal(queue.stats().running.history, 0);
+    assert.deepEqual(h.state().history.histories[0].samples, [[time, 9]]);
+
+    jobs.record([{ id: 'home', routeKey: key, minutes: 99, receivedAt: time + 120000 }]);
+    await b.saveDetails('home', 'New route', [{ code: 'KPE', direction: 0, from: '', to: '' }]);
+    await flush();
+    assert.equal(h.state().commutes.commutes[0].legs[0].code, 'KPE');
+    assert.deepEqual(h.state().history.histories, [], 'queued stale route cannot restore cleared history');
+  } finally { jobs.dispose(); queue.dispose(); }
 });
 
 test('migration preserves original copies and commits a complete new envelope only on valid mutation', async () => {

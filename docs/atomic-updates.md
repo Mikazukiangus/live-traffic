@@ -96,3 +96,13 @@ All tests used synthetic storage/lock/wake ports. No real browser storage, permi
 Implementation `c664c4c1cfa8a26c219e09e585977f9bd5772d54` is in draft [PR #23](https://github.com/Mikazukiangus/live-traffic/pull/23), attached to the chat. Both GitHub Checks runs (`40009719009`, `40009764842`) and Vercel deployment/feedback checks passed at that head; CI logs confirm 228 passing tests and zero skips. Storage revision overflow is included in malformed/saturated-state preservation checks.
 
 [Preview](https://live-traffic-7djuzogh8-carbon-bc04.vercel.app) is deployment `dpl_Btubgv73YyTngV15uLQvpCgew9Sk`, READY for the intended project/team, preview branch and implementation SHA. Authenticated homepage and its actual referenced entry bundle returned HTTP 200. HTTP checks verify deployed artifacts; synthetic ports verify interleavings and fallback. Real multi-tab/wake/browser checks remain unperformed under the previously disclosed approval limitation. This publication note is documentation only, and main/production await explicit approval.
+
+## Approved integration — 30 October 2026
+
+The user approved #23 with #29 and the security audit. The combined integration
+preserves the background history queue introduced after this PR: its callback awaits
+the coordinated repository, rather than writing directly from the render effect.
+A regression verifies that the queue holds its slot until the shared write completes
+and rejects a queued receipt after another tab changes the route. The older direct
+console diagnostic now uses the existing centralized JSON logger. Turn 184 records
+current checks, merge and deployment results; earlier preview snapshots above are historical.

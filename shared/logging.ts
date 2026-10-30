@@ -4,10 +4,10 @@ export const LOG_LEVELS = ['debug', 'info', 'warn', 'error', 'silent'] as const;
 export type LogLevel = typeof LOG_LEVELS[number];
 const EVENTS = new Set(['application_log', 'upstream_failure', 'application_failure', 'notification_failure', 'auth_storage_failure',
   'authentication_unavailable', 'authentication_event', 'client_exception', 'api_rate_limit', 'user_rate_limit', 'request_user_context',
-  'background_job_failure', 'install_prompt_failure', 'transport_policy_violation', 'auth_operator', 'configuration_generated']);
+  'background_job_failure', 'install_prompt_failure', 'transport_policy_violation', 'auth_operator', 'configuration_generated', 'commute_update_failure']);
 const CODES = new Set(['LOG_EVENT', 'INTERNAL_ERROR', 'UPSTREAM_CIRCUIT_OPEN', 'UPSTREAM_INVALID_RESPONSE', 'UPSTREAM_TIMEOUT', 'UPSTREAM_HTTP_ERROR', 'UPSTREAM_FAILURE',
   'NOTIFICATION_FAILED', 'AUTH_UNAVAILABLE', 'AUTH_EVENT', 'RATE_LIMIT_ALLOWED', 'RATE_LIMITED', 'RATE_LIMIT_UNAVAILABLE', 'USER_CONTEXT_UNAVAILABLE',
-  'QUEUE_FULL', 'JOB_EXPIRED', 'JOB_FAILED', 'INSTALL_PROMPT_FAILED', 'INSECURE_RESOURCE', 'AUTH_BOOTSTRAP_FAILED', 'AUTH_MIGRATION_FAILED', 'ENV_EXAMPLE_GENERATED']);
+  'QUEUE_FULL', 'JOB_EXPIRED', 'JOB_FAILED', 'INSTALL_PROMPT_FAILED', 'INSECURE_RESOURCE', 'AUTH_BOOTSTRAP_FAILED', 'AUTH_MIGRATION_FAILED', 'ENV_EXAMPLE_GENERATED', 'COMMUTE_UPDATE_FAILED']);
 const ENUMS: Record<string, readonly string[]> = {
   scope: ['api', 'page', 'app', 'auth', 'script'], service: ['lta', 'nea', 'camera', 'gateway', 'vehicle'],
   source: ['psi', 'pm25', 'lightning', 'wbgt', 'roadworks', 'faulty_lights'],

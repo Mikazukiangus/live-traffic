@@ -1,4 +1,5 @@
 import { decodeCommutes, decodeHistories, type Commute } from '../../../shared/commutes/model';
+import { logger } from '../../../shared/logging';
 import { COMMUTE_STORAGE_KEYS as K, createCommuteRepository, type CommuteSnapshot, type StoragePort, type HistoryReceipt } from './commuteRepository';
 
 // New namespace isolates this protocol from old tabs still writing the separate v1 keys.
@@ -113,7 +114,7 @@ export function createCoordinatedCommutes(ports: CommuteCoordinatorPorts, codes:
         localOnly = LOCAL_NOTICE;
         if (applyFailed) {
           publish(candidate);
-          console.warn(JSON.stringify({ event: 'commute_update_failure', code: 'COMMUTE_UPDATE_FAILED' }));
+          logger.warn({ event: 'commute_update_failure', code: 'COMMUTE_UPDATE_FAILED', scope: 'app' });
           throw new Error('Commute update failed');
         }
         // A failed commit retains the result in this tab, never replays it over another tab later.

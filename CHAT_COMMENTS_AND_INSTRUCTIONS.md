@@ -192,6 +192,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 181. [Turn 181: Approved Security Audit Remediation](#181-turn-181-approved-security-audit-remediation)
 182. [Turn 182: Authorized Security Scans, Hook Activation and Branch Push](#182-turn-182-authorized-security-scans-hook-activation-and-branch-push)
 183. [Turn 183: Check Unmerged Pull Requests](#183-turn-183-check-unmerged-pull-requests)
+184. [Turn 184: Approved Combined Main Merge](#184-turn-184-approved-combined-main-merge)
 
 ---
 
@@ -3282,6 +3283,20 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Queried open pull requests for Mikazukiangus/live-traffic through the GitHub connector. Two remain open: #23, "Make cross-tab commute storage atomic and guard wake-lock ownership", and #29, "Support operator access after Neon Preview Secret repair".
 - Separately searched all PR states for head security/audit-20261029; no PR exists for the pushed security audit branch. No merge, PR creation, deployment or cloud setting change was requested or performed.
 - Updated this log and table of contents under the standing instruction, then committed/pushed the documentation-only update to the existing security branch. Unrelated untracked files remain untouched.
+
+---
+
+## 184. Turn 184: Approved Combined Main Merge
+
+**User Request:**
+> "merge to main"
+
+### Integration preparation (30 October 2026, SGT):
+- Interpreted approval in the context of the immediately preceding outstanding-work list: PRs #23/#29 and security/audit-20261029. Fetched current main f13253c and both original PR heads. Both original drafts had passing historical Checks; PR #23 conflicts with newer queue code. Integrating both exact PR heads into the audit branch preserves ancestry for a single reviewed/tested main merge, without rewriting history or bypassing the deployment gate.
+- Resolved #23's MyCommute conflict by preserving the newer createHistoryJobs wrapper and awaiting the coordinated repository inside its existing callback. Removed a stray Promise catch from the now-void enqueue operation. Preserved every prior log/TOC entry, including Turns 143 and 160–162 that existed only on the original PR branches.
+- Resolved #29's operator import conflict by retaining both the repaired hidden-prompt/process-input flow and the newer centralized safe logger. The hook correctly rejected three synthetic setting literals from the old test file; changed only those fixtures to construct explicit synthetic URL objects. No scanner exception, bypass or real credential access was used.
+- Added an integration regression proving deferred history owns its queue slot until the locked write finishes and cannot restore samples for a route edited by another tab. Full-suite checking also caught #23's old direct console call; migrated it to the existing JSON logger with fixed allowed event/code and no raw exception. Existing assertions and tests remain intact. Type checking and the transport audit pass; full suite/build/scans and GitHub checks are verified before the approved merge.
+- No authentication/Firewall/secret/database configuration or schema change is included. Production login remains controlled by existing disabled defaults. F08/F10/F11 remain deferred. Unrelated .agents/, .claude/ and skills-lock.json are untouched. The approved source merge uses the existing Git integration and required checks; no manual promotion bypass is planned.
 
 ---
 

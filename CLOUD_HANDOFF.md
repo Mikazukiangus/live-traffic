@@ -3,6 +3,16 @@
 Prepared 22 October 2026; release status refreshed 25 October 2026 (Asia/Singapore). Repository:
 <https://github.com/Mikazukiangus/live-traffic>.
 
+## Current integration status — 30 October 2026
+
+The user approved merging the outstanding PRs #23/#29 and security/audit-20261029.
+The audit branch now contains both exact original PR heads. Conflict resolution keeps
+the background history queue around the coordinated v2 storage adapter and preserves
+centralized safe operator logging. One integration PR will merge this combined tree
+after its current Checks pass. The older release snapshots below are historical;
+consult Turn 184 and current main for final merge/deployment readback. Production auth,
+DB/Firewall settings and deferred audit findings are not activated by this source merge.
+
 ## Start here
 
 Continue development from the **latest `main`**. Read this note, the standing
