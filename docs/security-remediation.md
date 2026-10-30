@@ -39,7 +39,7 @@ Final result: **372 tests passed, zero failed**; type checking, transport audit,
 
 - F08 broader CSP/isolation headers, F10 expanded authentication audit events and F11 transparent password parameter upgrades were not in the approved first batch.
 - Scanner execution, dependency triage and local hook activation are now completed under the explicit 30 October authorization. Continue rescanning changes and reviewing new advisories; do not broadly exempt tests or publish real values. Wider dependency publisher-history review remains outside this targeted follow-through.
-- The user has authorized push of `security/audit-20261029` only. Publication follows these verified commits; remote commit identity is checked after push. Main merge and production release still require separate approval.
+- The user has authorized push of `security/audit-20261029` only. Publication succeeded: independent GitHub remote readback confirmed tested code commit `91d9c029769b50229533d12ebc661240f21ea72a` on the security branch. A documentation-only follow-up records this readback and is published to that same branch. Main merge and production release still require separate approval.
 - Actual TLS/redirect/certificate state, deployed headers, auth flags, WAF enforcement, GitHub protections/operator MFA, database RLS/grants/encryption/backups, provider signed-URL policies and data retention/export/deletion remain unverified. No cloud setting was changed.
 - No compromised real secret was established in the bounded audit. If a future scan confirms one, rotate/revoke first and coordinate consumer updates; removing source alone does not revoke it. See SECURITY.md.
 
