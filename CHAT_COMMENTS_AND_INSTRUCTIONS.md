@@ -193,6 +193,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 182. [Turn 182: Authorized Security Scans, Hook Activation and Branch Push](#182-turn-182-authorized-security-scans-hook-activation-and-branch-push)
 183. [Turn 183: Check Unmerged Pull Requests](#183-turn-183-check-unmerged-pull-requests)
 184. [Turn 184: Approved Combined Main Merge](#184-turn-184-approved-combined-main-merge)
+185. [Turn 185: Approved Dependabot Action Upgrades](#185-turn-185-approved-dependabot-action-upgrades)
 
 ---
 
@@ -3305,6 +3306,24 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Production deployment dpl_9StjHxrspQAmXy86kxCTXQPw88SY is READY for the intended live-traffic project/Carbon team, production target and exact merge SHA. Canonical-domain metadata resolves to this deployment; authenticated homepage returns 200, references /assets/index-Bl-_B0Qa.js, and serves frame-ancestors none, X-Frame-Options DENY and existing HSTS. No manual promotion, protection bypass setting change, real login/database/provider/image or permission test was performed.
 - Newly enabled Dependabot opened separate action-major-update PRs #36/#37/#38 after the approved merge. These new proposals were not part of the preceding outstanding-work list and remain unmerged for separate review. Its npm update jobs reported failure while action discovery succeeded; this is distinct from the successful required release Checks and clear Bun advisory audit. No dependency version update was silently applied.
 - Updated release/handoff documentation and this log for a documentation-only follow-up on approved main. The existing gate runs again for that update; runtime code remains identical to the verified merge. F08/F10/F11 and remaining cloud audit controls stay deferred.
+
+
+---
+
+## 185. Turn 185: Approved Dependabot Action Upgrades
+
+**User Request:**
+> "merge the dependabot PRs to main"
+
+### Reviewed and merged (30 October 2026, SGT):
+- Reviewed all three open Dependabot PRs (#36/#37/#38), attached them to this chat, and checked their exact diffs/heads. They update pinned GitHub Actions only: checkout 7.0.1, setup-node 7.1.0 and upload-artifact 7.0.2. Official immutable action.yml sources confirm Node 24 runtime and compatible existing inputs; archive remains true by default for the two coverage reports. Existing read-only permissions, non-persistent checkout credentials, frozen Bun install, security scans, required checks job and deployment gate remain unchanged.
+- Exact-head PR Checks passed: #36 d70eed2fe9c2f71283dd322d96a551a74a457e39, run 40993482488/job 123861123583; #37 398931c2c951e585332a6f7c763f318d26542b17, run 40993488931/job 123861141734; #38 7a26eadfa0c11266d583985765bc39671f5355b2, run 40993493633/job 123861155578. Every test/type/transport/env/scanner/advisory/build step passed, including artifact upload. All three Vercel preview status checks passed.
+- Merged with expected_head_sha and merge commits: #36 as 390fc0687e1aa93a8865e76efa6868780a9b7731; #37 as 4e140e890d0d0ccb7746a80f84830c465f712cfe; #38 as 96b749fd4134550dfa2b9ff2085b05628e1f8d49. The #37 write response was interrupted; readback confirmed merged before any retry, so no duplicate write was attempted. A reset Git fetch was retried with a bounded main-only fetch, then local main was fast-forwarded. Open-PR search returned none.
+- Main's intermediate #36 Checks was superseded/cancelled by the next merge; #37's combined Checks passed. Final all-three run 40997435934 is verified before completion. No app dependency, lockfile, application behavior, credential, database/auth/Firewall/hosting protection or secrets setting changed. Unrelated .agents/, .claude/ and skills-lock.json are untouched.
+- Corrected stale v4 comments beside the new v7 immutable pins, refreshed the handoff/release note and updated this log/TOC for a documentation/comment-only follow-up through the same gate. Existing tests are retained; no test was added for comment-only edits. Deferred audit findings and real-browser/database verification limits remain unchanged.
+- Final combined main Checks run 40997435934/job 123873748167 passed every step with all three new action pins, including full-history/build secret scans, dependency audit, type/transport/env checks, all 392 tests (zero failures/skips), coverage archive upload and build. Loaded-only coverage was 94.27% lines, 91.02% branches and 89.35% functions. The two focused workflow/security guard tests also pass locally after comment cleanup; whitespace checks pass.
+- Production deployment dpl_38ULFUWAXFMFayJ7LJgH7ovYRuZj is READY for the intended live-traffic project/Carbon team, production target and exact final merge SHA. Its canonical alias is assigned, and the authenticated production homepage returns 200 with its actual index-C8QSgijG.js entry and existing framing policy. This is deployment/artifact verification, not a new real-browser, database or live-provider test. No manual promotion or protection change was needed.
+- Recorded these results in the required log/handoff/CI guide and pushed a documentation/comment-only follow-up to approved main. Its normal required CI and deployment run again with unchanged application source. All three requested PRs are merged; no open PRs were found at readback.
 
 
 ---

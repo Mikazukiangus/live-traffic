@@ -40,3 +40,21 @@ After PR #34 expanded the suite to 351 tests, the latest released main revision 
 - This is a release gate, not a claim that GitHub branch protection/rulesets, real-browser testing, live database tests or post-release monitoring were newly configured.
 
 Official references: [Vercel Deployment Checks](https://vercel.com/docs/deployment-checks), [Vercel Git integration](https://vercel.com/docs/git), [GitHub workflow concurrency](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency).
+
+## Approved action upgrades — 30 October 2026
+
+The user approved and merged Dependabot PRs #36/#37/#38. Checks and health now
+use checkout 7.0.1 and setup-node 7.1.0; coverage upload uses upload-artifact 7.0.2.
+All references remain full immutable SHAs. Exact-head PR CI passed with the existing
+Node 24 hosted runner, frozen Bun install, secret/advisory scans, tests and build.
+Artifact upload retains its default archive behavior and seven-day retention.
+Read-only token permissions, non-persistent credentials and the existing blocking
+production check remain unchanged. Turn 185 records merge/main/deployment results.
+This upgrade changes CI tooling only; application packages and runtime are unchanged.
+
+Final combined main `96b749fd4134550dfa2b9ff2085b05628e1f8d49` passed
+[Checks 40997435934](https://github.com/Mikazukiangus/live-traffic/actions/runs/40997435934)
+with 392 passing tests, no failures/skips, all security checks, successful coverage
+archive upload and build. Production `dpl_38ULFUWAXFMFayJ7LJgH7ovYRuZj` is READY
+and the canonical homepage returns 200. The following log/comment update uses the
+same CI/deployment gate and changes no application source.

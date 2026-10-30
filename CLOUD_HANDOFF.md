@@ -17,9 +17,13 @@ runtime unchanged and passes through the same release gate.
 The integration retains queued history around coordinated v2 storage and centralized
 safe operator logging. Production auth, DB/Firewall settings and deferred audit
 findings F08/F10/F11 were not activated or expanded. Real browser/model/Neon behavior
-was not re-tested. Dependabot subsequently opened new action-update PRs #36/#37/#38;
-these were not part of the approved set and remain for review. Npm update discovery
-failed separately; required release Checks and the Bun advisory audit passed.
+was not re-tested. The user subsequently approved Dependabot action-update PRs
+#36/#37/#38: all are merged, ending at 96b749fd4134550dfa2b9ff2085b05628e1f8d49.
+Checkout 7.0.1, setup-node 7.1.0 and upload-artifact 7.0.2 remain pinned by full SHA.
+Combined main Checks run 40997435934 passed all 392 tests/security/build steps.
+Production dpl_38ULFUWAXFMFayJ7LJgH7ovYRuZj is READY for that final merge and
+canonical homepage returns 200. See Turn 185 for exact-head/release evidence. Npm update
+discovery failed separately; no app package or lockfile was changed by these PRs.
 
 Older release snapshots below describe historical states, including formerly pending
 PRs. They do not supersede this current release status.
