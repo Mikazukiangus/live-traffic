@@ -1,7 +1,7 @@
 # Background queue
 
 Implemented on `codex/browser-background-queue`, based on main `af19961`; released through PR #24 as main merge `c3956f053cc233452cee2b56f36483ffd846675f`.
-The pending cross-tab storage/wake-lock work remains separately reviewable in PR #23 and is not merged into this branch.
+On 30 October the user approved integrating PR #23 with the queue and security audit. The combined tree retains createHistoryJobs around the coordinated async repository; the added cross-tab integration regression verifies queued stale receipts and lock completion. Main release readback is recorded in project-log Turn 184.
 
 ## Operations and placement
 

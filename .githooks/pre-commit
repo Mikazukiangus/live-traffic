@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eu
+node --import tsx scripts/check-env-permissions.ts
+exec node --import tsx scripts/secret-scan.ts

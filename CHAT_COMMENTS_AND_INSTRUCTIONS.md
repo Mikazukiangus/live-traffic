@@ -151,6 +151,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 140. [Turn 140: All Five Error-Handling Fixes Merged to Main](#140-turn-140-all-five-error-handling-fixes-merged-to-main)
 141. [Turn 141: Atomic Concurrent Request Updates on Preview](#141-turn-141-atomic-concurrent-request-updates-on-preview)
 142. [Turn 142: Atomic Request Updates Merged to Main](#142-turn-142-atomic-request-updates-merged-to-main)
+143. [Turn 143: Cross-Tab Atomic Storage and Wake-Lock Ownership on Preview](#143-turn-143-cross-tab-atomic-storage-and-wake-lock-ownership-on-preview)
 144. [Turn 144: Device-Local Background Queue on Preview](#144-turn-144-device-local-background-queue-on-preview)
 145. [Turn 145: Background Queue Merged to Main](#145-turn-145-background-queue-merged-to-main)
 146. [Turn 146: Bounded Caches for Repeated Work on Preview](#146-turn-146-bounded-caches-for-repeated-work-on-preview)
@@ -167,6 +168,9 @@ This document records all user instructions, feedback, technical inquiries, inve
 157. [Turn 157: Publish Preview Firewall Rate Limiting by CLI](#157-turn-157-publish-preview-firewall-rate-limiting-by-cli)
 158. [Turn 158: Merge Authentication and Rate Limit Foundation to Main](#158-turn-158-merge-authentication-and-rate-limit-foundation-to-main)
 159. [Turn 159: Diagnose Neon Config Variable Security Warnings](#159-turn-159-diagnose-neon-config-variable-security-warnings)
+160. [Turn 160: Approved Neon Secret Repair and Operator Preparation](#160-turn-160-approved-neon-secret-repair-and-operator-preparation)
+161. [Turn 161: Clarify Vercel MCP Rotation Capability](#161-turn-161-clarify-vercel-mcp-rotation-capability)
+162. [Turn 162: Complete Preview Neon Secret Rotation and Reconnection](#162-turn-162-complete-preview-neon-secret-rotation-and-reconnection)
 163. [Turn 163: Reverify Pagination Coverage and Offset Choice](#163-turn-163-reverify-pagination-coverage-and-offset-choice)
 164. [Turn 164: Commit and Deploy Pagination Verification](#164-turn-164-commit-and-deploy-pagination-verification)
 165. [Turn 165: Centralized Safe Exception Tracking on Preview](#165-turn-165-centralized-safe-exception-tracking-on-preview)
@@ -185,6 +189,10 @@ This document records all user instructions, feedback, technical inquiries, inve
 178. [Turn 178: Extend Critical-Path Tests for Weather, Offline Data and Background Work](#178-turn-178-extend-critical-path-tests-for-weather-offline-data-and-background-work)
 179. [Turn 179: Approved Merge of Additional Critical-Path Tests](#179-turn-179-approved-merge-of-additional-critical-path-tests)
 180. [Turn 180: Confirm Active Green-Build Vercel CI/CD Pipeline](#180-turn-180-confirm-active-green-build-vercel-cicd-pipeline)
+181. [Turn 181: Approved Security Audit Remediation](#181-turn-181-approved-security-audit-remediation)
+182. [Turn 182: Authorized Security Scans, Hook Activation and Branch Push](#182-turn-182-authorized-security-scans-hook-activation-and-branch-push)
+183. [Turn 183: Check Unmerged Pull Requests](#183-turn-183-check-unmerged-pull-requests)
+184. [Turn 184: Approved Combined Main Merge](#184-turn-184-approved-combined-main-merge)
 
 ---
 
@@ -2565,6 +2573,28 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 
 ---
 
+## 143. Turn 143: Cross-Tab Atomic Storage and Wake-Lock Ownership on Preview
+
+**User Instruction:**
+> "Show me where concurrent requests can race on shared data, and make those updates atomic."
+
+### Follow-up audit and implementation (24 October 2026, SGT):
+- Read the current log and PR #22 concurrency notes, checked clean tracked status and fetched main. Created codex/cross-tab-atomic-storage from af19961. Re-audited remaining persistence and asynchronous browser actions, retaining the already-released feed/health/polling/cache/location/install and current-field commute fixes. Existing instance-local server gates/caches/circuit generations remain protected and were not rewritten. Login work remains on hold.
+- Confirmed and reproduced the remaining cross-tab commute loss: independently loaded repositories write cached whole snapshots to shared localStorage and can erase another tab's creates, edits or history. Added coordinatedCommutes.ts to serialize same-tab commands, capture inputs before admission, take a fixed same-origin exclusive Web Lock, reread/validate the latest state inside that lock and commit commutes+history as one versioned envelope with one setItem. Existing route/history validation and field-specific edits run through the same domain repository over isolated memory; stale route receipts/deleted records stay ineligible.
+- Added read-only migration from original v1/legacy copies into trafficpulse.commuteState.v2 on the first valid state-changing command, retaining all originals. Older tabs writing v1 cannot overwrite the new authoritative key; older versions should be reloaded and do not synchronize new-version edits. Unsupported/malformed copies are preserved. Missing/rejected/timed-out locks or blocked/quota storage become explicit tab-memory-only operation, with no unsafe persistent-write fallback or replay of stale failed writes. Web Lock admission reuses the validated public request timeout. This provides same-origin protocol coordination and one visible complete record commit, not distributed/cross-device locking or disk-flush durability.
+- Added subscribed storage/visibility refresh using current envelopes rather than delayed event values, with stable snapshots/commute arrays through unchanged/history-only updates to avoid receipt-effect loops. Save/delete/alert actions now await storage completion, disable duplicate admission immediately, and handle failures with fixed notices; late editor completion cannot close a replacement editor after unmount. Browser mutation helpers are asynchronous; domain repository tests/read selectors remain synchronous.
+- Found wallDisplay.ts could acquire overlapping wake locks, overwrite its sentinel, and let a late completion/release clear newer ownership. Extracted wakeLockResource.ts with single-flight acquisition, active/sentinel identity checks, hidden/disposed/released-result cleanup and safe late-rejection handling. No real screen wake lock or browser permission was requested.
+- Added 14 deterministic regression groups using independent adapter instances over shared synthetic storage/lock ports. Covered baseline lost updates, concurrent creates/capacity/collisions, current-field edits/deletion, route+history atomicity and failed writes, concurrent sample retention, legacy/v1 migration/original preservation, unknown/malformed versions, storage refresh/listener cleanup/stable arrays, safe lock fallback, queued input capture and reversed wake acquisition/release/disposal results. All 228 full-suite Node tests passed with zero skips, including the existing wrapper's four offline Python cases. Type checks, transport audit, production build and whitespace checks passed. Applied React best-practices guidance to async handlers, refs, listener cleanup, stable external snapshots and user feedback.
+- Expanded docs/atomic-updates.md with exact affected paths, transaction steps, schema/migration/fallback behavior, async helper contract, old-tab limitations and verification. Consulted primary MDN Web Locks and HTML storage documentation; localStorage alone does not coordinate read-modify-write. Real multi-tab/UI checks remain unverified after the earlier automatic approval review usage-limit block; no alternate browser/protocol workaround or claimed browser pass was used.
+- No real browser storage, coordinates, camera metadata/presigned image, notification/install prompt, provider failure, dependency/lockfile, credential or hosted policy changed. Unrelated .claude/ remains untouched. Updated this log/table of contents for commit/push and a draft preview PR; main merge requires explicit approval.
+
+
+### Preview publication:
+- Pushed implementation c664c4c1cfa8a26c219e09e585977f9bd5772d54 and opened draft PR #23 (https://github.com/Mikazukiangus/live-traffic/pull/23), attached to this chat. GitHub Checks runs 40009719009 and 40009764842 and Vercel deployment/feedback checks passed at that exact head. Required code-review CI diagnostics confirm all 228 tests passed with zero failures/skips.
+- Deployment dpl_Btubgv73YyTngV15uLQvpCgew9Sk is READY for the intended project/team, preview branch and implementation SHA: https://live-traffic-7djuzogh8-carbon-bc04.vercel.app. Authenticated homepage and its actual referenced entry bundle returned HTTP 200. These are deployed artifact checks; native multi-tab Web Locks/localStorage and wake-lock/UI behavior remain covered by synthetic ports rather than a claimed browser pass. No real browser data/permissions, camera metadata/presigned image or provider outage was used.
+- Recorded this preview evidence in docs/atomic-updates.md. This follow-up changes documentation only and pins runtime verification above. Updated the log for commit/push under the standing instruction. Main/production remain unchanged; PR #23 awaits explicit merge approval. Old-version tabs should reload after a future release; lock/storage failure keeps edits in memory with a notice, and server/distributed scopes remain unchanged.
+
+---
 ## 144. Turn 144: Device-Local Background Queue on Preview
 
 **User Instruction:**
@@ -2881,6 +2911,50 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 
 ---
 
+## 160. Turn 160: Approved Neon Secret Repair and Operator Preparation
+
+**User Instruction:**
+> "approve repair"
+
+### Approved scope and preparation (28 October 2026, SGT):
+- The user explicitly approved the concrete Turn 159 rotation/reconnection plan, including immediate password revocation and removal of Development automatic DB env delivery. No repeated approval was requested for that scope. Created preview branch codex/neon-secret-repair from current origin/main and preserved unrelated .agents/, .claude/ and skills-lock.json. Main source, LTA/signing secret, production gates, Firewall and separate PR #23 remain untouched.
+- Re-read exact existing resource metadata: store_MPzLJypjannI261q / trafficpulse-auth-preview, external Neon project delicate-night-60939524, installation icfg_vbRd0nLxCxSVGbNNRALwWqmt. Available, connected only to live-traffic via spc_3JIOeAEqzxxTOmx1 for Preview/development; native secret rotation capability has zero delay. No new resource/database/account was provisioned and no credential value was printed/decrypted/exported.
+- Investigated supported APIs before disconnecting anything. Official public connect API supports projectId, envVarEnvironments and makeEnvVarsSensitive=true; unlike CLI connect it can explicitly create a Secret connection. The documented CLI internal OpenAPI URL returned 404; public operation listing succeeded. Partner-side secret-rotation APIs require provider OIDC/client authentication and are not interchangeable with the user's Vercel API token. No guessed write endpoint, provider credential workaround or full-config replacement was attempted.
+- Connected tools lack a customer resource-rotation operation and no authenticated Neon CLI is available. Opened the existing resource dashboard through normal computer-use tools after the new explicit approval, without retrying the old blocked UI operation or bypassing a security interstitial. The fresh tool call succeeded but Chrome is at Vercel's login page. Asked the user only to sign in, not to reapprove the repair. Kept the tab as a handoff and saved a credential-free login screenshot. The computer-use tool's credential-change rule requires the human to complete a password reset; it is an explicit tool restriction, not a skill-imposed/inferred permission demand. Resource disconnection is deliberately deferred until this step can be completed and promptly followed by Secret reconnection/redeployment. No external mutation has yet occurred.
+- Completed independent local/operator preparation rather than leaving the old readable-env helper in place: scripts/auth-with-database.ts now accepts credentials only through an authorized process environment or hidden human TTY prompts. Removed Vercel env API reads and variable-ID arguments; it never reads/writes .env files or retrieves Preview Secrets. Retains root project/team validation and isolated ephemeral testing secret. Added a pure argument/credential boundary for bounded tasks, exact selected Preview URLs, matching pooled/direct Neon account/database, TLS inputs and rejection of production environment scope. No URLs/passwords in argv or error output; no account or credential is automatically persisted.
+- Added five meaningful regression groups for legacy/API-read rejection, credential redaction, unsafe/mismatched endpoints, production scope and argument injection. All 304 Node tests passed, zero failures/skips; type check, transport audit and build passed. Used synthetic credentials only and a local loopback fixture with permission; no real DB query, provider load, camera or user browser storage was involved.
+- Updated docs/authentication.md with usable hidden-prompt/process commands, the supported Sensitive connection payload and explicit outstanding operations. Rotation, disconnection/reconnection, new auth-enabled preview and deployed login/session/logout verification remain pending the dashboard sign-in/human reset step. Do not present prepared code or clean tests as evidence that the Vercel warnings are fixed. Updated this log/TOC and cloud handoff for commit/push to a draft repair PR; runtime deployment/main merge are not approved by the repair alone.
+
+---
+## 161. Turn 161: Clarify Vercel MCP Rotation Capability
+
+**User Question:**
+> "Why can't you use the vercel mcp?"
+
+### Clarification and continued authorized work (28 October 2026, SGT):
+- Answered during the ongoing approved repair. The Vercel MCP connection works and was used for non-decrypting env metadata, resource/connection/status inspection and deployment readback. The missing capability is specifically customer-side Neon credential rotation in the exposed tool set, not a revoked connection, team-access error or missing user approval. Rechecked both available Vercel namespaces by tool name; they expose store inspection, Blob creation and integration/product/configuration listing, but no customer resource-secret rotation action. Do not invoke provider-partner rotation endpoints with a customer Vercel token or invent tool names.
+- The supported reconnection API can set makeEnvVarsSensitive=true through the authenticated CLI; it is not the blocker. Browser fallback currently reaches Vercel's login page, and password changes through that UI require a human handoff under the computer-use credential-change rule. Approval remains valid; do not ask the user to reapprove the same repair. The existing async sign-in request remains pending. No resource was disconnected and no password/env/protection was changed while waiting.
+- Completed/pushed the independent operator repair as 8e344e69a99cde9f0a71ac8f5b130fa4316e5793 and opened/attached draft PR #29 (https://github.com/Mikazukiangus/live-traffic/pull/29). Both CI runs 40648323571 and 40648244791 passed; required CI diagnostics confirm all 304 tests, zero failures/skips, type check, audit and build. Preview dpl_EaDjPzR7b7ckhkLVoKcStwUoRcSL is READY for the exact repair SHA/branch at https://live-traffic-1nj0p4mzl-carbon-bc04.vercel.app. This verifies the operator-code build, not credential rotation or an auth-enabled preview. New branch has no auth-enabling branch overrides; no false login/Secret-repair claim is made.
+- The prepared helper uses only human hidden prompts or authorized process credentials, not Vercel Secret readback. External repair remains incomplete at the dashboard authentication/human rotation step; then the approved disconnect/rotate/Secret reconnect/redeploy/real auth checks can continue. Main/production, LTA/signing secret, Firewall, existing DB connection and separate PR #23 remain unchanged. Updated the log/TOC and handoff status for documentation commit/push to PR #29. No repeat tests were needed for this explanatory update.
+
+---
+## 162. Turn 162: Complete Preview Neon Secret Rotation and Reconnection
+
+**User Responses:**
+> "Signed in to Vercel"
+> "Rotated the database secrets"
+
+### Completed external repair (28 October 2026, SGT):
+- Continued the already approved repair without asking for the same approval again. Confirmed the user's signed-in Carbon account and exact existing trafficpulse-auth-preview resource in the dashboard. Recovered the same Chrome profile after extension reconnects using documented browser recovery; did not switch control mechanisms, read credentials or bypass an interstitial. Located the resource's Rotate Secrets control and retained a screenshot/handoff. The human completed that credential-change action as required by the browser tool and explicitly confirmed rotation.
+- Before the reset, disconnected only store_MPzLJypjannI261q from live-traffic with official CLI. Readback confirmed the existing database remains available, zero project connections and only the five unrelated auth/SDK/LTA settings remain on the project. Did not delete a resource, schema, table or account. Then, after the user's reset confirmation, reconnected the same store through the documented POST /v1/integrations/installations/icfg_vbRd0nLxCxSVGbNNRALwWqmt/resources/store_MPzLJypjannI261q/connections with the exact project, envVarEnvironments=[preview] and makeEnvVarsSensitive=true. No credential value was sent through model output, argv, env export or a temporary credential file.
+- Connection readback: spc_Jk6p9HDGGBWtTXAv, one connected project (live-traffic), Preview only, resource available. Non-decrypting env metadata confirms all sixteen Neon-generated variables are sensitive/Secret and none target Development or Production. This fixes the eight credential-bearing Config warnings as well as making the provider's noncredential aliases write-only. Auth flags, SDK observe setting, signing-secret and LTA variable IDs/scopes are preserved. No password/signing-key/LTA value was read back; no Firewall or production feature scope changed.
+- Used Vercel MCP to rebuild the already auth-enabled codex/public-api-rate-limits deployment at ef04a8a38b284639f78ead4cac0b0f188e8cfa56 with current project settings. API target preview was rejected with a clear pre-execution 400; retried with the documented API target staging (the Preview environment). Deployment dpl_3oKi2DbnL8jE9WX86zuyjugYDMj2 reached READY at https://live-traffic-jn540di4y-carbon-bc04.vercel.app for the correct project/branch/source. No production deployment or auth-secret copy was made. Old immutable Preview URLs retain old DB settings and are superseded by this replacement; do not use a rollback to revive revoked credentials.
+- Verified protected deployed POST auth endpoints with bounded CLI requests and generated in-memory synthetic credentials: anonymous session HTTP 200/authenticated=false, unknown-account sign-in HTTP 401/AUTH_REJECTED (database lookup works rather than a storage-error 503), anonymous sign-out HTTP 200, all private/no-store. No real account was created or read, no password/session was printed or persisted, and no provider/camera load was used. A successful account sign-in/revocation flow and explicit old-password rejection were not repeated because no real account/Secret readback was needed for this credential/storage repair; previous flow tests remain separately documented.
+- Dashboard verification on the project env page shows Neon rows as Secret/Preview. Selected Needs Attention: no matching variables. Saved /tmp/trafficpulse-neon-warnings-cleared.png and kept the page as a deliverable, without revealing values. A selector initially matched responsive duplicates, so used fresh accessibility state and actual filter controls rather than assuming a row absence. This establishes that the reported warnings are cleared, separately from metadata and connectivity evidence.
+- The new local/operator workflow in draft PR #29 remains available on codex/neon-secret-repair: authorized process credentials or hidden human prompts, no readable-Development env dependency and no write-only Secret readback. Existing local LTA .env.local was not read or overwritten; local login can remain disabled. No extra local database/service was provisioned. All 304 tests/type check/audit/build already passed locally and in CI for the operator source; no repeat broad tests were needed for this operational/documentation follow-up. Main merge of PR #29 still requires its own approval; separate PR #23 remains untouched.
+- Updated authentication docs and cloud handoff to replace pending sign-in/rotation status with completed Secret-only repair, new connection, current Preview, targeted test evidence and local/old-deployment limits. Updated this log/TOC for commit/push to existing draft PR #29. External repair is complete; production feature activation and main merge were not performed.
+
+---
 ## 163. Turn 163: Reverify Pagination Coverage and Offset Choice
 
 **User Request:**
@@ -3154,6 +3228,75 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Canonical deployment readback identifies dpl_JBspWAvscQm5M93szJ1hKzEKqXpf READY, production target, intended live-traffic project/Carbon team and exact main SHA f93d9d366aa5a8e0c5905ebd97e4742a5d25dcdf. Its Checks run 40815747920/job 123256260121 is successful; every install/type/audit/test/coverage/upload/build step passed. No duplicate pipeline execution or repeated broad local suite was needed for unchanged code/configuration. No manual or force promotion was performed.
 - Added the current confirmation to docs/ci-cd.md and updated this log/TOC for documentation-only commit/push under the standing instruction. This does not reconfigure or newly enable CI/CD; the saved production gate is already active. Existing Preview behavior and explicit human main-merge approval policy remain unchanged. No new setup/approval is needed for this repeated request.
 - Unrelated untracked files and separate pending PRs remain untouched. No environment export, application/provider/database traffic or secret access was required. Whitespace checks pass; the normal gated Git deployment may run for the documentation-only update with unchanged runtime/workflow.
+
+---
+
+## 181. Turn 181: Approved Security Audit Remediation
+
+**User Request:**
+> "fixed those you recommend"
+
+### Approved scope and boundaries (29 October 2026, SGT):
+- The preceding read-only audit covered main at f13253c. The user approved the recommended F01–F07 and F09 remediation. Work is isolated on security/audit-20261029; no main merge, production mutation, third-party network access or cloud inspection is authorized. The audit's newer no-network restriction overrides the standing push instruction until a GitHub push is separately approved.
+- Auth category (F01/F02/F05): Better Auth hooks add a shared, HMAC-keyed account attempt budget (10 per fixed 15-minute window), in addition to the existing five-per-IP budget. Successful attempts also consume this budget to reserve concurrency before password hashing. Blocked attempts do not prolong the cooldown. Uses the existing unique-key table and atomic adapter increments, so no new dependency or schema migration is required.
+- Logout first performs authoritative revocation through Better Auth's adapter; failure now propagates as a sanitized 503 instead of false success. Session renewal is disabled, GET verification does not mutate storage, and an absolute 24-hour creation-age check rejects previously sliding sessions too. Expired sessions require sign-in again; login remains disabled wherever its existing flag is disabled.
+- All three new regression tests failed on the audited baseline and passed after the fixes. Fifteen focused auth tests and the existing TypeScript check pass. Full-suite/category verification will be recorded as implementation progresses.
+- Auth category post-commit verification: 352 of 354 full-suite tests passed inside the sandbox; the two blocked tests required loopback HTTP sockets and both passed in the subsequent 10-test local HTTP/timeout run. TypeScript and transport checks pass.
+- Image category (F03): the proxy now cancels declared or streamed bodies above 5 MiB, checks JPEG start/end markers and accepts official octet-stream JPEGs. SVG/HTML, truncated and oversized bodies fail safely without caching. The two negative regressions failed before the fix; all 14 focused image/request/pipeline tests and type checking now pass. The existing URL test fixture was strengthened from arbitrary bytes to a JPEG fixture while preserving exact byte comparisons.
+- Image category full-suite follow-up: the remaining CORS image fixtures were strengthened to valid JPEG bytes without removing assertions. All 358 current tests pass with local loopback fixtures, alongside type checking and the transport audit.
+- Framing category (F04): the shared Vercel/dev-preview header policy now sets frame-ancestors none and X-Frame-Options DENY. The regression failed before this change and all eight framing/transport tests now pass. Existing script, worker, TLS and broader CSP settings are preserved; embedding this app in an iframe is intentionally denied.
+- Headers post-commit verification: all 358 tests, TypeScript and the transport audit pass.
+- Supply-chain category (F06/F07): the health workflow reuses the existing reviewed action SHAs, restricts contents permissions and stops persisting checkout credentials. Checks now fetch full history, install pinned Gitleaks 8.30.1 with release-checksum/version verification, scan Git history and built assets with full redaction, and run Bun advisory auditing. Weekly Dependabot updates cover packages and action pins. SECURITY.md records reporting, rotation, compatibility changes and review limits. No application package dependency was added.
+- A checked-in executable pre-commit hook runs the staged scanner wrapper; tool errors/missing or wrong versions fail closed, scanner output is never relayed raw, and removed secret lines do not prevent cleanup. The two workflow/control regressions failed before the changes. Seven local policy/wrapper/installer tests pass using mocked scanner processes and entirely local archive/download fixtures, including checksum and wrong-version rejection. The scanner TOML parses and shell syntax/type checking pass.
+- Real Gitleaks installation/scanning and registry advisory results are still unverified: the current no-third-party-network rule prevents fetching the tool or advisory data. No such network calls occurred. Local hook activation is deferred until all approved category commits are prepared; a missing scanner will block future commits after activation.
+- Supply-chain post-commit verification: all 365 tests pass, with type checking and the transport audit. Installer tests used local mocked curl/archive fixtures only; no real scanner binary or advisory data was fetched.
+- Local secret-file category (F09): .env.local was changed from 0644 to 0600 without reading contents. The regression reproduced the broad mode before chmod; both permission tests now pass. A metadata-only checker rejects broad modes/symlinks on POSIX systems and is wired into CI and the pre-commit hook. It prints fixed outcomes, never credential values or filenames. Windows ACL verification remains manual.
+- Final image/circuit interaction review found that new caller-selected content rejections could poison the host-wide circuit. A regression reproduced the healthy-image pause, then passed after image-policy rejections were excluded from outage counting. Ordinary provider network/5xx failures still use the existing circuit behavior. The temporary raised circuit threshold was removed from the image tests; they now exercise the real policy. All 15 focused image/circuit tests pass.
+- docs/security-remediation.md records before/after status for all approved findings, staged-rollout/compatibility notes, deferred F08/F10/F11 and the outstanding network/cloud verification limits. The env file remains ignored; only code, tests and documentation are committed. Final verification passed: all 368 tests, TypeScript, transport checks, env-permission checks and the production build. Workflow YAML, scanner TOML and installer shell syntax parse locally. The local hook remains ready for activation after the pinned scanner is installed; it is not activated while the required binary is unavailable. No network calls, push, merge or deployment occurred. F08, F10 and F11 and all cloud-only checks remain deferred. Unrelated .agents/, .claude/ and skills-lock.json remain untouched; no real credentials are printed or committed.
+
+---
+
+## 182. Turn 182: Authorized Security Scans, Hook Activation and Branch Push
+
+**User Request:**
+> "Allow scans and branch push"
+
+### Authorized follow-through (30 October 2026, SGT):
+- This approval explicitly permits the previously blocked Gitleaks download, dependency/secret scans, local pre-commit activation and push of security/audit-20261029. Main merge, production access/deployment, database changes and credential rotation remain outside scope.
+- Installed Gitleaks 8.30.1 in the existing user-local PATH through the checked-in installer. The Darwin arm64 archive passed the matching official release SHA-256 checksum and its binary version matched exactly. No application dependency was added.
+- The real scanner found seven historical candidates, all reviewed synthetic/negative test fixtures. No confirmed real credential leak was identified. Exact historical commit/file/rule/line fingerprint exceptions are prepared; no test directory or future commit is exempt. Real quoted/unquoted canary and pre-commit tests pass and prove new secrets in test files are still rejected with fully redacted output. The public build scan is clear.
+- The advisory service reported GHSA-mrhx-c7xc-m3w5 (High upstream severity) for Zod below 4.6.6. The vulnerable 4.1.11 copy came from @vercel/functions -> @vercel/oidc -> @vercel/cli-config; Better Auth already resolved to patched Zod 4.6.7. No public exploit path was demonstrated through our bounded auth facade. A same-major override to existing 4.6.7 removes the vulnerable nested copy without adding a new package; the new lockfile regression failed before and passes after. Registry metadata and the GitHub-reviewed advisory were consulted; no automatic audit fix or broad package upgrade was used. The subsequent advisory audit returns no advisories.
+- Installed-tree verification caught a stale nested 4.1.11 copy after the incremental install even though the lockfile audit was clear. Added a second regression that resolves Zod from the actual SDK; it failed before a frozen-lockfile forced reinstall with install scripts disabled, then passed with actual SDK resolution at 4.6.7. No locked versions were broadly upgraded.
+- Activated the repository's local core.hooksPath=.githooks only after installing/verifying the required scanner. The hook checks env permissions and scans staged additions; missing scanners and failed scans block commits. The real scanner's captured diagnostics are not copied into logs. Private env contents remain ignored and .env.local remains 0600.
+- Publication readback: the authorized push succeeded and git ls-remote independently resolved origin/security/audit-20261029 to tested code commit 91d9c029769b50229533d12ebc661240f21ea72a. All 372 post-commit tests passed; final full-history/build scans reported zero unreviewed findings under the seven exact fixture exceptions, and the all-severity advisory audit returned zero advisories. Local main remains f13253c; no main merge, cloud setting or production change was made. This documentation-only follow-up records the readback and is pushed to the same branch after its required checks.
+- The dependency category commit passed type checking, transport/env-permission checks and all 372 tests, including real scanner canaries and actual SDK resolution. The production build passes. The active pre-commit hook ran the installed scanner successfully on the commit; no bypass was used.
+- Committed scanner policy exceptions are limited to the seven exact reviewed historical fixture fingerprints; Gitleaks then reports no unreviewed history findings and no build findings. No credential values or full scanner reports enter Git. SECURITY.md and docs/security-remediation.md now record the authorized online verification, reachability assessment, dependency patch, real scanner tests and remaining limits. Final category checks, scanner readback and push to origin/security/audit-20261029 follow; the remote SHA is verified against local HEAD. F08/F10/F11 and the prior cloud-only checks remain deferred; no production merge or change is authorized. Unrelated .agents/, .claude/ and skills-lock.json remain untouched.
+
+---
+
+## 183. Turn 183: Check Unmerged Pull Requests
+
+**User Request:**
+> "any PR not merged?"
+
+### GitHub readback (30 October 2026, SGT):
+- Queried open pull requests for Mikazukiangus/live-traffic through the GitHub connector. Two remain open: #23, "Make cross-tab commute storage atomic and guard wake-lock ownership", and #29, "Support operator access after Neon Preview Secret repair".
+- Separately searched all PR states for head security/audit-20261029; no PR exists for the pushed security audit branch. No merge, PR creation, deployment or cloud setting change was requested or performed.
+- Updated this log and table of contents under the standing instruction, then committed/pushed the documentation-only update to the existing security branch. Unrelated untracked files remain untouched.
+
+---
+
+## 184. Turn 184: Approved Combined Main Merge
+
+**User Request:**
+> "merge to main"
+
+### Integration preparation (30 October 2026, SGT):
+- Interpreted approval in the context of the immediately preceding outstanding-work list: PRs #23/#29 and security/audit-20261029. Fetched current main f13253c and both original PR heads. Both original drafts had passing historical Checks; PR #23 conflicts with newer queue code. Integrating both exact PR heads into the audit branch preserves ancestry for a single reviewed/tested main merge, without rewriting history or bypassing the deployment gate.
+- Resolved #23's MyCommute conflict by preserving the newer createHistoryJobs wrapper and awaiting the coordinated repository inside its existing callback. Removed a stray Promise catch from the now-void enqueue operation. Preserved every prior log/TOC entry, including Turns 143 and 160–162 that existed only on the original PR branches.
+- Resolved #29's operator import conflict by retaining both the repaired hidden-prompt/process-input flow and the newer centralized safe logger. The hook correctly rejected three synthetic setting literals from the old test file; changed only those fixtures to construct explicit synthetic URL objects. No scanner exception, bypass or real credential access was used.
+- Added an integration regression proving deferred history owns its queue slot until the locked write finishes and cannot restore samples for a route edited by another tab. Full-suite checking also caught #23's old direct console call; migrated it to the existing JSON logger with fixed allowed event/code and no raw exception. Existing assertions and tests remain intact. Type checking and the transport audit pass; full suite/build/scans and GitHub checks are verified before the approved merge.
+- No authentication/Firewall/secret/database configuration or schema change is included. Production login remains controlled by existing disabled defaults. F08/F10/F11 remain deferred. Unrelated .agents/, .claude/ and skills-lock.json are untouched. The approved source merge uses the existing Git integration and required checks; no manual promotion bypass is planned.
 
 ---
 

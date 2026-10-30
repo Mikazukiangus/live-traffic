@@ -25,6 +25,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, verified official tag
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4, verified official tag
         with:
           node-version: 24
@@ -33,9 +34,19 @@ jobs:
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2, verified official tag
         with:
           bun-version: 1.4.1
+      - name: Install pinned secret scanner
+        run: |
+          sh scripts/install-gitleaks.sh "$RUNNER_TEMP/trafficpulse-security-bin"
+          echo "$RUNNER_TEMP/trafficpulse-security-bin" >> "$GITHUB_PATH"
+      - name: Scan complete Git history for secrets
+        run: gitleaks git --redact=100 --no-banner --config=.gitleaks.toml --log-opts="--all" .
       - run: bun install --frozen-lockfile
+      - name: Dependency advisory audit
+        run: bun audit --audit-level=high
       - name: Type check
         run: npm run lint
+      - name: Private environment file permissions
+        run: npm run security:env-permissions
       - name: HTTPS and cookie policy
         run: npm run security:audit
       - name: Unit and integration tests with coverage
@@ -52,3 +63,5 @@ jobs:
           retention-days: 7
       - name: Build
         run: npm run build
+      - name: Scan public build artifacts for secrets
+        run: gitleaks dir --redact=100 --no-banner --config=.gitleaks.toml dist

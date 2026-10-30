@@ -1,6 +1,7 @@
 import { config } from '../../config/client';
 import { useEffect, useRef, useState } from 'react';
 import { useUrlParam, writeParams } from './urlState';
+import { createWakeLockResource } from './wakeLockResource';
 
 /**
  * Wall display (?display=wall): no menus, full screen where allowed, and pages cycle through
@@ -46,30 +47,17 @@ export function useWakeLock(enabled: boolean) {
   const [held, setHeld] = useState<boolean | null>(() => ('wakeLock' in navigator ? false : null));
   useEffect(() => {
     if (!enabled || !('wakeLock' in navigator)) return;
-    let lock: WakeLockSentinel | null = null;
-    let cancelled = false;
-    const take = async () => {
-      if (document.visibilityState !== 'visible' || (lock && !lock.released)) return;
-      try {
-        lock = await navigator.wakeLock.request('screen');
-        if (cancelled) {
-          lock.release().catch(() => {});
-          return;
-        }
-        setHeld(true);
-        lock.addEventListener('release', () => setHeld(false));
-      } catch {
-        // Refused (e.g. battery saver); the screen may sleep
-        setHeld(false);
-      }
-    };
+    const resource = createWakeLockResource({
+      request: () => navigator.wakeLock.request('screen'),
+      visible: () => document.visibilityState === 'visible',
+      held: setHeld,
+    });
+    const take = () => { void resource.take(); };
     take();
     document.addEventListener('visibilitychange', take);
     return () => {
-      cancelled = true;
       document.removeEventListener('visibilitychange', take);
-      lock?.release().catch(() => {});
-      setHeld(false);
+      resource.dispose();
     };
   }, [enabled]);
   return held;

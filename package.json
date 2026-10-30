@@ -13,6 +13,9 @@
     "test:coverage": "node --import tsx scripts/test-coverage.ts",
     "config:example": "node --import tsx scripts/generate-env-example.ts",
     "security:audit": "node --import tsx scripts/transport-audit.ts",
+    "security:secrets": "node --import tsx scripts/secret-scan.ts",
+    "security:env-permissions": "node --import tsx scripts/check-env-permissions.ts",
+    "security:hooks": "git config --local core.hooksPath .githooks",
     "auth:migrate": "node --import tsx scripts/auth-migrate.ts"
   },
   "dependencies": {
@@ -41,5 +44,8 @@
     "tailwindcss": "^4.3.3",
     "tsx": "^4.21.0",
     "typescript": "^7.0.2"
+  },
+  "overrides": {
+    "zod": "4.6.7"
   }
 }

@@ -4,6 +4,7 @@ import type { Pool } from 'pg';
 import { config } from '../../config/server.ts';
 import { authDatabase } from './database.ts';
 import { captureException } from '../../shared/errorTracking.ts';
+import { AUTH_SECURITY, authSecurityPolicy } from './securityPolicy.ts';
 
 export const AUTH_COOKIE_PREFIX = 'trafficpulse';
 export const PASSWORD_POLICY = Object.freeze({ minimum: 12, maximum: 128,
@@ -18,7 +19,9 @@ export function createAuthService(options: { database: BetterAuthOptions['databa
     user: { modelName: 'tp_auth_user', changeEmail: { enabled: false }, deleteUser: { enabled: false } },
     account: { modelName: 'tp_auth_account', accountLinking: { enabled: false } },
     verification: { modelName: 'tp_auth_verification' },
-    session: { modelName: 'tp_auth_session', expiresIn: 86400, updateAge: 3600, cookieCache: { enabled: false } },
+    session: { modelName: 'tp_auth_session', expiresIn: AUTH_SECURITY.absoluteSessionSeconds,
+      disableSessionRefresh: true, deferSessionRefresh: true, cookieCache: { enabled: false } },
+    plugins: [authSecurityPolicy()],
     emailAndPassword: { enabled: true, disableSignUp: !options.allowEnrollment,
       autoSignIn: false,
       minPasswordLength: PASSWORD_POLICY.minimum, maxPasswordLength: PASSWORD_POLICY.maximum,

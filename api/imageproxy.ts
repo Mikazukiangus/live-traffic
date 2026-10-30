@@ -4,6 +4,7 @@ import { withRequestSchema } from '../server/http/validateRequest.ts';
 import { reportFailure } from '../shared/diagnostics.ts';
 import { config } from '../config/server.ts';
 import { readProvider } from '../server/http/readProvider.ts';
+import { readCameraJpeg } from '../server/http/readImage.ts';
 /**
  * Serverless Image Proxy for Singapore LTA and Open Data Traffic Images.
  * Fixes browser MIME-type blocking (x-content-type-options: nosniff on application/octet-stream)
@@ -24,13 +25,12 @@ const handler = withRequestSchema(requestSchemas.image, async (_req, res, input)
   const { imageUrl } = input.query;
 
   try {
-    const arrayBuffer = await readProvider(imageUrl, (response) => response.arrayBuffer(), {
+    const buffer = await readProvider(imageUrl, readCameraJpeg, {
       headers: {
-        accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+        accept: 'image/jpeg,application/octet-stream;q=0.8',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
       },
     }, { attempts: Math.min(2, config.server.lta.attempts) });
-    const buffer = Buffer.from(arrayBuffer);
 
     if (res && typeof res.status === 'function') {
       res.setHeader('Content-Type', 'image/jpeg');

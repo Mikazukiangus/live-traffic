@@ -173,6 +173,8 @@ export function createCommuteRepository(
 
   return {
     getSnapshot: () => snapshot,
+    // The persistence adapter serializes this immediately; callers must not mutate it.
+    exportState: () => ({ commutes: snapshot.commutes, histories }),
     subscribe(fn: () => void) {
       listeners.add(fn);
       return () => {

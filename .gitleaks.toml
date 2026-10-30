@@ -1,0 +1,32 @@
+title = "TrafficPulse secret detection"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "trafficpulse-private-setting-literal"
+description = "Quoted credential-bearing application setting"
+regex = '''(?i)(?:LTA_ACCOUNT_KEY|LTA_API_KEY|BETTER_AUTH_SECRET|DATABASE_URL(?:_UNPOOLED)?)\s*["']?\s*[:=]\s*["']([A-Za-z0-9_+./:@?=&%!-]{12,512})["']'''
+secretGroup = 1
+entropy = 3.5
+keywords = ["LTA_ACCOUNT_KEY", "LTA_API_KEY", "BETTER_AUTH_SECRET", "DATABASE_URL"]
+
+[[rules]]
+id = "trafficpulse-unquoted-env-credential"
+description = "Unquoted credential-bearing environment assignment"
+regex = '''(?im)^\s*(?:export\s+)?(?:LTA_ACCOUNT_KEY|LTA_API_KEY|BETTER_AUTH_SECRET|DATABASE_URL(?:_UNPOOLED)?)\s*=\s*([A-Za-z0-9_+./:@?=&%!-]{12,512})\s*$'''
+secretGroup = 1
+entropy = 3.5
+keywords = ["LTA_ACCOUNT_KEY", "LTA_API_KEY", "BETTER_AUTH_SECRET", "DATABASE_URL"]
+
+# Only recognizable fixture VALUES, never whole test directories or environment files.
+[[allowlists]]
+description = "Explicit synthetic fixture values and placeholder text"
+regexTarget = "secret"
+regexes = [
+  '''(?i)^synthetic[-_a-z0-9:/@.]*$''',
+  '''^trafficpulse-build-private-sentinel-[0-9]+$''',
+  '''^request-schema-synthetic-only$''',
+  '''(?i)^your[-_a-z0-9]*$''',
+  '''^private-marker$''',
+]

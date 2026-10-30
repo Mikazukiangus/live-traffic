@@ -3,6 +3,16 @@
 Prepared 22 October 2026; release status refreshed 25 October 2026 (Asia/Singapore). Repository:
 <https://github.com/Mikazukiangus/live-traffic>.
 
+## Current integration status — 30 October 2026
+
+The user approved merging the outstanding PRs #23/#29 and security/audit-20261029.
+The audit branch now contains both exact original PR heads. Conflict resolution keeps
+the background history queue around the coordinated v2 storage adapter and preserves
+centralized safe operator logging. One integration PR will merge this combined tree
+after its current Checks pass. The older release snapshots below are historical;
+consult Turn 184 and current main for final merge/deployment readback. Production auth,
+DB/Firewall settings and deferred audit findings are not activated by this source merge.
+
 ## Start here
 
 Continue development from the **latest `main`**. Read this note, the standing
@@ -53,7 +63,7 @@ and Turns 155–156. Starting defaults: operator-created accounts, optional sign
 public traffic unchanged; no public signup/email delivery/account sync.
 
 The dedicated free Neon resource `trafficpulse-auth-preview` (Singapore,
-`store_MPzLJypjannI261q`) is connected only to preview/development. Five auth tables
+`store_MPzLJypjannI261q`) is connected only to Preview after the Secret repair. Five auth tables
 are migrated. Real synthetic PostgreSQL login/session/logout passed and test rows
 were removed. Better Auth 1.7.12 uses Argon2id, shared revocable sessions and atomic
 IP attempt budgets. The account UI, bounded CSRF-safe facade and pre-CDN verified
@@ -66,18 +76,28 @@ forecast endpoint also returned 200. No interactive UI pass or threshold rejecti
 is implied. The new proxy shares Hobby’s twelve slots by consolidating forecast24h
 into the existing live gateway, preserving its public URL.
 
-**28 October credential-storage investigation (Turn 159):** eight generated Neon
-credential URL/password aliases are readable Config despite carrying secrets. The
-resource is available; no outage or compromise was established. Vercel requires
-disconnect → rotate at source → reconnect Preview-only with Sensitive enabled →
-redeploy for managed integration Secrets. Keeping Development linked prevents that
-Sensitive option, though generic Development Secrets are supported. No mutation was
-performed; explicit approval is needed for immediate password revocation/preview
-interruption and removal of Development automatic credential delivery. The current
-DB-only operator helper depends on Development-readable settings and needs a
-separate authorized local/operator workflow if this change is approved. Do not
-blindly edit managed variables or provision a duplicate database. Read the concrete
-plan in `docs/authentication.md`; LTA/signing secret already use Secret correctly.
+**Turn 162 Secret repair completed, 28 October:** after explicit repair approval,
+the user signed in and completed the required human Rotate Secrets step. The same
+Neon resource was disconnected and reconnected using makeEnvVarsSensitive=true to
+live-traffic Preview only (connection spc_Jk6p9HDGGBWtTXAv). All sixteen generated
+vars are now Secret; no Development/Production DB target remains, and the project's
+Needs Attention filter has no matches. LTA/signing secret/feature gates are unchanged.
+No database/resource/data was deleted and no credential was printed/exported.
+
+Replacement auth-enabled Preview dpl_3oKi2DbnL8jE9WX86zuyjugYDMj2 is READY at
+https://live-traffic-jn540di4y-carbon-bc04.vercel.app, from the existing approved auth
+source. Protected anonymous session/sign-out return 200 and an unknown-account login
+returns expected 401 after database lookup, with private/no-store. Full successful
+account sign-in and old-password rejection were not repeated; do not overstate these
+checks. Old immutable previews retain old values and need replacement if used.
+
+Operator changes are in draft PR #29, codex/neon-secret-repair (304 passing CI tests,
+type check/audit/build). The new helper uses hidden TTY prompts or authorized process
+credentials, never Vercel env-value readback. Main still has the old Development-read
+helper until PR #29 is separately approved/merged; use the repair branch meanwhile.
+Local auth can remain disabled and existing local LTA settings were not overwritten.
+External repair is complete; no repeated reset, new database or prod activation is
+needed. See docs/authentication.md for current commands and Turn 162 for evidence.
 
 Branch-only preview settings enable server/UI login and SDK **observe** mode.
 No production DB/secret/auth setting was enabled. Do not export environments or

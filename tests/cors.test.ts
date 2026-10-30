@@ -141,7 +141,7 @@ for (const mode of ['node', 'web']) {
     globalThis.fetch = async (url) => {
       urls.push(String(url));
       if (fail) return new Response('synthetic failure', { status: 503 });
-      if (String(url).startsWith('https://images.data.gov.sg/')) return new Response(new Uint8Array([1, 2, 3]));
+      if (String(url).startsWith('https://images.data.gov.sg/')) return new Response(new Uint8Array([255, 216, 255, 224, 1, 2, 3, 255, 217]));
       return Response.json({ value: [] });
     };
     console.error = () => {};
@@ -161,7 +161,7 @@ for (const mode of ['node', 'web']) {
           noCredentials(headers);
           if (name === 'imageproxy') {
             assert.equal(headers['content-type'], 'image/jpeg');
-            assert.equal(res ? res.body.byteLength : (await response.arrayBuffer()).byteLength, 3);
+            assert.equal(res ? res.body.byteLength : (await response.arrayBuffer()).byteLength, 9);
           }
         }
       }
