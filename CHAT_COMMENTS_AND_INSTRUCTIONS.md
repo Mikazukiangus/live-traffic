@@ -187,6 +187,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 180. [Turn 180: Confirm Active Green-Build Vercel CI/CD Pipeline](#180-turn-180-confirm-active-green-build-vercel-cicd-pipeline)
 181. [Turn 181: Approved Security Audit Remediation](#181-turn-181-approved-security-audit-remediation)
 182. [Turn 182: Authorized Security Scans, Hook Activation and Branch Push](#182-turn-182-authorized-security-scans-hook-activation-and-branch-push)
+183. [Turn 183: Check Unmerged Pull Requests](#183-turn-183-check-unmerged-pull-requests)
 
 ---
 
@@ -3199,6 +3200,18 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Publication readback: the authorized push succeeded and git ls-remote independently resolved origin/security/audit-20261029 to tested code commit 91d9c029769b50229533d12ebc661240f21ea72a. All 372 post-commit tests passed; final full-history/build scans reported zero unreviewed findings under the seven exact fixture exceptions, and the all-severity advisory audit returned zero advisories. Local main remains f13253c; no main merge, cloud setting or production change was made. This documentation-only follow-up records the readback and is pushed to the same branch after its required checks.
 - The dependency category commit passed type checking, transport/env-permission checks and all 372 tests, including real scanner canaries and actual SDK resolution. The production build passes. The active pre-commit hook ran the installed scanner successfully on the commit; no bypass was used.
 - Committed scanner policy exceptions are limited to the seven exact reviewed historical fixture fingerprints; Gitleaks then reports no unreviewed history findings and no build findings. No credential values or full scanner reports enter Git. SECURITY.md and docs/security-remediation.md now record the authorized online verification, reachability assessment, dependency patch, real scanner tests and remaining limits. Final category checks, scanner readback and push to origin/security/audit-20261029 follow; the remote SHA is verified against local HEAD. F08/F10/F11 and the prior cloud-only checks remain deferred; no production merge or change is authorized. Unrelated .agents/, .claude/ and skills-lock.json remain untouched.
+
+---
+
+## 183. Turn 183: Check Unmerged Pull Requests
+
+**User Request:**
+> "any PR not merged?"
+
+### GitHub readback (30 October 2026, SGT):
+- Queried open pull requests for Mikazukiangus/live-traffic through the GitHub connector. Two remain open: #23, "Make cross-tab commute storage atomic and guard wake-lock ownership", and #29, "Support operator access after Neon Preview Secret repair".
+- Separately searched all PR states for head security/audit-20261029; no PR exists for the pushed security audit branch. No merge, PR creation, deployment or cloud setting change was requested or performed.
+- Updated this log and table of contents under the standing instruction, then committed/pushed the documentation-only update to the existing security branch. Unrelated untracked files remain untouched.
 
 ---
 
