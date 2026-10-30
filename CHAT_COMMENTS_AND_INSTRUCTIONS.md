@@ -186,6 +186,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 179. [Turn 179: Approved Merge of Additional Critical-Path Tests](#179-turn-179-approved-merge-of-additional-critical-path-tests)
 180. [Turn 180: Confirm Active Green-Build Vercel CI/CD Pipeline](#180-turn-180-confirm-active-green-build-vercel-cicd-pipeline)
 181. [Turn 181: Approved Security Audit Remediation](#181-turn-181-approved-security-audit-remediation)
+182. [Turn 182: Authorized Security Scans, Hook Activation and Branch Push](#182-turn-182-authorized-security-scans-hook-activation-and-branch-push)
 
 ---
 
@@ -3180,6 +3181,22 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Local secret-file category (F09): .env.local was changed from 0644 to 0600 without reading contents. The regression reproduced the broad mode before chmod; both permission tests now pass. A metadata-only checker rejects broad modes/symlinks on POSIX systems and is wired into CI and the pre-commit hook. It prints fixed outcomes, never credential values or filenames. Windows ACL verification remains manual.
 - Final image/circuit interaction review found that new caller-selected content rejections could poison the host-wide circuit. A regression reproduced the healthy-image pause, then passed after image-policy rejections were excluded from outage counting. Ordinary provider network/5xx failures still use the existing circuit behavior. The temporary raised circuit threshold was removed from the image tests; they now exercise the real policy. All 15 focused image/circuit tests pass.
 - docs/security-remediation.md records before/after status for all approved findings, staged-rollout/compatibility notes, deferred F08/F10/F11 and the outstanding network/cloud verification limits. The env file remains ignored; only code, tests and documentation are committed. Final verification passed: all 368 tests, TypeScript, transport checks, env-permission checks and the production build. Workflow YAML, scanner TOML and installer shell syntax parse locally. The local hook remains ready for activation after the pinned scanner is installed; it is not activated while the required binary is unavailable. No network calls, push, merge or deployment occurred. F08, F10 and F11 and all cloud-only checks remain deferred. Unrelated .agents/, .claude/ and skills-lock.json remain untouched; no real credentials are printed or committed.
+
+---
+
+## 182. Turn 182: Authorized Security Scans, Hook Activation and Branch Push
+
+**User Request:**
+> "Allow scans and branch push"
+
+### Authorized follow-through (30 October 2026, SGT):
+- This approval explicitly permits the previously blocked Gitleaks download, dependency/secret scans, local pre-commit activation and push of security/audit-20261029. Main merge, production access/deployment, database changes and credential rotation remain outside scope.
+- Installed Gitleaks 8.30.1 in the existing user-local PATH through the checked-in installer. The Darwin arm64 archive passed the matching official release SHA-256 checksum and its binary version matched exactly. No application dependency was added.
+- The real scanner found seven historical candidates, all reviewed synthetic/negative test fixtures. No confirmed real credential leak was identified. Exact historical commit/file/rule/line fingerprint exceptions are prepared; no test directory or future commit is exempt. Real quoted/unquoted canary and pre-commit tests pass and prove new secrets in test files are still rejected with fully redacted output. The public build scan is clear.
+- The advisory service reported GHSA-mrhx-c7xc-m3w5 (High upstream severity) for Zod below 4.6.6. The vulnerable 4.1.11 copy came from @vercel/functions -> @vercel/oidc -> @vercel/cli-config; Better Auth already resolved to patched Zod 4.6.7. No public exploit path was demonstrated through our bounded auth facade. A same-major override to existing 4.6.7 removes the vulnerable nested copy without adding a new package; the new lockfile regression failed before and passes after. Registry metadata and the GitHub-reviewed advisory were consulted; no automatic audit fix or broad package upgrade was used. The subsequent advisory audit returns no advisories.
+- Installed-tree verification caught a stale nested 4.1.11 copy after the incremental install even though the lockfile audit was clear. Added a second regression that resolves Zod from the actual SDK; it failed before a frozen-lockfile forced reinstall with install scripts disabled, then passed with actual SDK resolution at 4.6.7. No locked versions were broadly upgraded.
+- Activated the repository's local core.hooksPath=.githooks only after installing/verifying the required scanner. The hook checks env permissions and scans staged additions; missing scanners and failed scans block commits. The real scanner's captured diagnostics are not copied into logs. Private env contents remain ignored and .env.local remains 0600.
+- Category commits and post-commit verification, final scanner readback and authorized branch push follow. F08/F10/F11 and the prior cloud-only checks remain deferred; no production merge or change is authorized. Unrelated .agents/, .claude/ and skills-lock.json remain untouched.
 
 ---
 
