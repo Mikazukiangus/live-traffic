@@ -194,6 +194,7 @@ This document records all user instructions, feedback, technical inquiries, inve
 183. [Turn 183: Check Unmerged Pull Requests](#183-turn-183-check-unmerged-pull-requests)
 184. [Turn 184: Approved Combined Main Merge](#184-turn-184-approved-combined-main-merge)
 185. [Turn 185: Approved Dependabot Action Upgrades](#185-turn-185-approved-dependabot-action-upgrades)
+186. [Turn 186: Reaffirm Project Log Updates](#186-turn-186-reaffirm-project-log-updates)
 
 ---
 
@@ -3325,6 +3326,17 @@ Readings at 10:00 SGT: PSI North 100 and South 100 (Moderate); East 120, West 12
 - Production deployment dpl_38ULFUWAXFMFayJ7LJgH7ovYRuZj is READY for the intended live-traffic project/Carbon team, production target and exact final merge SHA. Its canonical alias is assigned, and the authenticated production homepage returns 200 with its actual index-C8QSgijG.js entry and existing framing policy. This is deployment/artifact verification, not a new real-browser, database or live-provider test. No manual promotion or protection change was needed.
 - Recorded these results in the required log/handoff/CI guide and pushed a documentation/comment-only follow-up to approved main. Its normal required CI and deployment run again with unchanged application source. All three requested PRs are merged; no open PRs were found at readback.
 
+
+---
+
+## 186. Turn 186: Reaffirm Project Log Updates
+
+**User Request:**
+> "remember to update the comments md file."
+
+### Recorded (30 October 2026, SGT):
+- Reaffirmed the standing instruction at the top of this file: update this log and its table of contents on every project turn, including questions, checks and confirmations, then commit and push before responding. Application changes still require their existing preview/main approval process.
+- Added this reminder and its table-of-contents entry. Documentation only; unrelated untracked files remain untouched. Whitespace and active pre-commit checks are used for the commit; no repeated application tests are needed for this reminder.
 
 ---
 
