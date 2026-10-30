@@ -53,3 +53,18 @@ Final result: **372 tests passed, zero failed**; type checking, transport audit,
 - No compromised real secret was established in the bounded audit. If a future scan confirms one, rotate/revoke first and coordinate consumer updates; removing source alone does not revoke it. See SECURITY.md.
 
 Residual risk remains outside the inspected code and local tests. Review the threat model when enabling private records or privileged roles, then perform an authorized staging penetration test. Consider a vulnerability reporting/bounty program only after operational ownership and reporting procedures are ready.
+
+## Release verified — 30 October 2026
+
+[PR #35](https://github.com/Mikazukiangus/live-traffic/pull/35) merged this remediation
+and approved #23/#29 as `50581f8c30efec0308b3a83463dd1567297dd847`. Both original PRs
+are marked merged. Required PR/main Checks passed 392 tests, zero failures/skips,
+full-history/build secret scanning, dependency audit, type/transport/env checks and build.
+Main run: [40993414666](https://github.com/Mikazukiangus/live-traffic/actions/runs/40993414666).
+The intended production deployment `dpl_9StjHxrspQAmXy86kxCTXQPw88SY` is READY;
+canonical metadata resolves to the exact merge and the authenticated homepage
+returns 200 with `frame-ancestors 'none'`, `X-Frame-Options: DENY` and existing HSTS.
+This confirms deployed framing policy, not the other deferred cloud/security controls.
+No login activation, cloud protection setting, migration or credential rotation occurred.
+New Dependabot PRs #36/#37/#38 and npm update-discovery failures remain separate
+maintenance work; the required release job and Bun advisory audit passed.

@@ -3,15 +3,26 @@
 Prepared 22 October 2026; release status refreshed 25 October 2026 (Asia/Singapore). Repository:
 <https://github.com/Mikazukiangus/live-traffic>.
 
-## Current integration status — 30 October 2026
+## Current release — 30 October 2026
 
-The user approved merging the outstanding PRs #23/#29 and security/audit-20261029.
-The audit branch now contains both exact original PR heads. Conflict resolution keeps
-the background history queue around the coordinated v2 storage adapter and preserves
-centralized safe operator logging. One integration PR will merge this combined tree
-after its current Checks pass. The older release snapshots below are historical;
-consult Turn 184 and current main for final merge/deployment readback. Production auth,
-DB/Firewall settings and deferred audit findings are not activated by this source merge.
+PR #35 merged the security audit and both exact original heads of #23/#29 into main
+as 50581f8c30efec0308b3a83463dd1567297dd847. GitHub marks all three PRs merged.
+Local main is fast-forwarded. Both PR and main Checks passed all 392 tests, type,
+transport/env checks, full-history/build secret scans, dependency audit and build.
+Production dpl_9StjHxrspQAmXy86kxCTXQPw88SY is READY and canonical readback resolves
+to this merge. The authenticated homepage returns 200 with framing/HSTS headers.
+Turn 184 records exact CI/deployment evidence. A documentation-only follow-up keeps
+runtime unchanged and passes through the same release gate.
+
+The integration retains queued history around coordinated v2 storage and centralized
+safe operator logging. Production auth, DB/Firewall settings and deferred audit
+findings F08/F10/F11 were not activated or expanded. Real browser/model/Neon behavior
+was not re-tested. Dependabot subsequently opened new action-update PRs #36/#37/#38;
+these were not part of the approved set and remain for review. Npm update discovery
+failed separately; required release Checks and the Bun advisory audit passed.
+
+Older release snapshots below describe historical states, including formerly pending
+PRs. They do not supersede this current release status.
 
 ## Start here
 

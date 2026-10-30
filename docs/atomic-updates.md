@@ -106,3 +106,8 @@ A regression verifies that the queue holds its slot until the shared write compl
 and rejects a queued receipt after another tab changes the route. The older direct
 console diagnostic now uses the existing centralized JSON logger. Turn 184 records
 current checks, merge and deployment results; earlier preview snapshots above are historical.
+
+Release readback: PR #35 merged #23 with the queue integration and audit as
+`50581f8c30efec0308b3a83463dd1567297dd847`. GitHub marks #23 merged. All 392 PR/main
+Checks tests pass and production is READY. Old deployed tabs should reload to join
+the coordinated v2 protocol; real multi-tab/wake-lock behavior remains unverified.

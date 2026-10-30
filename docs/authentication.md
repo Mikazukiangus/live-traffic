@@ -300,3 +300,8 @@ secret guard needs no new exception. No database command, credential retrieval,
 rotation or auth/Firewall enablement accompanies this source merge. Turn 184 records
 final checks and main release status. The 28 October preview evidence above remains
 historical, not a new live database verification.
+
+Release readback: PR #35 merged #29 and the audit as
+`50581f8c30efec0308b3a83463dd1567297dd847`; GitHub marks #29 merged. Both PR and main
+Checks passed all 392 tests. Production is READY; no production auth flag, database
+connection or credential was changed. Current operator commands are now in main.
