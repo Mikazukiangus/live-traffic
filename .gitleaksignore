@@ -1,0 +1,9 @@
+# Reviewed historical synthetic/negative test fixtures, not registered credentials.
+# Exact commit/file/rule/line fingerprints only; no directory or future-commit exemption.
+8e344e69a99cde9f0a71ac8f5b130fa4316e5793:tests/auth-operator.test.ts:trafficpulse-private-setting-literal:8
+8e344e69a99cde9f0a71ac8f5b130fa4316e5793:tests/auth-operator.test.ts:trafficpulse-private-setting-literal:9
+8e344e69a99cde9f0a71ac8f5b130fa4316e5793:tests/auth-operator.test.ts:trafficpulse-private-setting-literal:32
+6aafdfe7c3f6130820b8dfff3b7daad2b8a41002:tests/authentication.test.ts:trafficpulse-private-setting-literal:204
+6aafdfe7c3f6130820b8dfff3b7daad2b8a41002:tests/authentication.test.ts:trafficpulse-private-setting-literal:205
+5ad6848fec071305aea5c3f27400ed1c073e549b:tests/cors.test.ts:trafficpulse-private-setting-literal:9
+338c62657cb3857bb1ebdb75fb9a755a73bcc92d:tests/request-boundaries.test.ts:generic-api-key:104
